@@ -70,8 +70,12 @@ for (pool in unique(files$FileName)){
 
 looppoolName <- strsplit(pool, "[_]")[[1]][1]
 
-dir.create("demultiplexed")
-temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -j 7 -g ^file:P.Forwards.fasta -G ^file:P.Reverses.fasta -o demultiplexed/",looppoolName,"-{name}.R1.fastq.gz -p demultiplexed/",looppoolName,"-{name}.R2.fastq.gz ",pool,"1_001.fastq.gz ",pool,"2_001.fastq.gz"), stdout=T, stderr=T)
+dir.create("S.demultiplexed")
+temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -j 7 -g ^file:P.Forwards.fasta -G ^file:P.Reverses.fasta -o S.demultiplexed/",looppoolName,"-{name}.S.R1.fastq.gz -p S.demultiplexed/",looppoolName,"-{name}.S.R2.fastq.gz ",pool,"1_001.fastq.gz ",pool,"2_001.fastq.gz"), stdout=T, stderr=T)
+cat(file="log.txt", temp, append=T, sep="\n")
+
+dir.create("A.demultiplexed")
+temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -j 7 -g ^file:P.Reverses.fasta -G ^file:P.Forwards.fasta -o A.demultiplexed/",looppoolName,"-{name}.A.R1.fastq.gz -p A.demultiplexed/",looppoolName,"-{name}.A.R2.fastq.gz ",pool,"1_001.fastq.gz ",pool,"2_001.fastq.gz"), stdout=T, stderr=T)
 cat(file="log.txt", temp, append=T, sep="\n")
 
 }
