@@ -24,9 +24,9 @@ temp <- paste("Cutadapt v", system2("cutadapt", "--v", stdout=T, stderr=T), sep=
 cat(file="../log.txt", temp, append=T, sep="\n")
 
 #primer information
-Euk18S <- c("GTACACACCGCCCGTC","TGATCCTTCTGCAGGTTCACCTAC","18S","E")
-Riaz12S <-c("TTAGATACCCCACTATGC","TAGAACAGGCTCCTCTAG","12S","R")
-Mamm16S <- c("CGGTTGGGGTGACCTCGGA","GCTGTTATCCCTAGGGTAACT","16S","M")
+Euk18S <- c("GTACACACCGCCCGTC","TGATCCTTCTGCAGGTTCACCTAC","18S","EUK")
+Riaz12S <-c("TTAGATACCCCACTATGC","TAGAACAGGCTCCTCTAG","12S","RIZ")
+Mamm16S <- c("CGGTTGGGGTGACCTCGGA","GCTGTTATCCCTAGGGTAACT","16S","MAM")
 
 primerSets <- as.data.frame(rbind(Euk18S,Riaz12S,Mamm16S))
 
@@ -84,11 +84,51 @@ cat(file="log.txt", temp, append=T, sep="\n")
 
 ### Rename all files according to metadata 
 
+for (loopIndex in 1:length(files[,1])){
 
-################# HERE 11 April 2023 #####
-
+  for (primer in c("EUK","RIZ","MAM")) {
+  loopSample <- files[loopIndex,1]
+ 
+  loopTargetfile <- paste0(strsplit(files$FileName[loopIndex], "[_]")[[1]][1],
+                           "-",
+                           primer,
+                           "-",
+                           formatC(files$TagID[loopIndex],width = 2, format = "d", flag = "0"),
+                           ".")
+  
+  print(loopSample)
+  system2("mv",args=paste0("S.demultiplexed/",loopTargetfile,"S.R1.fastq.gz S.demultiplexed/",primer,".",loopSample,".S.R1.fastq.gz"))
+  system2("mv",args=paste0("S.demultiplexed/",loopTargetfile,"S.R2.fastq.gz S.demultiplexed/",primer,".",loopSample,".S.R2.fastq.gz"))
+  system2("mv",args=paste0("A.demultiplexed/",loopTargetfile,"A.R1.fastq.gz A.demultiplexed/",primer,".",loopSample,".A.R1.fastq.gz"))
+  system2("mv",args=paste0("A.demultiplexed/",loopTargetfile,"A.R2.fastq.gz A.demultiplexed/",primer,".",loopSample,".A.R2.fastq.gz"))
+  }
+}
 
 ### Loop over each marker stripping RevComp primer from F & R
+dir.create("S.stripped",showWarnings = FALSE)
+dir.create("A.stripped",showWarnings = FALSE)
+
+for (primer in c("EUK","RIZ","MAM")){
+  for (file in list.files("S.demultiplexed",pattern=paste0(primer,".*R1.fastq.gz$"))){
+  
+  filename <- gsub("(.*R)[12].fastq.gz","\\1",file)
+  temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -a ",
+                                         RevComp(primerSets$V2[primerSets$V4==primer])," -A ",
+                                         RevComp(primerSets$V1[primerSets$V4==primer]),
+                                         " -j 7 -o S.stripped/",file," -p S.stripped/",paste0(filename,"2.fastq.gz "),
+                                         "S.demultiplexed/",file," S.demultiplexed/",paste0(filename,"2.fastq.gz")), stdout=T, stderr=T)
+  cat(file="log.txt", temp, append=T, sep="\n")
+  
+  }
+  for (file in list.files("A.demultiplexed",pattern=paste0(primer,".*R1.fastq.gz$"))){
+    filename <- gsub("(.*R)[12].fastq.gz","\\1",file)
+  temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -a ",
+                                         RevComp(primerSets$V1[primerSets$V4==primer])," -A ",
+                                         RevComp(primerSets$V2[primerSets$V4==primer]),
+                                         " -j 7 -o A.stripped/",file," -p A.stripped/",paste0(filename,"2.fastq.gz "),
+                                         "A.demultiplexed/",file," A.demultiplexed/",paste0(filename,"2.fastq.gz")), stdout=T, stderr=T)
+  cat(file="log.txt", temp, append=T, sep="\n")
+}}
 
 
 
