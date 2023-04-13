@@ -1,5 +1,5 @@
 
-## 1.0 Demultiplex Pools
+## 1.0 Demultiplex Pools & trim primers
 
 ##We need to demultiplex the data 
 
@@ -12,6 +12,8 @@ library(ShortRead)
 packageVersion("ShortRead")
 library(Biostrings)
 packageVersion("Biostrings")
+library(dplyr)
+packageVersion("dplyr")
 
 
 # set the directory 
@@ -132,203 +134,53 @@ for (primer in c("EUK","RIZ","MAM")){
 
 
 
+## 2.0 Count Reads
+#Before we start the pipeline lets have a look for any big drops in the number of reads retained by trimming. 
+
+#fileList <- list.files("S.demultiplexed",pattern="R1.fastq",full.names = TRUE)
+#rawreadcount <- sapply(files,FastqCount)
+#names(rawreadcount) <- gsub(".R1.fastq.gz","",sapply(strsplit(basename(names(rawreadcount)),"_"),'[',1))
+
+DeMultiS  <- sapply(list.files("S.demultiplexed",pattern="R1.fastq",full.names = TRUE),FastqCount)
+DeMultiA  <- sapply(list.files("A.demultiplexed",pattern="R1.fastq",full.names = TRUE),FastqCount)
+StrippedS  <- sapply(list.files("S.stripped",pattern="R1.fastq",full.names = TRUE),FastqCount)
+StrippedA  <- sapply(list.files("A.stripped",pattern="R1.fastq",full.names = TRUE),FastqCount)
+
+length(DeMultiS)
+length(DeMultiA)
+length(StrippedS)
+length(StrippedA)
+
+ReadCounts <- data.frame("SenseDemultiplex"=DeMultiS,"SenseStripped"=StrippedS,"AntiSenseDemultiplex"=DeMultiA,"AntSenseStripped"=StrippedA)
+
+rownames(ReadCounts) <- gsub(".R1.fastq.gz","",sapply(strsplit(basename(rownames(ReadCounts)),"_"),'[',1))
 
 
+write.csv(ReadCounts,file="../Readcount.csv")
 
 
+### 3.0 DADA2 
 
+## 3.1 EUK.SENSE
 
+path <- "S.stripped"
 
-
-
-
-
-##### CODE BASEMENT - DRAGONS BELOW #####
-
-#this is a shit way of doing this, it doesnt create an index of the tags so is very slow, can be improved easily but would give all possible tag combinations, see cutadapt documentation https://cutadapt.readthedocs.io/en/v3.1/guide.html#demultiplexing-paired-end-reads-with-combinatorial-dual-indexes 
-
-for (primer in primerSets$V3){
-  print(primer)
-}
-
-for (loopfile in 1:length(files[,1])){
-  
-for (loopfile in 46:56){
-    
-  
-loopForward <- paste0(files[loopfile,match(paste0("TagF_",primer),colnames(files))],
-                      primerSets$V1[primerSets$V3==primer])  
-loopReverse <- paste0(files[loopfile,match(paste0("TagR_",primer),colnames(files))],
-                      primerSets$V2[primerSets$V3==primer])   
-
-tempOutF <- paste0(primerSets$V4[primerSets$V3==primer],".",files$SampleID[loopfile],".temp.R1.fastq.gz")
-tempOutR <- paste0(primerSets$V4[primerSets$V3==primer],".",files$SampleID[loopfile],".temp.R2.fastq.gz")
-OutF <- paste0(primerSets$V4[primerSets$V3==primer],".",files$SampleID[loopfile],".R1.fastq.gz")
-OutR <- paste0(primerSets$V4[primerSets$V3==primer],".",files$SampleID[loopfile],".R2.fastq.gz")
-
-
-temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -g ^",loopForward," -G ^",loopReverse," -j 8 -o ",tempOutF," -p ",tempOutR," ",files$FileName[loopfile],"1_001.fastq.gz ",files$FileName[loopfile],"2_001.fastq.gz"), stdout=T, stderr=T)
-cat(file="log.txt", temp, append=T, sep="\n")
-
-temp <- system2("cutadapt",args=paste0("-e 1 --pair-adapters --trimmed-only -a ",RevComp(primerSets$V2[primerSets$V3==primer])," -A ",RevComp(primerSets$V1[primerSets$V3==primer])," -j 7 -o ",OutF," -p ",OutR," ",tempOutF," ",tempOutR), stdout=T, stderr=T)
-cat(file="log.txt", temp, append=T, sep="\n")
-
-}
-  
-  
-setwd("../")
-```
-
-
-## 3.0 Strip Primers
-
-Some good ideas for this found [here](https://benjjneb.github.io/dada2/ITS_workflow.html)
-
-This code helps to count the number of times a specific primer is spotted in a sew
-```{r,eval=FALSE}
-primerF <- "GTACACACCGCCCGTC"
-primerR <- "TGATCCTTCTGCAGGTTCACCTAC"
-path <- "1.rawreads"  
-list.files(path)
-fnFs <- sort(list.files(path, pattern = "R1.fastq.gz", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern = "R2.fastq.gz", full.names = TRUE))
-
-allOrients <- function(primer) {
-    # Create all orientations of the input sequence
-    require(Biostrings)
-    dna <- DNAString(primer)  # The Biostrings works w/ DNAString objects rather than character vectors
-    orients <- c(Forward = dna, Complement = complement(dna), Reverse = reverse(dna), 
-        RevComp = reverseComplement(dna))
-    return(sapply(orients, toString))  # Convert back to character vector
-}
-FWD.orients <- allOrients(primerF)
-REV.orients <- allOrients(primerR)
-FWD.orients
-
-primerHits <- function(primer, fn) {
-    # Counts number of reads in which the primer is found
-    nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
-    return(sum(nhits > 0))
-}
-print(fnFs[1])
-rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]), 
-    FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs[[1]]), 
-    REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs[[1]]), 
-    REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
-
-```
-
-This section strips the primers from the sequence and outputs the sense and antisense strands for each example 
-
-```{r,eval=FALSE}
-
-files <- read.csv("metadata.csv")
-
-loopfile <- 1
-
-files$SampleID[loopfile]
-
-
-primerF <- "GTACACACCGCCCGTC"
-primerR <- "TGATCCTTCTGCAGGTTCACCTAC"
-  
-
-forwards <- list.files("1.rawreads/",pattern="R1.fastq.gz")
-reverses <- list.files("1.rawreads/",pattern="R2.fastq.gz")
-
-
-#a little function to do revcomp 
-RevComp <- function(input){
-require(Biostrings)
-dna <- DNAString(input) 
-dna <- reverseComplement(dna)
-return(toString(dna))}
-
-
-#little check
-
-if(length(forwards)!=length(reverses)){message("Files look good, crack on!")}else{stop("F & R different lengths")}
-
-loopname <-  gsub("*.R[12].fastq.gz","",forwards)
-
-#make some folders here to take the outputs
-dir.create("7.DADA2/trimmed")
-dir.create("7.DADA2/trimmed/temp")
-
-##loop over files
-
-
-for (loopfile in 1:length(files[,1])){
-
-
-loopname <- files$SampleID[loopfile]
-
-print(loopname)
-
-#Sense
-#Trim front anchored primers
-  
-system2("cutadapt",args=paste0("--pair-adapters --trimmed-only -g ^",primerF," -G ^",primerR," -j 7 -o 7.DADA2/trimmed/temp/",loopname,".T.S.R1.fastq.gz -p 7.DADA2/trimmed/temp/",loopname,".T.S.R2.fastq.gz 1.rawreads/",loopname,".R1.fastq.gz 1.rawreads/",loopname,".R2.fastq.gz"))
-
-#trim primers on second end of amplicon (higher error rate in these so -e 0.2)
-system2("cutadapt",args=paste0("-e 0.2 --pair-adapters --trimmed-only -a ",RevComp(primerR)," -A ",RevComp(primerF)," -j 7 -o 7.DADA2/trimmed/",loopname,".TF.S.R1.fastq.gz -p 7.DADA2/trimmed/",loopname,".TF.S.R2.fastq.gz 7.DADA2/trimmed/temp/",loopname,".T.S.R1.fastq.gz 7.DADA2/trimmed/temp/",loopname,".T.S.R2.fastq.gz"))
-
-#AntiSense forward
-system2("cutadapt",args=paste0("--pair-adapters --trimmed-only -g ^",primerR," -G ^",primerF," -j 7 -o 7.DADA2/trimmed/temp/",loopname,".T.A.R1.fastq.gz -p 7.DADA2/trimmed/temp/",loopname,".T.A.R2.fastq.gz 1.rawreads/",loopname,".R1.fastq.gz 1.rawreads/",loopname,".R2.fastq.gz"))
-
-#trim primers on second end of antisense amplicon (higher error rate in these so -e 0.2)
-system2("cutadapt",args=paste0("-e 0.2 --pair-adapters --trimmed-only -a ",RevComp(primerF)," -A ",RevComp(primerR)," -j 7 -o 7.DADA2/trimmed/",loopname,".TF.A.R1.fastq.gz -p 7.DADA2/trimmed/",loopname,".TF.A.R2.fastq.gz 7.DADA2/trimmed/temp/",loopname,".T.A.R1.fastq.gz 7.DADA2/trimmed/temp/",loopname,".T.A.R2.fastq.gz"))
-
-}
-```
-
-## 4.0 Count Reads
-Before we start the pipeline lets have a look for any big drops in the number of reads retained by trimming. 
-
-```{r,eval=FALSE}
-
-files <- list.files("1.rawreads",pattern="R1.fastq",full.names = TRUE)
-rawreadcount <- sapply(files,FastqCount)
-names(rawreadcount) <- gsub(".R1.fastq.gz","",sapply(strsplit(basename(names(rawreadcount)),"_"),'[',1))
-
-Trim1s  <- sapply(list.files("7.DADA2/trimmed/temp",pattern=".T.S.R1.fastq",full.names = TRUE),FastqCount)
-Trim2s  <- sapply(list.files("7.DADA2/trimmed",pattern=".TF.S.R1.fastq",full.names = TRUE),FastqCount)
-Trim1a  <- sapply(list.files("7.DADA2/trimmed/temp",pattern=".T.A.R1.fastq",full.names = TRUE),FastqCount)
-Trim2a  <- sapply(list.files("7.DADA2/trimmed",pattern=".TF.A.R1.fastq",full.names = TRUE),FastqCount)
-length(Trim1s)
-length(Trim2s)
-length(Trim1a)
-length(Trim2a)
-
-ReadCounts <- data.frame("RawReads"=rawreadcount,"SenseTrim1"=Trim1s,"SenseTrim2"=Trim2s,"AntiSenseTrim1"=Trim1a,"AntiSenseTrim2"=Trim2a)
-row.names(ReadCounts) <- names(rawreadcount)
-
-write.csv(ReadCounts,file="Readcount.csv")
-
-```
-
-## 5.1 DADA2 pipeline 
-
-
-```{r}
-path <- "7.DADA2/trimmed"
-
-fnFsSense <- sort(list.files(path, pattern="TF.S.R1.fastq.gz", full.names = TRUE))
-fnRsSense <- sort(list.files(path, pattern="TF.S.R2.fastq.gz", full.names = TRUE))
+fnFsSense <- sort(list.files(path, pattern="EUK.*R1.fastq.gz", full.names = TRUE))
+fnRsSense <- sort(list.files(path, pattern="EUK.*R2.fastq.gz", full.names = TRUE))
 # Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
-sample.names <- gsub(".TF.S.R1.fastq.gz","",basename(fnFsSense))
+sample.names <- gsub(".S.R1.fastq.gz","",basename(fnFsSense))
 
 #Lets look at the quality for forwards
-pdf("7.DADA2/S_forwards.pdf")
+pdf("../7.DADA2/S_EUK_forwards.pdf")
 plotQualityProfile(fnFsSense[1:4])
 dev.off()
 #...and reverses
-pdf("7.DADA2/S_reverses.pdf")
-plotQualityProfile(fnRsSense[5:8])
+pdf("../7.DADA2/S_EUK_reverse.pdf")
+plotQualityProfile(fnRsSense[1:4])
 dev.off()
 # Place filtered files in filtered/ subdirectory
-filtFsSense <- file.path("7.DADA2/filtered", paste0(sample.names, "_S_F_filt.fastq.gz"))
-filtRsSense <- file.path("7.DADA2/filtered", paste0(sample.names, "_S_R_filt.fastq.gz"))
+filtFsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_F_filt.fastq.gz"))
+filtRsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_R_filt.fastq.gz"))
 
 # Filter expression
 
@@ -336,34 +188,166 @@ out <- filterAndTrim(fnFsSense, filtFsSense, fnRsSense, filtRsSense, minLen = 50
                      maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
                      matchIDs=TRUE,compress=TRUE, multithread=7)
 
-filtFsSense <- sort(list.files("7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE))
-filtRsSense <- sort(list.files("7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE))
+filtFsSense <- sort(list.files("../7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE))
+filtRsSense <- sort(list.files("../7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE))
 
 
 
 # Now lets learn the error rates
 
-errF <- learnErrors(filtFsSense, multithread=7)
+# Lets try this novel model from https://github.com/benjjneb/dada2/issues/1307
+loessErrfun_mod3 <- function(trans) {
+  qq <- as.numeric(colnames(trans))
+  est <- matrix(0, nrow=0, ncol=length(qq))
+  for(nti in c("A","C","G","T")) {
+    for(ntj in c("A","C","G","T")) {
+      if(nti != ntj) {
+        errs <- trans[paste0(nti,"2",ntj),]
+        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
+        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
+        rlogp[is.infinite(rlogp)] <- NA
+        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
+        
+        # original
+        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
+        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
+        # #        mod.lo <- loess(rlogp ~ q, df)
+        
+        # Gulliem Salazar's solution
+        # https://github.com/benjjneb/dada2/issues/938
+        # mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),span = 2)
+        
+        # only change the weights
+        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot))
+        
+        pred <- predict(mod.lo, qq)
+        maxrli <- max(which(!is.na(pred)))
+        minrli <- min(which(!is.na(pred)))
+        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
+        pred[seq_along(pred)<minrli] <- pred[[minrli]]
+        est <- rbind(est, 10^pred)
+      } # if(nti != ntj)
+    } # for(ntj in c("A","C","G","T"))
+  } # for(nti in c("A","C","G","T"))
+  
+  # HACKY
+  MAX_ERROR_RATE <- 0.25
+  MIN_ERROR_RATE <- 1e-7
+  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
+  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
+  
+  # enforce monotonicity
+  # https://github.com/benjjneb/dada2/issues/791
+  estorig <- est
+  est <- est %>%
+    data.frame() %>%
+    mutate_all(funs(case_when(. < X40 ~ X40,
+                              . >= X40 ~ .))) %>% as.matrix()
+  rownames(est) <- rownames(estorig)
+  colnames(est) <- colnames(estorig)
+  
+  # Expand the err matrix with the self-transition probs
+  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
+               est[4,], 1-colSums(est[4:6,]), est[5:6,],
+               est[7:8,], 1-colSums(est[7:9,]), est[9,],
+               est[10:12,], 1-colSums(est[10:12,]))
+  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
+  colnames(err) <- colnames(trans)
+  # Return
+  return(err)
+}
+loessErrfun_mod4 <- function(trans) {
+  qq <- as.numeric(colnames(trans))
+  est <- matrix(0, nrow=0, ncol=length(qq))
+  for(nti in c("A","C","G","T")) {
+    for(ntj in c("A","C","G","T")) {
+      if(nti != ntj) {
+        errs <- trans[paste0(nti,"2",ntj),]
+        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
+        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
+        rlogp[is.infinite(rlogp)] <- NA
+        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
+        
+        # original
+        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
+        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
+        # #        mod.lo <- loess(rlogp ~ q, df)
+        
+        # jonalim's solution
+        # https://github.com/benjjneb/dada2/issues/938
+        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),degree = 1, span = 0.95)
+        
+        pred <- predict(mod.lo, qq)
+        maxrli <- max(which(!is.na(pred)))
+        minrli <- min(which(!is.na(pred)))
+        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
+        pred[seq_along(pred)<minrli] <- pred[[minrli]]
+        est <- rbind(est, 10^pred)
+      } # if(nti != ntj)
+    } # for(ntj in c("A","C","G","T"))
+  } # for(nti in c("A","C","G","T"))
+  
+  # HACKY
+  MAX_ERROR_RATE <- 0.25
+  MIN_ERROR_RATE <- 1e-7
+  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
+  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
+  
+  # enforce monotonicity
+  # https://github.com/benjjneb/dada2/issues/791
+  estorig <- est
+  est <- est %>%
+    data.frame() %>%
+    mutate_all(funs(case_when(. < X40 ~ X40,
+                              . >= X40 ~ .))) %>% as.matrix()
+  rownames(est) <- rownames(estorig)
+  colnames(est) <- colnames(estorig)
+  
+  # Expand the err matrix with the self-transition probs
+  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
+               est[4,], 1-colSums(est[4:6,]), est[5:6,],
+               est[7:8,], 1-colSums(est[7:9,]), est[9,],
+               est[10:12,], 1-colSums(est[10:12,]))
+  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
+  colnames(err) <- colnames(trans)
+  # Return
+  return(err)
+}
 
-errR <- learnErrors(filtRsSense, multithread=7)
+
+
+errF <- learnErrors(filtFsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+errF.2 <- learnErrors(filtFsSense, multithread=7)
+
+
+errR <- learnErrors(filtRsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
 
 #lets visualise the error rates
-pdf("7.DADA2/errorF.pdf")
-plotErrors(errF, nominalQ=TRUE)
+
+pdf("../7.DADA2/S_EUK_errorF.pdf")
+plotErrors(errF)
 dev.off()
 
-pdf("7.DADA2/errorR.pdf")
+pdf("../7.DADA2/S_EUK_OLDmodelerrorF.pdf")
+plotErrors(errF.2)
+dev.off()
+
+pdf("../7.DADA2/S_EUK_errorR.pdf")
 plotErrors(errR, nominalQ=TRUE)
 dev.off()
 
 # Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
 
-derepFs <- derepFastq(list.files("7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
-derepRs <- derepFastq(list.files("7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
 
 # Name the derep-class objects by the sample names
-names(derepFs) <- sapply(strsplit(basename(list.files("7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
-names(derepRs) <- sapply(strsplit(basename(list.files("7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="_S_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="_S_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
 
 # Now we can pply the DADA2 algorithm to the data
 dadaFsSense <- dada(derepFs, err=errF, multithread=TRUE)
@@ -399,69 +383,75 @@ head(track)
 
 #Let's save the Sense dataset and rerun the pipeline for the Antisense
 
-Sense <- seqtab.nochim
-TrackedReads <- track
-
-```
+EUK.Sense <- seqtab.nochim
+EUK.SenseTrackedReads <- track
 
 
-## 5.2 DADA2 AntiSense
 
 
-```{r, eval=FALSE}
+## 3.2 EUK.ANTISENSE
 
-fnFsASense <- sort(list.files(path, pattern="TF.A.R1.fastq.gz", full.names = TRUE))
-fnRsASense <- sort(list.files(path, pattern="TF.A.R2.fastq.gz", full.names = TRUE))
+path <- "A.stripped"
 
-sample.names <- gsub(".TF.A.R1.fastq.gz","",basename(fnFsASense))
+fnFsASense <- sort(list.files(path, pattern="EUK.*R1.fastq.gz", full.names = TRUE))
+fnRsASense <- sort(list.files(path, pattern="EUK.*R2.fastq.gz", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- gsub(".A.R1.fastq.gz","",basename(fnFsASense))
 
 #Lets look at the quality for forwards
-pdf("7.DADA2/A_forwards.pdf")
+pdf("../7.DADA2/A_EUK_forwards.pdf")
 plotQualityProfile(fnFsASense[1:4])
 dev.off()
 #...and reverses
-pdf("7.DADA2/A_reverses.pdf")
-plotQualityProfile(fnRsASense[5:8])
+pdf("../7.DADA2/A_EUK_reverse.pdf")
+plotQualityProfile(fnRsASense[1:4])
 dev.off()
 # Place filtered files in filtered/ subdirectory
-filtFsASense <- file.path("7.DADA2/filtered", paste0(sample.names, "_A_F_filt.fastq.gz"))
-filtRsASense <- file.path("7.DADA2/filtered", paste0(sample.names, "_A_R_filt.fastq.gz"))
+filtFsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_F_filt.fastq.gz"))
+filtRsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_R_filt.fastq.gz"))
 
 # Filter expression
-
 
 out <- filterAndTrim(fnFsASense, filtFsASense, fnRsASense, filtRsASense, minLen = 50,
                      maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
                      matchIDs=TRUE,compress=TRUE, multithread=7)
 
-filtFsASense <- sort(list.files("7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE))
-filtRsASense <- sort(list.files("7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE))
+#####START FROM HERE 14APRIL
+
+
+filtFsSense <- sort(list.files("../7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE))
+filtRsSense <- sort(list.files("../7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE))
 
 
 
 # Now lets learn the error rates
 
-errF <- learnErrors(filtFsASense, multithread=7)
+errF <- learnErrors(filtFsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
 
-errR <- learnErrors(filtRsASense, multithread=7)
+errR <- learnErrors(filtRsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
 
 #lets visualise the error rates
-pdf("7.DADA2/ASerrorF.pdf")
-plotErrors(errF, nominalQ=TRUE)
+
+pdf("../7.DADA2/A_EUK_errorF.pdf")
+plotErrors(errF)
 dev.off()
 
-pdf("7.DADA2/ASerrorR.pdf")
+pdf("../7.DADA2/A_EUK_errorR.pdf")
 plotErrors(errR, nominalQ=TRUE)
 dev.off()
 
 # Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
 
-derepFs <- derepFastq(list.files("7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
-derepRs <- derepFastq(list.files("7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
 
 # Name the derep-class objects by the sample names
-names(derepFs) <- sapply(strsplit(basename(list.files("7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
-names(derepRs) <- sapply(strsplit(basename(list.files("7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
 
 # Now we can pply the DADA2 algorithm to the data
 dadaFsASense <- dada(derepFs, err=errF, multithread=TRUE)
@@ -485,12 +475,24 @@ table(nchar(getSequences(seqtab)))
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=7, verbose=TRUE)
 dim(seqtab.nochim)
 
+#Lets count up the reads for the sense section of the pipeline
+
 #How many reads do we lose?
 getN <- function(x) sum(getUniques(x))
-track <- cbind(sapply(dadaFsASense, getN), sapply(dadaRsASense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
-colnames(track) <- paste0("A.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
+track <- cbind(sapply(dadaFsSense, getN), sapply(dadaRsSense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
+colnames(track) <- paste0("S.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
 rownames(track) <- names(dadaFsSense)
 head(track)
+
+
+#Let's save the Sense dataset and rerun the pipeline for the Antisense
+
+EUK.Sense <- seqtab.nochim
+EUK.SenseTrackedReads <- track
+
+
+
+
 
 
 ##Cheeky function from Ben, see https://github.com/benjjneb/dada2/issues/132#issuecomment-255050128
