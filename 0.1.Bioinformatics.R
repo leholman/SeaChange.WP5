@@ -416,11 +416,11 @@ out <- filterAndTrim(fnFsASense, filtFsASense, fnRsASense, filtRsASense, minLen 
                      maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
                      matchIDs=TRUE,compress=TRUE, multithread=7)
 
-#####START FROM HERE 14APRIL
 
 
-filtFsSense <- sort(list.files("../7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE))
-filtRsSense <- sort(list.files("../7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE))
+
+filtFsASense <- sort(list.files("../7.DADA2/filtered", pattern="_A_F_filt.fastq.gz", full.names = TRUE))
+filtRsASense <- sort(list.files("../7.DADA2/filtered", pattern="_A_R_filt.fastq.gz", full.names = TRUE))
 
 
 
@@ -485,13 +485,11 @@ rownames(track) <- names(dadaFsSense)
 head(track)
 
 
+
 #Let's save the Sense dataset and rerun the pipeline for the Antisense
 
-EUK.Sense <- seqtab.nochim
-EUK.SenseTrackedReads <- track
-
-
-
+EUK.ASense <- seqtab.nochim
+EUK.ASenseTrackedReads <- track
 
 
 
@@ -530,50 +528,44 @@ sumSequenceTables <- function(table1, table2, ..., orderBy = "abundance") {
 }
 
 #Merge Tables
+RevComp <- function(input){
+  require(Biostrings)
+  dna <- DNAString(input) 
+  dna <- reverseComplement(dna)
+  return(toString(dna))}
 
 
+dim(EUK.Sense)
+dim(EUK.ASense)
+EUK.ASense.RC <- EUK.ASense
+colnames(EUK.ASense.RC) <- sapply(colnames(EUK.ASense),FUN=RevComp)
 
+EUK.TotalTable <- sumSequenceTables(EUK.Sense,EUK.ASense.RC)
 
-dim(Sense)
-dim(seqtab.nochim)
-AntiSense.RC <- seqtab.nochim 
-colnames(AntiSense.RC) <- sapply(colnames(seqtab.nochim),FUN=RevComp)
+dim(EUK.TotalTable)
 
-TotalTable <- sumSequenceTables(Sense,AntiSense.RC)
-
-dim(TotalTable)
-
-## Overall Reads lost 
-
-str(TrackedReads)
-
-TrackedReads <- cbind(TrackedReads,track)
-
-write.csv(TrackedReads,file="TrackedReads.csv")
-
+write.csv(EUK.TotalTable,"../6.mappings/OTUtabs/EUK.raw.csv")
 
 
 #Output OTUs for taxonomy 
-ASVs <- DNAStringSet(getSequences(TotalTable))
+ASVs <- DNAStringSet(getSequences(EUK.TotalTable))
 names(ASVs) <- paste0("ASV_",1:length(ASVs))
-writeXStringSet(ASVs,"5.OTUs/DADA2.18S.ASVs.fasta", append=FALSE,
+writeXStringSet(ASVs,"../5.OTUs/EUK.DADA2.ASVs.fasta", append=FALSE,
                 compress=FALSE, compression_level=NA, format="fasta")
 
 
 #Save output with OTU names
-TotalTable.named <- TotalTable
-colnames(TotalTable.named) <-paste0("ASV_",1:length(ASVs))
-write.table(as.data.frame(t(TotalTable.named)),"6.mappings/OTUtabs/DADA2.18S.csv",sep=",")
+EUK.TotalTable.named <- EUK.TotalTable
+colnames(EUK.TotalTable.named) <-paste0("ASV_",1:length(ASVs))
+write.table(as.data.frame(t(EUK.TotalTable.named)),"../6.mappings/OTUtabs/EUK.raw.csv",sep=",")
 
 
 ##Lets also run LULU while we are here
-ApplyLulu(seqs="5.OTUs/DADA2.18S.ASVs.fasta",
-          table="6.mappings/OTUtabs/DADA2.18S.csv",
-          output="8.LULU/DADA2.18S.lulu.csv",
+ApplyLulu(seqs="5.OTUs/EUK.DADA2.ASVs.fasta",
+          table="6.mappings/OTUtabs/EUK.raw.csv",
+          output="8.LULU/EUK.DADA2.lulu.csv",
           vsearchdest="/dockeDNAsoftware/vsearch-2.15.1-linux-x86_64")
 
-
-```
 
 ## 6.0 Taxonomic Assignment of ASVs
 #Now we need to assign some taxonomy to our big pile of sequences. We're going to do this by splitting our pile of ASVs into a number of smaller files and then sending them all to different nodes for blast assignment, followed by LCa inference using a hacky script. This should give us something to filter and refine further in our analyses.  
