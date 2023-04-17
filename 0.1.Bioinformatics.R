@@ -160,8 +160,7 @@ write.csv(ReadCounts,file="../Readcount.csv")
 
 
 ### 3.0 DADA2 
-
-## 3.1 EUK.SENSE
+#### 3.1 EUK.SENSE ####
 
 path <- "S.stripped"
 
@@ -389,7 +388,7 @@ EUK.SenseTrackedReads <- track
 
 
 
-## 3.2 EUK.ANTISENSE
+#### 3.2 EUK.ANTISENSE ####
 
 path <- "A.stripped"
 
@@ -565,6 +564,693 @@ ApplyLulu(seqs="5.OTUs/EUK.DADA2.ASVs.fasta",
           table="6.mappings/OTUtabs/EUK.raw.csv",
           output="8.LULU/EUK.DADA2.lulu.csv",
           vsearchdest="/dockeDNAsoftware/vsearch-2.15.1-linux-x86_64")
+
+
+
+#### 3.3 RIZ SENSE ####
+
+path <- "S.stripped"
+
+fnFsSense <- sort(list.files(path, pattern="RIZ.*R1.fastq.gz", full.names = TRUE))
+fnRsSense <- sort(list.files(path, pattern="RIZ.*R2.fastq.gz", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- gsub(".S.R1.fastq.gz","",basename(fnFsSense))
+
+#Lets look at the quality for forwards (random selection here )
+pdf("../7.DADA2/S_RIZ_forwards.pdf")
+plotQualityProfile(fnFsSense[c(2,46,89,150)])
+dev.off()
+#...and reverses
+pdf("../7.DADA2/S_RIZ_reverse.pdf")
+plotQualityProfile(fnRsSense[c(2,57,110,180)])
+dev.off()
+# Place filtered files in filtered/ subdirectory
+filtFsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_F_filt.fastq.gz"))
+filtRsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_R_filt.fastq.gz"))
+
+# Filter expression
+
+out <- filterAndTrim(fnFsSense, filtFsSense, fnRsSense, filtRsSense, minLen = 50,
+                     maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
+                     matchIDs=TRUE,compress=TRUE, multithread=7)
+
+filtFsSense <- sort(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_F_filt.fastq.gz", full.names = TRUE))
+filtRsSense <- sort(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_R_filt.fastq.gz", full.names = TRUE))
+
+
+
+# Now lets learn the error rates
+
+# Lets try this novel model from https://github.com/benjjneb/dada2/issues/1307
+loessErrfun_mod4 <- function(trans) {
+  qq <- as.numeric(colnames(trans))
+  est <- matrix(0, nrow=0, ncol=length(qq))
+  for(nti in c("A","C","G","T")) {
+    for(ntj in c("A","C","G","T")) {
+      if(nti != ntj) {
+        errs <- trans[paste0(nti,"2",ntj),]
+        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
+        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
+        rlogp[is.infinite(rlogp)] <- NA
+        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
+        
+        # original
+        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
+        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
+        # #        mod.lo <- loess(rlogp ~ q, df)
+        
+        # jonalim's solution
+        # https://github.com/benjjneb/dada2/issues/938
+        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),degree = 1, span = 0.95)
+        
+        pred <- predict(mod.lo, qq)
+        maxrli <- max(which(!is.na(pred)))
+        minrli <- min(which(!is.na(pred)))
+        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
+        pred[seq_along(pred)<minrli] <- pred[[minrli]]
+        est <- rbind(est, 10^pred)
+      } # if(nti != ntj)
+    } # for(ntj in c("A","C","G","T"))
+  } # for(nti in c("A","C","G","T"))
+  
+  # HACKY
+  MAX_ERROR_RATE <- 0.25
+  MIN_ERROR_RATE <- 1e-7
+  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
+  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
+  
+  # enforce monotonicity
+  # https://github.com/benjjneb/dada2/issues/791
+  estorig <- est
+  est <- est %>%
+    data.frame() %>%
+    mutate_all(funs(case_when(. < X40 ~ X40,
+                              . >= X40 ~ .))) %>% as.matrix()
+  rownames(est) <- rownames(estorig)
+  colnames(est) <- colnames(estorig)
+  
+  # Expand the err matrix with the self-transition probs
+  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
+               est[4,], 1-colSums(est[4:6,]), est[5:6,],
+               est[7:8,], 1-colSums(est[7:9,]), est[9,],
+               est[10:12,], 1-colSums(est[10:12,]))
+  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
+  colnames(err) <- colnames(trans)
+  # Return
+  return(err)
+}
+
+
+
+errF <- learnErrors(filtFsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+
+errR <- learnErrors(filtRsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+#lets visualise the error rates
+
+pdf("../7.DADA2/S_RIZ_errorF.pdf")
+plotErrors(errF)
+dev.off()
+
+pdf("../7.DADA2/S_RIZ_errorR.pdf")
+plotErrors(errR, nominalQ=TRUE)
+dev.off()
+
+# Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
+
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+
+# Name the derep-class objects by the sample names
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="RIZ.*_S_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+
+# Now we can pply the DADA2 algorithm to the data
+dadaFsSense <- dada(derepFs, err=errF, multithread=TRUE)
+
+dadaRsSense <- dada(derepRs, err=errR, multithread=TRUE)
+
+# We can now merge the seqs
+mergers <- mergePairs(dadaFsSense, derepFs, dadaRsSense, derepRs, verbose=TRUE)
+
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+
+# Now we can construct a sequence table
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+
+# Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+
+#Remove chimeras
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=7, verbose=TRUE)
+dim(seqtab.nochim)
+
+#Lets count up the reads for the sense section of the pipeline
+
+#How many reads do we lose?
+getN <- function(x) sum(getUniques(x))
+track <- cbind(sapply(dadaFsSense, getN), sapply(dadaRsSense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
+colnames(track) <- paste0("S.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
+rownames(track) <- names(dadaFsSense)
+head(track)
+
+
+#Let's save the Sense dataset and rerun the pipeline for the Antisense
+
+RIZ.Sense <- seqtab.nochim
+RIZ.SenseTrackedReads <- track
+
+
+
+#### 3.4 RIZ.ANTISENSE ####
+
+path <- "A.stripped"
+
+fnFsASense <- sort(list.files(path, pattern="RIZ.*R1.fastq.gz", full.names = TRUE))
+fnRsASense <- sort(list.files(path, pattern="RIZ.*R2.fastq.gz", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- gsub(".A.R1.fastq.gz","",basename(fnFsASense))
+
+#Lets look at the quality for forwards
+pdf("../7.DADA2/A_RIZ_forwards.pdf")
+plotQualityProfile(fnFsASense[c(2,57,150,244)])
+dev.off()
+#...and reverses
+pdf("../7.DADA2/A_RIZ_reverse.pdf")
+plotQualityProfile(fnRsASense[c(2,57,150,244)])
+dev.off()
+# Place filtered files in filtered/ subdirectory
+filtFsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_F_filt.fastq.gz"))
+filtRsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_R_filt.fastq.gz"))
+
+# Filter expression
+
+out <- filterAndTrim(fnFsASense, filtFsASense, fnRsASense, filtRsASense, minLen = 50,
+                     maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
+                     matchIDs=TRUE,compress=TRUE, multithread=7)
+
+
+
+
+filtFsASense <- sort(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_F_filt.fastq.gz", full.names = TRUE))
+filtRsASense <- sort(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_R_filt.fastq.gz", full.names = TRUE))
+
+
+
+# Now lets learn the error rates
+
+errF <- learnErrors(filtFsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+errR <- learnErrors(filtRsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+#lets visualise the error rates
+
+pdf("../7.DADA2/A_EUK_errorF.pdf")
+plotErrors(errF)
+dev.off()
+
+pdf("../7.DADA2/A_EUK_errorR.pdf")
+plotErrors(errR, nominalQ=TRUE)
+dev.off()
+
+# Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
+
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+
+# Name the derep-class objects by the sample names
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="RIZ.*_A_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+
+# Now we can pply the DADA2 algorithm to the data
+dadaFsASense <- dada(derepFs, err=errF, multithread=TRUE)
+
+dadaRsASense <- dada(derepRs, err=errR, multithread=TRUE)
+
+# We can now merge the seqs
+mergers <- mergePairs(dadaFsASense, derepFs, dadaRsASense, derepRs, verbose=TRUE)
+
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+
+# Now we can construct a sequence table
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+
+# Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+
+#Remove chimeras
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=7, verbose=TRUE)
+dim(seqtab.nochim)
+
+#Lets count up the reads for the sense section of the pipeline
+
+#How many reads do we lose?
+getN <- function(x) sum(getUniques(x))
+track <- cbind(sapply(dadaFsSense, getN), sapply(dadaRsSense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
+colnames(track) <- paste0("S.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
+rownames(track) <- names(dadaFsSense)
+head(track)
+
+
+
+#Let's save the Sense dataset and rerun the pipeline for the Antisense
+
+RIZ.ASense <- seqtab.nochim
+RIZ.ASenseTrackedReads <- track
+
+
+
+##Cheeky function from Ben, see https://github.com/benjjneb/dada2/issues/132#issuecomment-255050128
+
+sumSequenceTables <- function(table1, table2, ..., orderBy = "abundance") {
+  # Combine passed tables into a list
+  tables <- list(table1, table2)
+  tables <- c(tables, list(...))
+  # Validate tables
+  if(!(all(sapply(tables, dada2:::is.sequence.table)))) {
+    stop("At least two valid sequence tables, and no invalid objects, are expected.")
+  }
+  sample.names <- rownames(tables[[1]])
+  for(i in seq(2, length(tables))) {
+    sample.names <- c(sample.names, rownames(tables[[i]]))
+  }
+  seqs <- unique(c(sapply(tables, colnames), recursive=TRUE))
+  sams <- unique(sample.names)
+  # Make merged table
+  rval <- matrix(0L, nrow=length(sams), ncol=length(seqs))
+  rownames(rval) <- sams
+  colnames(rval) <- seqs
+  for(tab in tables) {
+    rval[rownames(tab), colnames(tab)] <- rval[rownames(tab), colnames(tab)] + tab
+  }
+  # Order columns
+  if(!is.null(orderBy)) {
+    if(orderBy == "abundance") {
+      rval <- rval[,order(colSums(rval), decreasing=TRUE),drop=FALSE]
+    } else if(orderBy == "nsamples") {
+      rval <- rval[,order(colSums(rval>0), decreasing=TRUE),drop=FALSE]
+    }
+  }
+  rval
+}
+
+#Merge Tables
+RevComp <- function(input){
+  require(Biostrings)
+  dna <- DNAString(input) 
+  dna <- reverseComplement(dna)
+  return(toString(dna))}
+
+
+dim(RIZ.Sense)
+dim(RIZ.ASense)
+RIZ.ASense.RC <- RIZ.ASense
+colnames(RIZ.ASense.RC) <- sapply(colnames(RIZ.ASense.RC),FUN=RevComp)
+
+RIZ.TotalTable <- sumSequenceTables(RIZ.Sense,RIZ.ASense.RC)
+
+dim(RIZ.TotalTable)
+
+write.csv(RIZ.TotalTable,"../6.mappings/OTUtabs/RIZ.raw.csv")
+
+
+#Output OTUs for taxonomy 
+ASVs <- DNAStringSet(getSequences(RIZ.TotalTable))
+names(ASVs) <- paste0("ASV_",1:length(ASVs))
+writeXStringSet(ASVs,"../5.OTUs/RIZ.DADA2.ASVs.fasta", append=FALSE,
+                compress=FALSE, compression_level=NA, format="fasta")
+
+
+#Save output with OTU names
+RIZ.TotalTable.named <- RIZ.TotalTable
+colnames(RIZ.TotalTable.named) <-paste0("ASV_",1:length(ASVs))
+write.table(as.data.frame(t(RIZ.TotalTable.named)),"../6.mappings/OTUtabs/RIZ.raw.csv",sep=",")
+
+
+##Lets also run LULU while we are here
+ApplyLulu(seqs="5.OTUs/RIZ.DADA2.ASVs.fasta",
+          table="6.mappings/OTUtabs/RIZ.raw.csv",
+          output="8.LULU/RIZ.DADA2.lulu.csv",
+          vsearchdest="/dockeDNAsoftware/vsearch-2.15.1-linux-x86_64",
+          minimum.match=99)
+
+
+
+
+#### 3.5 MAM.SENSE ####
+
+path <- "S.stripped"
+
+fnFsSense <- sort(list.files(path, pattern="MAM.*R1.fastq.gz", full.names = TRUE))
+fnRsSense <- sort(list.files(path, pattern="MAM.*R2.fastq.gz", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- gsub(".S.R1.fastq.gz","",basename(fnFsSense))
+
+#Lets look at the quality for forwards (random selection here )
+pdf("../7.DADA2/S_MAM_forwards.pdf")
+plotQualityProfile(fnFsSense[c(3,55,110,242)])
+dev.off()
+#...and reverses
+pdf("../7.DADA2/S_MAM_reverse.pdf")
+plotQualityProfile(fnRsSense[c(3,55,110,242)])
+dev.off()
+# Place filtered files in filtered/ subdirectory
+filtFsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_F_filt.fastq.gz"))
+filtRsSense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_S_R_filt.fastq.gz"))
+
+# Filter expression
+
+out <- filterAndTrim(fnFsSense, filtFsSense, fnRsSense, filtRsSense, minLen = 50,
+                     maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
+                     matchIDs=TRUE,compress=TRUE, multithread=7)
+
+filtFsSense <- sort(list.files("../7.DADA2/filtered", pattern="MAM.*_S_F_filt.fastq.gz", full.names = TRUE))
+filtRsSense <- sort(list.files("../7.DADA2/filtered", pattern="MAM.*_S_R_filt.fastq.gz", full.names = TRUE))
+
+
+
+# Now lets learn the error rates
+
+# Lets try this novel model from https://github.com/benjjneb/dada2/issues/1307
+loessErrfun_mod4 <- function(trans) {
+  qq <- as.numeric(colnames(trans))
+  est <- matrix(0, nrow=0, ncol=length(qq))
+  for(nti in c("A","C","G","T")) {
+    for(ntj in c("A","C","G","T")) {
+      if(nti != ntj) {
+        errs <- trans[paste0(nti,"2",ntj),]
+        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
+        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
+        rlogp[is.infinite(rlogp)] <- NA
+        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
+        
+        # original
+        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
+        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
+        # #        mod.lo <- loess(rlogp ~ q, df)
+        
+        # jonalim's solution
+        # https://github.com/benjjneb/dada2/issues/938
+        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),degree = 1, span = 0.95)
+        
+        pred <- predict(mod.lo, qq)
+        maxrli <- max(which(!is.na(pred)))
+        minrli <- min(which(!is.na(pred)))
+        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
+        pred[seq_along(pred)<minrli] <- pred[[minrli]]
+        est <- rbind(est, 10^pred)
+      } # if(nti != ntj)
+    } # for(ntj in c("A","C","G","T"))
+  } # for(nti in c("A","C","G","T"))
+  
+  # HACKY
+  MAX_ERROR_RATE <- 0.25
+  MIN_ERROR_RATE <- 1e-7
+  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
+  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
+  
+  # enforce monotonicity
+  # https://github.com/benjjneb/dada2/issues/791
+  estorig <- est
+  est <- est %>%
+    data.frame() %>%
+    mutate_all(funs(case_when(. < X40 ~ X40,
+                              . >= X40 ~ .))) %>% as.matrix()
+  rownames(est) <- rownames(estorig)
+  colnames(est) <- colnames(estorig)
+  
+  # Expand the err matrix with the self-transition probs
+  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
+               est[4,], 1-colSums(est[4:6,]), est[5:6,],
+               est[7:8,], 1-colSums(est[7:9,]), est[9,],
+               est[10:12,], 1-colSums(est[10:12,]))
+  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
+  colnames(err) <- colnames(trans)
+  # Return
+  return(err)
+}
+
+
+
+errF <- learnErrors(filtFsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+
+errR <- learnErrors(filtRsSense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+#lets visualise the error rates
+
+pdf("../7.DADA2/S_MAM_errorF.pdf")
+plotErrors(errF, nominalQ=TRUE)
+dev.off()
+
+pdf("../7.DADA2/S_MAM_errorR.pdf")
+plotErrors(errR, nominalQ=TRUE)
+dev.off()
+
+# Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
+
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="MAM.*_S_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="MAM.*_S_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+
+# Name the derep-class objects by the sample names
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="MAM.*_S_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="MAM.*_S_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+
+# Now we can pply the DADA2 algorithm to the data
+dadaFsSense <- dada(derepFs, err=errF, multithread=TRUE)
+
+dadaRsSense <- dada(derepRs, err=errR, multithread=TRUE)
+
+# We can now merge the seqs
+mergers <- mergePairs(dadaFsSense, derepFs, dadaRsSense, derepRs, verbose=TRUE)
+
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+
+# Now we can construct a sequence table
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+
+# Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+
+#Remove chimeras
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=7, verbose=TRUE)
+dim(seqtab.nochim)
+
+#Lets count up the reads for the sense section of the pipeline
+
+#How many reads do we lose?
+getN <- function(x) sum(getUniques(x))
+track <- cbind(sapply(dadaFsSense, getN), sapply(dadaRsSense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
+colnames(track) <- paste0("S.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
+rownames(track) <- names(dadaFsSense)
+head(track)
+
+
+#Let's save the Sense dataset and rerun the pipeline for the Antisense
+
+MAM.Sense <- seqtab.nochim
+MAM.SenseTrackedReads <- track
+
+
+
+## 3.4 RIZ.ANTISENSE
+
+path <- "A.stripped"
+
+fnFsASense <- sort(list.files(path, pattern="MAM.*R1.fastq.gz", full.names = TRUE))
+fnRsASense <- sort(list.files(path, pattern="MAM.*R2.fastq.gz", full.names = TRUE))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+sample.names <- gsub(".A.R1.fastq.gz","",basename(fnFsASense))
+
+#Lets look at the quality for forwards
+pdf("../7.DADA2/A_MAM_forwards.pdf")
+plotQualityProfile(fnFsASense[c(3,85,114,234)])
+dev.off()
+#...and reverses
+pdf("../7.DADA2/A_MAM_reverse.pdf")
+plotQualityProfile(fnFsASense[c(3,85,114,234)])
+dev.off()
+# Place filtered files in filtered/ subdirectory
+filtFsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_F_filt.fastq.gz"))
+filtRsASense <- file.path("../7.DADA2/filtered", paste0(sample.names, "_A_R_filt.fastq.gz"))
+
+# Filter expression
+
+out <- filterAndTrim(fnFsASense, filtFsASense, fnRsASense, filtRsASense, minLen = 50,
+                     maxN=0, maxEE=c(1,1), truncQ=2, rm.phix=TRUE,
+                     matchIDs=TRUE,compress=TRUE, multithread=7)
+
+
+
+
+filtFsASense <- sort(list.files("../7.DADA2/filtered", pattern="MAM.*_A_F_filt.fastq.gz", full.names = TRUE))
+filtRsASense <- sort(list.files("../7.DADA2/filtered", pattern="MAM.*_A_R_filt.fastq.gz", full.names = TRUE))
+
+
+
+# Now lets learn the error rates
+
+errF <- learnErrors(filtFsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+errR <- learnErrors(filtRsASense, multithread=7,
+                    errorEstimationFunction = loessErrfun_mod4,
+                    verbose = TRUE)
+
+#lets visualise the error rates
+
+pdf("../7.DADA2/A_MAM_errorF.pdf")
+plotErrors(errF)
+dev.off()
+
+pdf("../7.DADA2/A_MAM_errorR.pdf")
+plotErrors(errR, nominalQ=TRUE)
+dev.off()
+
+# Now lets dereplicate the samples, some of our files have dissapeared so we use a complex expression to restore them
+
+derepFs <- derepFastq(list.files("../7.DADA2/filtered", pattern="MAM.*_A_F_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+derepRs <- derepFastq(list.files("../7.DADA2/filtered", pattern="MAM.*_A_R_filt.fastq.gz", full.names = TRUE), verbose=TRUE)
+
+# Name the derep-class objects by the sample names
+names(derepFs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="MAM.*_A_F_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+names(derepRs) <- sapply(strsplit(basename(list.files("../7.DADA2/filtered", pattern="MAM.*_A_R_filt.fastq.gz", full.names = TRUE)), "_"), `[`, 1)
+
+# Now we can pply the DADA2 algorithm to the data
+dadaFsASense <- dada(derepFs, err=errF, multithread=TRUE)
+
+dadaRsASense <- dada(derepRs, err=errR, multithread=TRUE)
+
+# We can now merge the seqs
+mergers <- mergePairs(dadaFsASense, derepFs, dadaRsASense, derepRs, verbose=TRUE)
+
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+
+# Now we can construct a sequence table
+seqtab <- makeSequenceTable(mergers)
+dim(seqtab)
+
+# Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+
+#Remove chimeras
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=7, verbose=TRUE)
+dim(seqtab.nochim)
+
+#Lets count up the reads for the sense section of the pipeline
+
+#How many reads do we lose?
+getN <- function(x) sum(getUniques(x))
+track <- cbind(sapply(dadaFsSense, getN), sapply(dadaRsSense, getN), sapply(mergers, getN),rowSums(seqtab), rowSums(seqtab.nochim))
+colnames(track) <- paste0("S.",c("denoisedF", "denoisedR", "merged", "lengthtrunc", "nonchim"))
+rownames(track) <- names(dadaFsSense)
+head(track)
+
+
+
+#Let's save the Sense dataset and rerun the pipeline for the Antisense
+
+MAM.ASense <- seqtab.nochim
+MAM.ASenseTrackedReads <- track
+
+
+
+##Cheeky function from Ben, see https://github.com/benjjneb/dada2/issues/132#issuecomment-255050128
+
+sumSequenceTables <- function(table1, table2, ..., orderBy = "abundance") {
+  # Combine passed tables into a list
+  tables <- list(table1, table2)
+  tables <- c(tables, list(...))
+  # Validate tables
+  if(!(all(sapply(tables, dada2:::is.sequence.table)))) {
+    stop("At least two valid sequence tables, and no invalid objects, are expected.")
+  }
+  sample.names <- rownames(tables[[1]])
+  for(i in seq(2, length(tables))) {
+    sample.names <- c(sample.names, rownames(tables[[i]]))
+  }
+  seqs <- unique(c(sapply(tables, colnames), recursive=TRUE))
+  sams <- unique(sample.names)
+  # Make merged table
+  rval <- matrix(0L, nrow=length(sams), ncol=length(seqs))
+  rownames(rval) <- sams
+  colnames(rval) <- seqs
+  for(tab in tables) {
+    rval[rownames(tab), colnames(tab)] <- rval[rownames(tab), colnames(tab)] + tab
+  }
+  # Order columns
+  if(!is.null(orderBy)) {
+    if(orderBy == "abundance") {
+      rval <- rval[,order(colSums(rval), decreasing=TRUE),drop=FALSE]
+    } else if(orderBy == "nsamples") {
+      rval <- rval[,order(colSums(rval>0), decreasing=TRUE),drop=FALSE]
+    }
+  }
+  rval
+}
+
+#Merge Tables
+RevComp <- function(input){
+  require(Biostrings)
+  dna <- DNAString(input) 
+  dna <- reverseComplement(dna)
+  return(toString(dna))}
+
+
+dim(MAM.Sense)
+dim(MAM.ASense)
+MAM.ASense.RC <- MAM.ASense
+colnames(MAM.ASense.RC) <- sapply(colnames(MAM.ASense.RC),FUN=RevComp)
+
+MAM.TotalTable <- sumSequenceTables(MAM.Sense,MAM.ASense.RC)
+
+dim(MAM.TotalTable)
+
+write.csv(MAM.TotalTable,"../6.mappings/OTUtabs/MAM.raw.csv")
+
+
+#Output OTUs for taxonomy 
+ASVs <- DNAStringSet(getSequences(MAM.TotalTable))
+names(ASVs) <- paste0("ASV_",1:length(ASVs))
+writeXStringSet(ASVs,"../5.OTUs/MAM.DADA2.ASVs.fasta", append=FALSE,
+                compress=FALSE, compression_level=NA, format="fasta")
+
+
+#Save output with OTU names
+MAM.TotalTable.named <- MAM.TotalTable
+colnames(MAM.TotalTable.named) <-paste0("ASV_",1:length(ASVs))
+write.table(as.data.frame(t(MAM.TotalTable.named)),"../6.mappings/OTUtabs/MAM.raw.csv",sep=",")
+
+
+##Lets also run LULU while we are here
+ApplyLulu(seqs="5.OTUs/MAM.DADA2.ASVs.fasta",
+          table="6.mappings/OTUtabs/MAM.raw.csv",
+          output="8.LULU/MAM.DADA2.lulu.csv",
+          vsearchdest="/dockeDNAsoftware/vsearch-2.15.1-linux-x86_64",
+          minimum.match = 99)
+
+
 
 
 ## 6.0 Taxonomic Assignment of ASVs
