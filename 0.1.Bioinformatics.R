@@ -1256,67 +1256,31 @@ ApplyLulu(seqs="5.OTUs/MAM.DADA2.ASVs.fasta",
 ## 6.0 Taxonomic Assignment of ASVs
 #Now we need to assign some taxonomy to our big pile of sequences. We're going to do this by splitting our pile of ASVs into a number of smaller files and then sending them all to different nodes for blast assignment, followed by LCa inference using a hacky script. This should give us something to filter and refine further in our analyses.  
 
-
-
-#Here I assume you have blast (v2.12.0) & the nt database downloaded, mine is in the directory ~/data/gwm297.lholman/temp_db/nt and I will save the output to ~/data/gwm297.lholman/temp_db/nt/WP5.2/EUK|RIZ|MAM where the input fasta file is.  
-
-#how to update the blast database with the perl script, these are already run so no need to do it again
-
-# the script can be found in the below tar folder
-#wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.12.0+-x64-linux.tar.gz 
-#tar -xvf ncbi-blast-2.12.0+-x64-linux.tar.gz   
-
-update_blastdb.pl --decompress nt --blastdb_version 5
-update_blastdb.pl taxdb
-tar xzvf taxdb.tar.gz
-
-#We first make a results folder
-cd ~/data/temp_db/nt/WP5.2/RIZ|EUK|MAM
-mkdir results 
-
-#split fasta into chunks of 100 seqs for fast processing
-cd  ~/data/gwm297.lholman/temp_db/nt/
-awk -v size=100 -v pre=split -v pad=5 '/^>/{n++;if(n%size==1){close(f);f=sprintf("%s.%0"pad"d",pre,n)}}{print>>f}' file.fasta
-
-##This is the raw expression we will use, the format listed is expected by other scripts/functions, dont mess with it.
-#blastn -query WP5.1/split.00001 -db nt -out /WP5.1/results/test.out -outfmt '6 qseqid qlen slen qcovs qcovhsp sseqid bitscore score evalue pident qstart qend sstart send staxids sscinames' -num_alignments 200
-
-
-#Rather than submitting each expression we create a bunch of scripts that can then be submitted individually, there is probably a neater way to do this but I like this way as you can add many lines to be evaluated sequentially which I find hard to do with xsbatch
-
-#make little scripts from within nt folder and give them execute permission
-#submit scripts with 160000mb of RAM & 30 min limits
-##RIZ
-
-for i in split.* ;do bname=$(basename $i); echo -e '#''!'"/bin/bash\n#SBATCH --ntasks=1\n#SBATCH --time=00:60:00\n#SBATCH --mem-per-cpu=160G\ncd ~/data/gwm297.lholman/temp_db/nt/\n./blastn -query WP5.2/RIZ/$bname -num_threads 1 -db nt -out WP5.2/RIZ/results/$bname.out -outfmt '6 qseqid qlen slen qcovs qcovhsp sseqid bitscore score evalue pident qstart qend sstart send staxids sscinames' -num_alignments 200" > script.$bname.sh ;done
-for i in ~/data/gwm297.lholman/temp_db/nt/WP5.2/RIZ/script.* ;  do  sbatch $i;done
-
-##EUK
-for i in split.* ;do bname=$(basename $i); echo -e '#''!'"/bin/bash\n#SBATCH --ntasks=1\n#SBATCH --time=00:60:00\n#SBATCH --mem-per-cpu=160G\ncd ~/data/gwm297.lholman/temp_db/nt/\n./blastn -query WP5.2/EUK/$bname -num_threads 1 -db nt -out WP5.2/EUK/results/$bname.out -outfmt '6 qseqid qlen slen qcovs qcovhsp sseqid bitscore score evalue pident qstart qend sstart send staxids sscinames' -num_alignments 200" > script.$bname.sh ;done
-for i in ~/data/gwm297.lholman/temp_db/nt/WP5.2/EUK/script.* ;  do  sbatch $i;done
-
-##MAM
-for i in split.* ;do bname=$(basename $i); echo -e '#''!'"/bin/bash\n#SBATCH --ntasks=1\n#SBATCH --time=00:60:00\n#SBATCH --mem-per-cpu=160G\ncd ~/data/gwm297.lholman/temp_db/nt/\n./blastn -query WP5.2/MAM/$bname -num_threads 1 -db nt -out WP5.2/MAM/results/$bname.out -outfmt '6 qseqid qlen slen qcovs qcovhsp sseqid bitscore score evalue pident qstart qend sstart send staxids sscinames' -num_alignments 200" > script.$bname.sh ;done
-for i in ~/data/gwm297.lholman/temp_db/nt/WP5.2/MAM/script.* ;  do  sbatch $i;done
-
-
-#combine output from all the split files to form one mega taxonomy file
-cd ~/data/temp_db/nt/WP5.1/results
-cat split* > dada2.raw.taxonomy.txt
+## we use the expressions in the bash script '0.1.TaxonomicAssignment.sh', in short it is a big blast searhc of all ASVs
+#We can pull in the raw data and parse it as follows 
 
 
 
-```
-
-Now we download the file *dada2.raw.taxonomy.txt* to the local area and run parse taxonomy in R as follows. 
-
-```{r}
-rawtax <- read.table("data/taxonomy/dada2.raw.taxonomy.txt",sep="\t")
-
-```
+euk.tax <- ParseTaxonomy(pctThreshold = 99,
+                      covpct = 95,
+                      blastoutput = "taxonomy/raw/EUK.dada2.raw.taxonomy.txt",
+                      lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")
 
 
+mam.tax <- ParseTaxonomy(pctThreshold = 98,
+                      covpct = 95,
+                      blastoutput = "taxonomy/raw/MAM.dada2.raw.taxonomy.txt",
+                      lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")
 
+riz.tax <- ParseTaxonomy(pctThreshold = 98,
+                      covpct = 95,
+                      blastoutput = "taxonomy/raw/RIZ.dada2.raw.taxonomy.txt",
+                      lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")
+
+
+write.csv(euk.tax,"taxonomy/EUK.parsed.csv")
+write.csv(mam.tax,"taxonomy/MAM.parsed.csv")
+write.csv(riz.tax,"taxonomy/RIZ.parsed.csv")
 
 
 
