@@ -1267,12 +1267,12 @@ euk.tax <- ParseTaxonomy(pctThreshold = 99,
                       lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")
 
 
-mam.tax <- ParseTaxonomy(pctThreshold = 98,
+mam.tax <- ParseTaxonomy(pctThreshold = 99,
                       covpct = 95,
                       blastoutput = "taxonomy/raw/MAM.dada2.raw.taxonomy.txt",
                       lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")
 
-riz.tax <- ParseTaxonomy(pctThreshold = 98,
+riz.tax <- ParseTaxonomy(pctThreshold = 99,
                       covpct = 95,
                       blastoutput = "taxonomy/raw/RIZ.dada2.raw.taxonomy.txt",
                       lineages = "taxonomy/ncbi_lineages_2023-04-27.csv.gz")

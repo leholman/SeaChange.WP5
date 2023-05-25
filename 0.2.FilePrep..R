@@ -4,11 +4,23 @@
 ####==== Luke E. Holman====01.05.2023====####
 #############################################
 
-####====0.0 Packages====####
+####====0.0 Packages & Parameters====####
+library("Biostrings")
+
+#Set some variables 
+minreads <- 2
+items <- NULL
+
+#Set the seed 
+set.seed("123456")
+
+#Read in metadata
+metadata<-read.csv("metadata.csv") 
+metadata$rep <- gsub(".*-([0-9])$","\\1",metadata$SampleID)
 
 
 
-####====1.0 Make a dataset to play with====####
+####====1.0 Make a raw dataset to play with/visualise====####
 
 
 MAM.data<- read.csv("rawdata/MAM.raw.csv",row.names = 1)
@@ -77,7 +89,62 @@ write.csv(RIZ.all.nReps,"rawdata/RIZ.raw.nReps.wTAX.csv")
 
 
 
-####====2.0 ====####
+####====2.0 Now let's try and do some filtering and make some clean datasets====####
+
+for (dataset in list.files("rawdata",pattern="....raw.csv")){
+
+datasetname <- substr(dataset,1,3)  
+  
+indata <- read.csv(paste0("rawdata/",datasetname,".raw.csv"),row.names = 1)
+
+expSamples <- indata[,match(gsub(",|-",".",sort(metadata$SampleID[metadata$SampleType=="Experimental"])),substring(colnames(indata),5))]
+
+ctlSamples <-indata[,na.omit(match(gsub(",|-",".",sort(metadata$SampleID[metadata$SampleType=="ControlN"])),substring(colnames(indata),5)))]
+
+#Filter 1 - minimum number of reads for any ID
+expSamples[expSamples< minreads] <- 0
+expSamples <- expSamples[rowSums(expSamples) > 0,]
+
+#Filter 2 - within samples OTU must appear in more than one sample (this works because there are lots of reps per site and sample)
+filtersam <- expSamples
+filtersam[filtersam>0 ] <- 1
+filtersam <-filtersam[rowSums(filtersam) > 1,]
+expSamples <- expSamples[rownames(expSamples) %in% rownames(filtersam),]
+
+#Filter 3 -Maximum value in neg = 0 value in samples
+
+controlsCONTAM <- ctlSamples[rowSums(ctlSamples) > 0,]
+for (contamOTU in 1:length(controlsCONTAM[,1])){
+  loopOTU <- row.names(controlsCONTAM[contamOTU,])
+  loopMax <- max(as.numeric(controlsCONTAM[contamOTU,]))
+  #loopSum <- sum(as.numeric(controlsCONTAM[contamOTU,]))
+  if (any(is.na(samples[loopOTU,]))){next}
+  expSamples[loopOTU,expSamples[loopOTU,]<loopMax] <- 0
+  print(paste("Cleaning contaminants",contamOTU))
+}
+
+
+
+#Reattach taxonomy and ASVs
+
+rawSeqs <- as.character(readDNAStringSet(paste0("rawdata/ASVs/",datasetname,".DADA2.ASVs.fasta")))
+Assignments <- read.csv(paste0("taxonomy/",datasetname,".parsed.csv"),row.names = 1)
+
+CleanedOutput <- cbind(expSamples,
+                       unname(rawSeqs)[match(row.names(expSamples),names(rawSeqs))],
+                       Assignments[match(row.names(expSamples),Assignments$OTU),])
+dir.create("cleanedData")
+write.csv(CleanedOutput,paste0("cleanedData/clean.",dataset,".dada2.csv"))
+
+}
+
+
+
+
+
+
+
 ####====3.0 ====####
+
 
 
