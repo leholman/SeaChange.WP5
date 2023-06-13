@@ -97,7 +97,7 @@ datasetname <- substr(dataset,1,3)
   
 indata <- read.csv(paste0("rawdata/",datasetname,".raw.csv"),row.names = 1)
 
-expSamples <- indata[,match(gsub(",|-",".",sort(metadata$SampleID[metadata$SampleType=="Experimental"])),substring(colnames(indata),5))]
+expSamples <- indata[,na.omit(match(gsub(",|-",".",sort(metadata$SampleID[metadata$SampleType=="Experimental"])),substring(colnames(indata),5)))]
 
 ctlSamples <-indata[,na.omit(match(gsub(",|-",".",sort(metadata$SampleID[metadata$SampleType=="ControlN"])),substring(colnames(indata),5)))]
 
@@ -118,7 +118,7 @@ for (contamOTU in 1:length(controlsCONTAM[,1])){
   loopOTU <- row.names(controlsCONTAM[contamOTU,])
   loopMax <- max(as.numeric(controlsCONTAM[contamOTU,]))
   #loopSum <- sum(as.numeric(controlsCONTAM[contamOTU,]))
-  if (any(is.na(samples[loopOTU,]))){next}
+  if (any(is.na(expSamples[loopOTU,]))){next}
   expSamples[loopOTU,expSamples[loopOTU,]<loopMax] <- 0
   print(paste("Cleaning contaminants",contamOTU))
 }
