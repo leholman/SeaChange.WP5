@@ -14,6 +14,7 @@ dates <- read.csv("dates/dates.csv")
 
 mam <- read.csv("cleanedData/clean.MAM.raw.csv.dada2.csv",row.names = 1)
 riz <- read.csv("cleanedData/clean.RIZ.raw.csv.dada2.csv",row.names = 1)
+euk <- read.csv("cleanedData/clean.EUK.raw.csv.dada2.csv",row.names = 1)
 
 mam.whales <- mam[mam$family=="Balaenopteridae"|
                     mam$family=="Balaenidae"|
@@ -506,7 +507,99 @@ index <- gsub("(.*).[0-9]$","\\1",gsub("MAM.AQ.","",colnames(mam.seals.sum)))
 unique(gsub("(.*).[0-9]$","\\1",gsub("MAM.AQ.","",colnames(mam.seals.sum))))
 
 
-####====3.0 Salps and Krill====####
+####====3.0 Polarella ===####
+
+euk.polarella <- euk[euk$genus=="Polarella" & euk$assignmentQual=="High",]
+euk.polarella <- euk.polarella[!is.na(euk.polarella$EUK.AQ.BB3.0.5.1),]
+euk.polarella.clean <- colSums(euk.polarella[,1:358])
+euk.polarella.clean.p <- euk.polarella.clean/colSums(euk[,1:358])
+euk.dinos.h <- euk[euk$class=="Dinophyceae" & (euk$assignmentQual=="High"|euk$assignmentQual=="High"),]
+euk.dinos.h <- euk.dinos.h[!is.na(euk.dinos.h$EUK.AQ.BB3.0.5.1),]
+euk.dinos.l <- euk[euk$class=="Dinophyceae",]
+euk.dinos.l <- euk.dinos.l[!is.na(euk.dinos.l$EUK.AQ.BB3.0.5.1),]
+
+euk.polarella.dat <- data.frame("raw.reads"=euk.polarella.clean,
+                                "prop.reads"=euk.polarella.clean.p,
+                                "prop.reads.dino"=euk.polarella.clean/colSums(euk.dinos.h[,1:358]),
+                                "prop.reads.dino.l"=euk.polarella.clean/colSums(euk.dinos.l[,1:358]),
+                                "site"=toupper(substr(names(euk.polarella.clean),8,9)),
+                                "depth"=as.numeric(sapply(strsplit(names(euk.polarella.clean), "\\."), function(x) x[4])))
+euk.polarella.dat$depth[euk.polarella.dat$depth=="0"] <- 0.5
+euk.polarella.dat$dates <- dates$CalYear[match(paste(euk.polarella.dat$site,euk.polarella.dat$depth),
+                    paste(dates$Site,dates$Depth))]
+
+pdf("figures/p.glacialis.pdf",height = 8,width = 7)
+par(mfrow=c(3,1))
+palette(c("#009e73","#D55E00","#0072B2"))
+count <- 1
+for (site in unique(euk.polarella.dat$site)){
+plot(euk.polarella.dat$dates[euk.polarella.dat$site==site],
+     euk.polarella.dat$prop.reads[euk.polarella.dat$site==site],
+     col=count,pch=16,ylab="Proportion P.glacialis",xlab="Date (CE)",main=site)
+  count <- count+1
+}
+dev.off()
+
+pdf("figures/p.glacialis.dino.pdf",height = 8,width = 7)
+par(mfrow=c(3,1))
+palette(c("#009e73","#D55E00","#0072B2"))
+count <- 1
+for (site in unique(euk.polarella.dat$site)){
+  plot(euk.polarella.dat$dates[euk.polarella.dat$site==site],
+       euk.polarella.dat$prop.reads.dino[euk.polarella.dat$site==site],
+       col=count,pch=16,ylab="Proportion P.glacialis",xlab="Date (CE)",main=site)
+  count <- count+1
+}
+dev.off()
+
+pdf("figures/p.glacialis.dino.l.pdf",height = 8,width = 7)
+par(mfrow=c(3,1))
+palette(c("#009e73","#D55E00","#0072B2"))
+count <- 1
+for (site in unique(euk.polarella.dat$site)){
+  plot(euk.polarella.dat$dates[euk.polarella.dat$site==site],
+       euk.polarella.dat$prop.reads.dino.l[euk.polarella.dat$site==site],
+       col=count,pch=16,ylab="Proportion P.glacialis",xlab="Date (CE)",main=site)
+  count <- count+1
+}
+dev.off()
+
+####====3.1 fish====####
+euk.fish <- euk["ASV_433",]
+
+euk.fish.dat <- data.frame("raw.reads"=unlist(euk.fish[1,1:358]),
+                                "prop.reads"=unlist(euk.fish[1,1:358]/colSums(euk[,1:358])),
+                                "site"=toupper(substr(names(euk.fish[,1:358]),8,9)),
+                                "depth"=as.numeric(sapply(strsplit(names(euk.fish[,1:358]), "\\."), function(x) x[4])))
+euk.fish.dat$binary <- ifelse(euk.fish.dat$raw.reads>0,1,0)
+
+euk.fish.dat$depth[euk.fish.dat$depth=="0"] <- 0.5
+euk.fish.dat$dates <- dates$CalYear[match(paste(euk.fish.dat$site,euk.fish.dat$depth),
+                                               paste(dates$Site,dates$Depth))]
+
+pdf("figures/fish.pdf",height = 8,width = 7)
+par(mfrow=c(3,1))
+palette(c("#009e73","#D55E00","#0072B2"))
+count <- 1
+for (site in unique(euk.fish.dat$site)){
+  plot(euk.fish.dat$dates[euk.fish.dat$site==site],
+       euk.fish.dat$prop.reads[euk.fish.dat$site==site],
+       col=count,pch=16,ylab="Proportion fish",xlab="Date (CE)",main=site)
+  count <- count+1
+}
+dev.off()
+
+summed_binary <-euk.fish.dat %>%
+  group_by(site, depth) %>%
+  summarise(sum_binary = sum(binary))
+
+plot(dates$CalYear[match(paste(summed_binary$site,summed_binary$depth),
+                    paste(dates$Site,dates$Depth))],
+     summed_binary$sum_binary,
+     col=as.numeric(as.factor(summed_binary$site)),pch=16)
+
+
+####====3.2 Salps and Krill====####
 
 euk <- read.csv("cleanedData/clean.EUK.raw.csv.dada2.csv",row.names = 1)
 
@@ -514,9 +607,8 @@ euk.salkril <- euk[euk$family=="Euphausiidae"|
                    euk$family=="Salpidae",]
 
 euk.salkril <- euk.salkril[!is.na(euk.salkril$assignmentQual),]
-
-
 write.csv(euk.salkril,"cleanedData/clean.EUK.salkril.csv")
+
 
 ## Pull in manually annotated data 
 
@@ -527,6 +619,12 @@ euk.salkril.man <- read.csv("cleanedData/clean.EUK.salkril.manual.csv",row.names
 euk.salkril.man[,1:358] <- sweep(euk.salkril.man[,1:358],2,colSums(euk[,1:358]),FUN="/")
 euk.salkril.man[euk.salkril.man=="NaN"] <- 0
 euk.salkril.man[is.na(euk.salkril.man)] <- 0
+
+euk.salkril.man[,1:358] <- sweep(euk.salkril.man[,1:358],2,colSums(euk[,1:358]),FUN="/")
+euk.salkril.man[euk.salkril.man=="NaN"] <- 0
+euk.salkril.man[is.na(euk.salkril.man)] <- 0
+
+
 
 
 #Aggregate same species
