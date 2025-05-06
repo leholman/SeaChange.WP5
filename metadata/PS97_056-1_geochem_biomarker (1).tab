@@ -1,0 +1,78 @@
+/* DATA DESCRIPTION:
+Citation:	Vorrath, Maria-Elena; Müller, Juliane; Rebolledo, Lorena; Cárdenas, Paola; Shi, Xiaoxu; Esper, Oliver; Opel, Thomas; Geibert, Walter; Muñoz, Praxedes; Haas, Christian; Lange, Carina B; Lohmann, Gerrit; Mollenhauer, Gesine (2020): Geochemistry and biomarker of sediment core PS97/056-1 [dataset]. PANGAEA, https://doi.org/10.1594/PANGAEA.918734, 
+	In: Vorrath, M-E et al. (2020): Sea Ice dynamics in the Bransfield Strait, Antarctic Peninsula, during the past 240 years: a multi-proxy intercomparison study [dataset publication series]. PANGAEA, https://doi.org/10.1594/PANGAEA.918808
+Keyword(s):	Antarctic sea ice; highly branched isoprenoids; IPSO25; Paleoclimate; sea ice proxy
+Related to:	Vorrath, Maria-Elena; Müller, Juliane; Rebolledo, Lorena; Cárdenas, Paola; Shi, Xiaoxu; Esper, Oliver; Opel, Thomas; Geibert, Walter; Muñoz, Praxedes; Haas, Christian; Lange, Carina B; Lohmann, Gerrit; Mollenhauer, Gesine (accepted): Sea Ice dynamics at the Western Antarctic Peninsula during the industrial era: a multi-proxy intercomparison study. Climate of the Past, https://doi.org/10.5194/cp-2020-63
+Further details:	C-factors for calculation of PIPSO25 based on brassicasterol and dinosterol (URI: https://store.pangaea.de/Publications/VorrathME-etal_2020/T1_Supplement_C-Factors.xlsx)
+Project(s):	Paleoenvironmental Reconstructions from Marine Sediments @ AWI (AWI_Paleo) (URI: https://www.awi.de/en/science/geosciences/marine-geology.html)
+	Polar Terrestrial Environmental Systems @ AWI (AWI_Envi) (URI: https://www.awi.de/en/science/geosciences/polar-terrestrial-environmental-systems.html)
+Coverage:	LATITUDE: -63.757000 * LONGITUDE: -60.441830
+	DATE/TIME START: 2016-03-06T21:05:00 * DATE/TIME END: 2016-03-06T21:05:00
+	MINIMUM DEPTH, sediment/rock: 0.015 m * MAXIMUM DEPTH, sediment/rock: 0.335 m
+Event(s):	PS97/056-1 (URI: https://store.pangaea.de/Images/Cores/PS-stationcard/PS97_056-stationcard.pdf) * LATITUDE: -63.757000 * LONGITUDE: -60.441830 * DATE/TIME START: 2016-03-06T21:05:00 * DATE/TIME END: 2016-03-06T21:05:00 * ELEVATION: -633.4 m * LOCATION: Bransfield Strait * CAMPAIGN: PS97 (ANT-XXXI/3) (URI: https://doi.org/10.2312/BzPM_0701_2016) * BASIS: Polarstern (URI: https://doi.org/10.17815/jlsrf-3-163) * METHOD/DEVICE: MultiCorer (MUC)
+Comment:	Calendar Years AD 1830-1880; 1780-1875 and 1823-1876 are extrapolated based on the prior sedimentation rate.
+Parameter(s):	DEPTH, sediment/rock [m] (Depth sed) * GEOCODE * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Depth, top/min [m] (Depth top) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Depth, bottom/max [m] (Depth bot) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Lead-210 excess [dpm/g] (210Pb xs) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Lead-210 excess, error [±] (210Pb xs e) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Age [a AD/CE] (Age) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Age, error [±] (Age e) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	AGE [ka BP] (Age) * GEOCODE * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Sedimentation rate per year [cm/a] (SR) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Carbon, organic, total [%] (TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * COMMENT: wt %
+	Carbon/Nitrogen ratio (C/N) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	Branched and isoprenoid tetraether index (BIT) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de)
+	2,10,14-Trimethyl-6-enyl-7-(3-methylpent-1-enyl)pentadecene, per unit mass total organic carbon [µg/g] (C25 HBI diene/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS) * COMMENT: IPSO25/TOC: Ice Proxy for the Southern Ocean with 25 carbon atoms per unit total organic carbon
+	(9Z)-2,6,10,14-Tetramethyl-7-(3-methylpent-4-enyliden)pentadeca-9-ene, per unit mass total organic carbon [µg/g] (C25 HBI (Z) triene/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	(9E)-2,6,10,14-Tetramethyl-7-(3-methylpent-4-enyliden)pentadeca-9-ene, per unit mass total organic carbon [µg/g] (C25 HBI (E) triene/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	24-Methylcholesta-5,22E-dien-3beta-ol, per unit mass total organic carbon [µg/g] (Brassicasterol/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	4alpha,23,24-Trimethyl-5alpha-cholest-22E-en-3beta-ol, per unit mass total organic carbon [µg/g] (Dinosterol/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	24-Methylcholest-5-en-3beta-ol, per unit mass total organic carbon [µg/g] (Campesterol/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	24-ethylcholest-5-en-3beta-ol, per unit mass total organic carbon [µg/g] (b-Sitosterol/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	cholesta-5,24-dien-3beta-ol, per unit mass total organic carbon [µg/g] (Desmosterol/TOC) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Gas chromatography - Mass spectrometry (GC-MS)
+	Phytoplankton biomarker HBI Z-Triene IPSO25 index (PZIPSO25) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: PIPSO25 calculated after Vorrath et al., 2019 (URI: https://doi.org/10.5194/bg-16-2961-2019)
+	Phytoplankton biomarker HBI E-Triene IPSO25 index (PEIPSO25) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: PIPSO25 calculated after Vorrath et al., 2019 (URI: https://doi.org/10.5194/bg-16-2961-2019)
+	Phytoplankton biomarker Brassicasterol IPSO25 index (PBIPSO25) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: PIPSO25 calculated after Vorrath et al., 2019 (URI: https://doi.org/10.5194/bg-16-2961-2019)
+	Phytoplankton biomarker Dinosterol IPSO25 index (PDIPSO25) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: PIPSO25 calculated after Vorrath et al., 2019 (URI: https://doi.org/10.5194/bg-16-2961-2019)
+	Sub-surface ocean temperature [°C] (SOT) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: SOTTEX, SOT based on TEXL86 calculated after Kim et al., 2010 (Eq. 7 and 8) (URI: https://doi.org/10.1016/j.gca.2010.05.027)
+	Sub-surface ocean temperature [°C] (SOT) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: SOTOH, SOT based on RI-OH caculated after Lü et al., 2015 (Eq. 13 and 14) (URI: https://doi.org/10.1016/j.orggeochem.2015.10.004)
+	Diatoms, sea ice [%] (Diatom sea ice) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Modern analog technique (MAT), D274/28/4an * COMMENT: WSI
+	Sea surface temperature, summer [°C] (SST sum) * PI: Vorrath, Maria-Elena (https://orcid.org/0000-0001-7208-1186, maria-elena.vorrath@awi.de) * METHOD/DEVICE: Transfer function, IKM – D336/29/3q * COMMENT: SSST
+License:	Creative Commons Attribution 4.0 International (CC-BY-4.0) (URI: https://creativecommons.org/licenses/by/4.0/)
+Size:	709 data points
+*/
+Depth sed [m]	Depth top [m]	Depth bot [m]	210Pb xs [dpm/g]	210Pb xs e [±]	Age [a AD/CE]	Age e [±]	Age [ka BP]	SR [cm/a]	TOC [%] (wt %)	C/N	BIT	C25 HBI diene/TOC [µg/g] (IPSO25/TOC: Ice Proxy for the...)	C25 HBI (Z) triene/TOC [µg/g] (Gas chromatography - Mass spe...)	C25 HBI (E) triene/TOC [µg/g] (Gas chromatography - Mass spe...)	Brassicasterol/TOC [µg/g] (Gas chromatography - Mass spe...)	Dinosterol/TOC [µg/g] (Gas chromatography - Mass spe...)	Campesterol/TOC [µg/g] (Gas chromatography - Mass spe...)	b-Sitosterol/TOC [µg/g] (Gas chromatography - Mass spe...)	Desmosterol/TOC [µg/g] (Gas chromatography - Mass spe...)	PZIPSO25 (PIPSO25 calculated after Vorr...)	PEIPSO25 (PIPSO25 calculated after Vorr...)	PBIPSO25 (PIPSO25 calculated after Vorr...)	PDIPSO25 (PIPSO25 calculated after Vorr...)	SOT [°C] (SOTTEX, SOT based on TEXL86 c...)	SOT [°C] (SOTOH, SOT based on RI-OH cac...)	Diatom sea ice [%] (WSI, Modern analog technique ...)	SST sum [°C] (SSST, Transfer function, IKM ...)
+0.015	0.01	0.02	32.24	0.68	2006	0.1	-0.056	0.39	0.79	5.6	0.02	1.92	0.19	0.13						0.91	0.94			-3.59	-1.40		
+0.025	0.02	0.03	34.32	0.79	2003	0.1	-0.053	0.31	0.85	6.4	0.01	1.21	0.24	0.19						0.83	0.87			1.45	-1.59	73.7	0.50
+0.035	0.03	0.04	33.84	0.71	1999	0.1	-0.049	0.30	0.83	6.3	0.01	1.25	0.31	0.24						0.80	0.84			0.95			
+0.045	0.04	0.05	30.31	0.67	1996	0.1	-0.046	0.34	0.67	5.2	0.01	3.54	0.57	0.27						0.86	0.93			1.34	-1.57	92.0	-0.45
+0.055	0.05	0.06	29.68	0.46	1992	0.1	-0.042	0.24	0.67	5.0	0.00	1.92	0.20	0.13						0.91	0.94			-1.46			
+0.065	0.06	0.07	30.08	0.67	1988	0.1	-0.038	0.23	0.86	6.1		0.82	0.10	0.09						0.89	0.90					88.7	-0.65
+0.075	0.07	0.08	22.16	0.55	1985	0.1	-0.035	0.33	0.90	5.9	0.01	0.42	0.06	0.07						0.88	0.87			1.52	-2.07		
+0.085	0.08	0.09	18.65	0.39	1982	0.1	-0.032	0.32	0.74	5.3		1.83	0.22	0.10						0.89	0.95					92.0	-0.87
+0.095	0.09	0.10	18.85	0.38	1979	0.1	-0.029	0.38	0.76	5.3	0.01	0.49	0.12	0.09						0.80	0.84			1.47			
+0.105	0.10	0.11	16.63	0.29	1976	0.1	-0.026	0.33	0.92	5.9	0.00	0.56	0.22	0.11						0.72	0.84			-1.49		82.7	-0.50
+0.115	0.11	0.12	17.32	0.34	1973	0.1	-0.023	0.29	1.01	6.2	0.01	0.49	0.25	0.14						0.66	0.78			1.51	-1.92		
+0.125	0.12	0.13	16.03	0.33	1969	0.1	-0.019	0.25	0.95	6.0	0.01	0.71	0.48	0.18						0.59	0.80			-0.36	-1.83	82.7	-0.64
+0.135	0.13	0.14	14.73	0.31	1965	0.1	-0.015	0.27	1.05	6.9	0.02	0.20	0.11	0.09	40.56	60.35	861.95	77.91	4.28	0.65	0.68	0.38	0.17	-1.28	-1.33		
+0.145	0.14	0.15	12.14	0.29	1961	0.1	-0.011	0.27	0.94	6.2	0.01	0.63	0.23	0.13	154.86	79.53	1254.50	159.48	16.84	0.73	0.83	0.33	0.33	-1.84	-1.57	88.8	-0.50
+0.155	0.15	0.16	10.91	0.23	1957	0.1	-0.007	0.23	0.85	5.9	0.01	1.15	0.27	0.11	171.09	93.45	1398.62	155.38	22.88	0.81	0.91	0.45	0.44	0.32	-1.51		
+0.165	0.16	0.17	9.90	0.24	1953	0.2	-0.003	0.24	0.74	5.3	0.01	1.53	0.33	0.10	241.32	112.25	1758.81	183.99	26.18	0.82	0.94	0.44	0.46	-1.18	-1.56	82.0	-0.36
+0.175	0.17	0.18	8.89	0.25	1948	0.2	0.002	0.22	0.74	5.3	0.01	1.26	0.21	0.07	183.41	112.72	1823.81	180.23	19.01	0.86	0.94	0.46	0.41	-1.39	-1.57		
+0.185	0.18	0.19	8.00	0.24	1943	0.2	0.007	0.21	0.68	5.0	0.01	1.42	0.29	0.07	200.82	98.91	1978.73	165.30	12.09	0.83	0.95	0.47	0.47	-0.33	-1.60	89.2	-0.40
+0.195	0.19	0.20	7.11	0.22	1938	0.2	0.012	0.20	0.67	5.1	0.01	0.66	0.21	0.11	133.88	93.39	2469.36	140.49	8.49	0.76	0.86	0.38	0.31	-0.77	-1.86		
+0.205	0.20	0.21	6.23	0.20	1933	0.2	0.017	0.19	0.66	5.2	0.01	0.52	0.16	0.14	152.61	98.24	1905.01	140.12	8.64	0.77	0.79	0.29	0.25	1.90	-1.46	86.5	-0.40
+0.215	0.21	0.22	5.72	0.18	1927	0.2	0.023	0.17	0.69	5.5	0.01	0.34	0.08	0.11	231.19	107.58	2051.42	208.65	8.76	0.81	0.75	0.15	0.17	1.26	-1.38		
+0.225	0.22	0.23	5.22	0.16	1920	0.3	0.030	0.15	0.81	6.4	0.01	0.30	0.11	0.11	107.29	40.67	856.24	106.62	1.95	0.73	0.73	0.26	0.32	0.70	-1.40	79.9	-0.23
+0.235	0.23	0.24	4.71	0.14	1913	0.3	0.037	0.13	0.69	5.6	0.01	0.31	0.11	0.12	162.37	62.50	1161.19	145.58	2.74	0.74	0.72	0.19	0.24	1.97	-1.12		
+0.245	0.24	0.25	3.79	0.14	1905	0.4	0.045	0.12	0.65	5.2	0.01	0.53	0.25	0.18	143.52	52.54	1608.83	128.43	1.62	0.68	0.74	0.31	0.39	-1.82	-1.44	79.5	-0.21
+0.255	0.25	0.26	2.87	0.15	1897	1.9	0.053	0.13	0.81	6.4	0.01	0.27	0.16	0.16	148.06	58.15	2385.56	123.09	6.52	0.62	0.63	0.18	0.22	-1.16	-1.41		
+0.265	0.26	0.27	2.22	0.73	1889	3.7	0.061	0.12	0.78	6.2	0.01	0.76	0.39	0.19	150.20	54.47	2252.45	114.48	9.33	0.66	0.80	0.38	0.47	-0.34	-1.46	79.9	-0.48
+0.275	0.27	0.28			1880	3.7	0.070	0.12	0.69	5.5	0.01	0.24	0.11	0.12	147.05	52.74	2040.66	120.09	11.11	0.68	0.65	0.16	0.22	1.04	-1.43		
+0.285	0.28	0.29			1872	3.7	0.078	0.12	0.73	5.7	0.01	0.46	0.22	0.17	151.34	59.96	2049.11	113.63	14.87	0.68	0.73	0.27	0.33	0.40	-1.42	79.9	-0.22
+0.295	0.29	0.30			1864	3.7	0.086	0.12	0.76	5.8	0.01	1.04	0.36	0.15	141.68	63.84	2309.24	98.93	15.65	0.74	0.88	0.47	0.51	-1.22	-1.45		
+0.305	0.30	0.31			1855	3.7	0.095	0.12	0.80	6.0	0.01	0.92	0.20	0.07	129.76	66.43	3159.94	102.61	15.46	0.82	0.93	0.47	0.47	1.24	-1.43	81.9	-0.27
+0.315	0.31	0.32			1847	3.7	0.103	0.12	0.76	5.9	0.01	0.90	0.37	0.13	130.93	64.54	3238.75	104.86	14.27	0.71	0.88	0.46	0.47	0.06	-1.41		
+0.325	0.32	0.33			1839	3.7	0.111	0.12	0.73	5.6	0.01	0.83	0.24	0.09	163.63	75.93	2667.53	115.95	12.90	0.78	0.90	0.38	0.41	0.77	-1.40	88.8	-0.30
+0.335	0.33	0.34			1830	3.7	0.120	0.12	0.72	5.8	0.01				107.99	54.99	1988.14	85.83	8.39					-2.53	-1.44		

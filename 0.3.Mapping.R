@@ -1,12 +1,29 @@
 ### Mapping of Antarctic sites 
 
-library(ggOceanMapsData)
 library(ggOceanMaps)
 library(sf)
 library(ggspatial)
 
 
-pt <- read.csv("sitemetadata.csv")
+pt <- read.csv("metadata/sitemetadata.csv")
+
+
+pdf("mapping/OverviewV3.pdf",height = 8,width = 6)
+basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glaciers = TRUE)+
+  #basemap(limits = c(-25, -12, 63, 67),rotate = TRUE)+
+  ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color ="black",cex=7.5,crs = 4326)+
+  ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color = c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73"),cex=6,crs = 4326)+
+  #ggspatial::geom_spatial_text(aes(x = Lon, y = Lat+0.04,label=CoreID),data = metadata, color = "darkred",cex=2)+
+  xlab("Longitude")+
+  ylab("Latitude")+
+  annotation_scale(location = "bl")+ 
+  annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))
+dev.off()
+
+pt$Site
+
+
+### basement 
 
 pdf("mapping/OverviewV2.pdf",height = 8,width = 6)
 basemap(limits = c(-80, -46, -80, -58), bathy.style = "rcb",rotate = TRUE,glaciers = TRUE)+
@@ -33,14 +50,14 @@ basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glacie
 dev.off()
 
 
-pdf("mapping/OverviewV2.2.zoom.pdf",height = 8,width = 6)
+pdf("mapping/OverviewV2.2.zoom.pdf",height = 3.5,width = 3.5)
 basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glaciers = TRUE)+
   #basemap(limits = c(-25, -12, 63, 67),rotate = TRUE)+
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt[1:3,], color ="black",cex=5,crs = 4326)+
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt[1:3,], color = c("#009e73","#D55E00","#0072B2"),cex=4,crs = 4326)+
   #ggspatial::geom_spatial_text(aes(x = Lon, y = Lat+0.04,label=CoreID),data = metadata, color = "darkred",cex=2)+
-  xlab("Longitude")+
-  ylab("Latitude")+
+  xlab("")+
+  ylab("")+
   annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))+
                            annotation_scale(location = "bl")
 dev.off()
