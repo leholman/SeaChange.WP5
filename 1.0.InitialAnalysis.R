@@ -5,6 +5,7 @@
 
 ####====0.0 Packages====####
 library(tidyverse)
+library(RColorBrewer)
 
 #read in metadata 
 metadat <- read.csv("metadata/RepMetaData.csv")
@@ -90,34 +91,98 @@ NrepsMaker <- function(INdataframe,vector){
         newDataFrame[,column] <- rowSums(INdataframe[,vector %in% colnames(newDataFrame)[column]])}
   }
   return(newDataFrame)
+}  
 
-## Taoxnomic overview
+average_by_reps <- function (df,sampleIndex){
+  # Check if the dataframe and cols have compatible sizes
+  if (ncol(df) != length(sampleIndex)) {
+    stop("The number of columns in the dataframe must match the length of the vector")
+  }
+  
+  # Get unique sample names
+  unique_samples <- unique(sampleIndex)
+  
+  # Initialize the output dataframe
+  avg_df <- data.frame(matrix(ncol = length(unique_samples), nrow = nrow(df)))
+  colnames(avg_df) <- unique_samples
+  
+  # Compute averages for each sample
+  for (sample in unique_samples) {
+    indices <- which(sampleIndex == sample)  # Get indices for columns corresponding to this sample
+    if (length(indices) == 1) {
+      # If only one column, use it directly
+      avg_df[, sample] <- df[, indices, drop = FALSE]
+    } else {
+      # Compute row means for multiple columns
+      avg_df[, sample] <- rowMeans(df[, indices, drop = FALSE], na.rm = TRUE)
+    }
+  }
+  
+  return(avg_df)
+}
+
+
+## Taxonomic overview
+
+#euk rep collapse
+
+euk.reps <- average_by_reps(euk,gsub("\\.[0-9]+$", "",colnames(euk)))
+rownames(euk.reps) <- rownames(euk)
 
 getPalette = colorRampPalette(brewer.pal(9, "Set3"))
 
-euk.pr2.2 <- euk.pr2[match(rownames(euk),euk.pr2$X.1),]
+euk.pr2.2 <- euk.pr2[match(rownames(euk.reps),euk.pr2$X.1),]
 
 
-#GC1
-EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Family),euk,output = "Abundance"),minAbun=0.01)
-EUK.GC1.tax.c <- minAbundance(CountTable(as.character(EUK.tax.PR2$Family),EUK.GC1.avr,output = "Count"),minAbun=0.01)
+#EUK taxonomy all family 
+EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Family),euk.reps,output = "Abundance"),minAbun=0.01)
 row.names(EUK.tax.a)[1] <- "Unknown"
-EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[,sort(colnames(EUK.tax.a.2))]),margin = 2))
+EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[,sort(colnames(EUK.tax.a))]),margin = 2))
 barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
 
-sort(colnames(EUK.tax.a.2))
 
-
-pdf("figures/fig1/EUK.GC1.tax.Family.pdf",width = 12,height = 9)
-par(mfrow=c(2,1),mar=c(5.1, 4.1, 1.1, 6.1),xpd=TRUE)
-barplot(EUK.GC1.tax.a,las=2,cex.names=0.6,col=rev(getPalette(dim(EUK.GC1.tax.a)[1])),ylab="Read Abundance",names.arg=ages$mean[match(colnames(EUK.GC1.tax.a),ages$ID2)])
-legend(56,1,rev(rownames(EUK.GC1.tax.a)),fill=getPalette(dim(EUK.GC1.tax.a)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-barplot(EUK.GC1.tax.c,las=2,cex.names=0.6,col=rev(getPalette(dim(EUK.GC1.tax.c)[1])),ylab="ASV Counts",names.arg=ages$mean[match(colnames(EUK.GC1.tax.c),ages$ID2)])
-legend(56,1,rev(rownames(EUK.GC1.tax.c)),fill=getPalette(dim(EUK.GC1.tax.c)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+pdf("figures/EUK.all.fam.pdf",width = 14,height = 9)
+par(mfrow=c(1,1),mar=c(5.1, 4.1, 1.1, 6.1),xpd=TRUE)
+barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
+legend(150,1,rev(rownames(EUK.tax.a.2)),fill=getPalette(dim(EUK.tax.a.2)[1]),cex=0.5,bty = "n",y.intersp=0.75)
 dev.off()
 
 
+## use this little script to seperate everything 
+site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
 
+expandedDates <- merge(
+  data.frame(SampleName = cn <- colnames(euk.reps),
+             Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
+             SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
+             stringsAsFactors = FALSE),
+  dates, by = c("Site", "SampleID"), all.x = TRUE)
+
+##loop over sites 
+unique(expandedDates$Site)
+for (site in unique(expandedDates$Site)){
+  loopdat <- EUK.tax.a.2[,colnames(EUK.tax.a.2)%in%(expandedDates$SampleName[expandedDates$Site==site])]
+  pdf(paste0("figures/EUK.",site,"fam.pdf"),width = 7.5,height = 5)
+  par(mfrow=c(1,1),mar=c(3.1, 3.1, 1.1, 1.1),xpd=TRUE)
+  barplot(loopdat,col=rev(getPalette(dim(EUK.tax.a.2)[1])),las=2,names.arg = expandedDates$CalYear[match(colnames(loopdat),expandedDates$SampleName)])  
+  dev.off()
+}
+
+## print out a legend
+
+pal <- rev(getPalette(nrow(EUK.tax.a.2))) 
+pdf("figures/EUK.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rownames(EUK.tax.a.2),       
+       fill   = pal,                         
+       bty    = "n",
+       border  = NA,
+       cex    = 0.6,
+       y.intersp = 0.7)
+
+dev.off()
 
 
 ##### don't trust this nREPs plotting - start from scratch here
