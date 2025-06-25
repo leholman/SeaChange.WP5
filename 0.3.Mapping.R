@@ -20,6 +20,18 @@ basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glacie
   annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))
 dev.off()
 
+pdf("mapping/OverviewV3smol.pdf",height = 5,width = 3.5)
+basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glaciers = TRUE)+
+  #basemap(limits = c(-25, -12, 63, 67),rotate = TRUE)+
+  ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color ="black",cex=7.5,crs = 4326)+
+  ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color = c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73"),cex=6,crs = 4326)+
+  #ggspatial::geom_spatial_text(aes(x = Lon, y = Lat+0.04,label=CoreID),data = metadata, color = "darkred",cex=2)+
+  xlab("Longitude")+
+  ylab("Latitude")+
+  annotation_scale(location = "bl")+ 
+  annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))
+dev.off()
+
 pt$Site
 
 

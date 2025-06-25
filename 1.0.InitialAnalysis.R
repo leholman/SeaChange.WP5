@@ -215,8 +215,8 @@ pdf("figures/EUK.family.legend.pdf", width = 4.5, height = 9)
 par(mar = c(0, 0, 0, 0))  
 plot.new()
 legend("center",
-       legend = rownames(EUK.tax.a.2),       
-       fill   = pal,                         
+       legend = rev(rownames(EUK.tax.a.2)),       
+       fill   = rev(pal),                         
        bty    = "n",
        border  = NA,
        cex    = 0.6,
@@ -285,8 +285,8 @@ pdf("figures/EUK.metazoa.family.legend.pdf", width = 4.5, height = 9)
 par(mar = c(0, 0, 0, 0))  
 plot.new()
 legend("center",
-       legend = rownames(EUK.met.2), 
-       fill = rev(getPalette(nrow(EUK.met.2))),
+       legend = rev(rownames(EUK.met.2)), 
+       fill = getPalette(nrow(EUK.met.2)),
        bty = "n",
        border = NA,
        cex = 0.6,
@@ -444,7 +444,7 @@ for (group_name in names(asv_groups)) {
               across(ends_with("_sd"),   \(x) sqrt(mean(x^2))))   # pooled SD
   
   ## Plot Q0
-  pdf(paste0("figures/", group_name, ".Q0.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/", group_name, ".Q0.pdf"), height = 5, width = 9)
   plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)],
        alpha_avg$q0_mean,
        col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)]),toupper(coredata$Site))],0.2),
@@ -458,7 +458,7 @@ for (group_name in names(asv_groups)) {
   dev.off()
   
   ## Plot Q1
-  pdf(paste0("figures/", group_name, ".Q1.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/", group_name, ".Q1.pdf"), height = 5, width = 9)
   plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)],
        alpha_avg$q1_mean,
        col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)]),toupper(coredata$Site))],0.2),
@@ -472,7 +472,7 @@ for (group_name in names(asv_groups)) {
   dev.off()
   
   ## Plot Q2
-  pdf(paste0("figures/", group_name, ".Q2.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/", group_name, ".Q2.pdf"), height = 5, width = 9)
   plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)],
        alpha_avg$q2_mean,
        col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_avg$sample),expandedDates$SampleName)]),toupper(coredata$Site))],0.2),
