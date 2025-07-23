@@ -73,7 +73,14 @@ add.alpha <- function(col, alpha=1){
           rgb(x[1], x[2], x[3], alpha=alpha))  
 }
 NrepsMaker <- function(INdataframe,vector){
-  ##write these checks
+  ##If a single vector 
+  if(is.vector(INdataframe) && !is.list(INdataframe)){
+    INdataframe <- as.data.frame(t(INdataframe))
+    colnames(INdataframe) <- names(INdataframe)        
+  }
+  if(is.matrix(INdataframe)){
+    INdataframe <- as.data.frame(INdataframe)
+  }
   #check the dataframe is a dataframe
   if(!is.data.frame(INdataframe)){stop("Input dataframe doesn't look like a dataframe")}
   #check the vector is a vector
@@ -853,6 +860,241 @@ for (species in unique(euk.salkril.nReps.long$spp)) {
 
 dev.off()
 
+## Lets focus on some ice associated diatoms 
+
+iceSPP <-c("Polarella_glacialis","Islandinium_minutum","Islandinium_tricingulatum")
+
+euk.ice <- euk[euk.tax$Species%in%iceSPP & 
+                 euk.tax$assignmentQual%in%c("High","High-MH","High_MH-S"),]
+
+# divide by original read number to get proportion 
+euk.ice[,1:992] <- sweep(euk.ice[,1:992],2,colSums(euk),FUN="/")
+euk.ice[euk.ice=="NaN"] <- 0
+euk.ice[is.na(euk.ice)] <- 0
+
+
+
+#Aggregate same species
+datain <- cbind(euk.ice[,1:992],"Species"=euk.tax$species[match(rownames(euk.ice),euk.tax$OTU)])
+euk.ice.sum <- aggregate(.~Species,data=datain,FUN=sum)
+rownames(euk.ice.sum) <- euk.ice.sum$Species
+euk.ice.sum<- euk.ice.sum[,-1]
+
+## Lets make an nREPs dataset 
+
+euk.ice.sum.nreps <- NrepsMaker(euk.ice.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.ice.sum)))
+
+df <- tibble(spp = rownames(euk.ice.sum.nreps), euk.ice.sum.nreps)
+
+euk.ice.sum.nreps.long <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+euk.ice.sum.nreps.long$site <- expandedDates$Site[match(euk.ice.sum.nreps.long$column,expandedDates$SampleName)]
+euk.ice.sum.nreps.long$dates <- expandedDates$CalYear[match(euk.ice.sum.nreps.long$column,expandedDates$SampleName)]
+
+
+#change the values a bit so they match the dates
+
+pdf("figures/EUK.ice.v1.pdf",width = 9,height =3.5)
+par(mfrow=c(1,3))
+
+for (species in unique(euk.ice.sum.nreps.long$spp)){
+  
+  loopdat <- euk.ice.sum.nreps.long[euk.ice.sum.nreps.long$spp==species,]
+  set.seed(1234)
+  plot(loopdat$dates,
+       jitter(loopdat$value,0.8),
+       col=coredata$col[match(toupper(loopdat$site),coredata$Site)],
+       main=species,
+       xlab="Date",
+       ylab="nPCR reps",
+       ylim=c(0,8),
+       pch=ifelse(loopdat$value>0,16,4))
+  
+  
+}
+
+dev.off()
+pdf("figures/EUK.ice.v1.trends.pdf", width = 9, height = 3.5)
+par(mfrow = c(1, 3))
+
+for (species in unique(euk.ice.sum.nreps.long$spp)) {
+  
+  loopdat <- euk.ice.sum.nreps.long[euk.ice.sum.nreps.long$spp == species, ]
+  set.seed(1234)
+  plot(loopdat$dates,
+       jitter(loopdat$value, 0.8),
+       col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)],0.5),
+       main = species,
+       xlab = "Date",
+       ylab = "nPCR reps",
+       ylim = c(0, 9),
+       pch = ifelse(loopdat$value > 0, 16, 4))
+  
+  # Add LOESS smooth per site
+  for (s in unique(loopdat$site)) {
+    subdat <- loopdat[loopdat$site == s, ]
+    # sort by date to ensure smooth lines
+    subdat <- subdat[order(subdat$dates), ]
+    # only fit if enough points
+    if (nrow(subdat) > 4) {
+      fit <- loess(value ~ dates, data = subdat, span = 0.8)
+      lines(subdat$dates, predict(fit), 
+            col = coredata$col[match(toupper(s), coredata$Site)],
+            lwd = 2)
+    }
+  }
+}
+
+dev.off()
+
+
+### How aboiut this HAB species 
+spp <- "Karlodinium veneficum" 
+
+
+euk.kar <- euk[euk.tax$species%in%spp & 
+                 euk.tax$assignmentQual%in%c("High","High-MH","High_MH-S"),]
+
+# divide by original read number to get proportion 
+euk.kar[,1:992] <- sweep(euk.kar[,1:992],2,colSums(euk),FUN="/")
+euk.kar[euk.kar=="NaN"] <- 0
+euk.kar[is.na(euk.kar)] <- 0
+euk.kar.sum <- colSums(euk.kar)
+
+## Lets make an nREPs dataset 
+
+euk.kar.sum.nreps <- NrepsMaker(euk.kar.sum*100000000000000,gsub("(.*).[0-9]$","\\1",names(euk.kar.sum)))
+
+df <- tibble(spp = rownames(euk.kar.sum.nreps), euk.kar.sum.nreps)
+
+euk.kar.sum.nreps.long <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+euk.kar.sum.nreps.long$site <- expandedDates$Site[match(euk.kar.sum.nreps.long$column,expandedDates$SampleName)]
+euk.kar.sum.nreps.long$dates <- expandedDates$CalYear[match(euk.kar.sum.nreps.long$column,expandedDates$SampleName)]
+loopdat <- euk.kar.sum.nreps.long
+
+par(mfrow = c(1, 1))
+set.seed(1234)
+plot(loopdat$dates,
+     jitter(loopdat$value, 0.8),
+     col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)],0.5),
+     main = spp,
+     xlab = "Date",
+     ylab = "nPCR reps",
+     ylim = c(0, 9),
+     pch = ifelse(loopdat$value > 0, 16, 4))
+
+# Add LOESS smooth per site
+for (s in unique(loopdat$site)) {
+  subdat <- loopdat[loopdat$site == s, ]
+  # sort by date to ensure smooth lines
+  subdat <- subdat[order(subdat$dates), ]
+  # only fit if enough points
+  if (nrow(subdat) > 4) {
+    fit <- loess(value ~ dates, data = subdat, span = 0.8)
+    lines(subdat$dates, predict(fit), 
+          col = coredata$col[match(toupper(s), coredata$Site)],
+          lwd = 2)
+  }
+}
+
+## how about these genera
+genera <- c("Sanguina","Ascoseira","Deepstaria")
+
+
+euk.gen <- euk[euk.tax$genus%in%genera & 
+                 euk.tax$assignmentQual%in%c("High","High-MH","High_MH-S"),]
+
+# divide by original read number to get proportion 
+euk.gen[,1:992] <- sweep(euk.gen[,1:992],2,colSums(euk),FUN="/")
+euk.gen[euk.gen=="NaN"] <- 0
+euk.gen[is.na(euk.gen)] <- 0
+
+
+
+#Aggregate same species
+datain <- cbind(euk.gen[,1:992],"Genus"=euk.tax$genus[match(rownames(euk.gen),euk.tax$OTU)])
+euk.gen.sum <- aggregate(.~Genus,data=datain,FUN=sum)
+rownames(euk.gen.sum) <- euk.gen.sum$Genus
+euk.gen.sum<- euk.gen.sum[,-1]
+
+## Lets make an nREPs dataset 
+
+euk.gen.sum.nreps <- NrepsMaker(euk.gen.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.gen.sum)))
+
+df <- tibble(spp = rownames(euk.gen.sum.nreps), euk.gen.sum.nreps)
+
+euk.gen.sum.nreps.long <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+euk.gen.sum.nreps.long$site <- expandedDates$Site[match(euk.gen.sum.nreps.long$column,expandedDates$SampleName)]
+euk.gen.sum.nreps.long$dates <- expandedDates$CalYear[match(euk.gen.sum.nreps.long$column,expandedDates$SampleName)]
+
+
+#change the values a bit so they match the dates
+
+pdf("figures/EUK.gen.pdf",width = 9,height =3.5)
+par(mfrow=c(1,3))
+
+for (species in unique(euk.gen.sum.nreps.long$spp)){
+  
+  loopdat <- euk.gen.sum.nreps.long[euk.gen.sum.nreps.long$spp==species,]
+  set.seed(1234)
+  plot(loopdat$dates,
+       jitter(loopdat$value,0.8),
+       col=coredata$col[match(toupper(loopdat$site),coredata$Site)],
+       main=species,
+       xlab="Date",
+       ylab="nPCR reps",
+       ylim=c(0,8),
+       pch=ifelse(loopdat$value>0,16,4))
+  
+  
+}
+
+dev.off()
+pdf("figures/EUK.gen.trends.pdf", width = 9, height = 3.5)
+par(mfrow = c(1, 3))
+
+for (species in unique(euk.gen.sum.nreps.long$spp)) {
+  
+  loopdat <- euk.gen.sum.nreps.long[euk.gen.sum.nreps.long$spp == species, ]
+  set.seed(1234)
+  plot(loopdat$dates,
+       jitter(loopdat$value, 0.8),
+       col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)],0.5),
+       main = species,
+       xlab = "Date",
+       ylab = "nPCR reps",
+       ylim = c(0, 9),
+       pch = ifelse(loopdat$value > 0, 16, 4))
+  
+  # Add LOESS smooth per site
+  for (s in unique(loopdat$site)) {
+    subdat <- loopdat[loopdat$site == s, ]
+    # sort by date to ensure smooth lines
+    subdat <- subdat[order(subdat$dates), ]
+    # only fit if enough points
+    if (nrow(subdat) > 4) {
+      fit <- loess(value ~ dates, data = subdat, span = 0.8)
+      lines(subdat$dates, predict(fit), 
+            col = coredata$col[match(toupper(s), coredata$Site)],
+            lwd = 2)
+    }
+  }
+}
+
+dev.off()
+
+
 
 
 ### Now let's examine the whales
@@ -909,8 +1151,12 @@ colnames(riz.whales.sum) <- gsub("^RIZ[._]", "", colnames(riz.whales.sum))
 ### summing observations
 
 # Ensure both are matrices
-riz <- as.matrix(riz.whales.sum)
-mam <- as.matrix(mam.whales.sum)
+#riz <- as.matrix(riz.whales.sum)
+#mam <- as.matrix(mam.whales.sum)
+
+riz <- as.matrix(NrepsMaker(riz.whales.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(riz.whales.sum))))
+mam <- as.matrix(NrepsMaker(mam.whales.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(mam.whales.sum))))
+
 
 # Align dimensions via padding with 0s
 all_species <- union(rownames(riz), rownames(mam))
@@ -927,11 +1173,8 @@ riz_pad <- pad_matrix(riz, all_species, all_samples)
 mam_pad <- pad_matrix(mam, all_species, all_samples)
 
 # Final merged result
-whales.sum <-as.data.frame(riz_pad + mam_pad)
+whales.sum.nreps <-as.data.frame(riz_pad + mam_pad)
 
-#make a nReps dataset 
-
-whales.sum.nreps <- NrepsMaker(whales.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(whales.sum)))
 
 df <- tibble(spp = rownames(whales.sum.nreps), whales.sum.nreps)
 
@@ -979,7 +1222,7 @@ for (species in unique(whales.sum.nreps$spp)) {
        main = species,
        xlab = "Date",
        ylab = "nPCR reps",
-       ylim = c(0, 8),
+  ylim = c(0, 12),
        pch = ifelse(loopdat$value > 0, 16, 4))
   
   # Add LOESS smooth per site
@@ -1049,9 +1292,10 @@ colnames(riz.seals.sum) <- gsub("^RIZ[._]", "", colnames(riz.seals.sum))
 
 ### summing observations
 
-# Ensure both are matrices
-riz <- as.matrix(riz.seals.sum)
-mam <- as.matrix(mam.seals.sum)
+# Ensure both are nreps matrices
+riz <- as.matrix(NrepsMaker(riz.seals.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(riz.seals.sum))))
+mam <- as.matrix(NrepsMaker(mam.seals.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(mam.seals.sum))))
+
 
 # Align dimensions via padding with 0s
 all_species <- union(rownames(riz), rownames(mam))
@@ -1068,11 +1312,8 @@ riz_pad <- pad_matrix(riz, all_species, all_samples)
 mam_pad <- pad_matrix(mam, all_species, all_samples)
 
 # Final merged result
-seals.sum <-as.data.frame(riz_pad + mam_pad)
+seals.sum.nreps <-as.data.frame(riz_pad + mam_pad)
 
-#make a nReps dataset 
-
-seals.sum.nreps <- NrepsMaker(seals.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(seals.sum)))
 
 df <- tibble(spp = rownames(seals.sum.nreps), seals.sum.nreps)
 
@@ -1248,7 +1489,7 @@ dev.off()
 
 ####====3.0 Polarella ===####
 
-euk.polarella <- euk[euk$genus=="Polarella" & euk$assignmentQual=="High",]
+euk.polarella <- euk[euk.tax$genus=="Polarella" & euk.tax$assignmentQual=="High",]
 euk.polarella <- euk.polarella[!is.na(euk.polarella$EUK.AQ.BB3.0.5.1),]
 euk.polarella.clean <- colSums(euk.polarella[,1:358])
 euk.polarella.clean.p <- euk.polarella.clean/colSums(euk[,1:358])
