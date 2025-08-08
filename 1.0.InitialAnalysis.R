@@ -175,8 +175,12 @@ ASVs.bac <- euk.pr2.2$X.1[
   ) & euk.pr2.2$Subdivision.1 > 80
 ]
 
+##pull in this little class classifier - note check this if it becomes important 
+classes <- read.csv("taxonomy/class_category.csv")
 
-
+ASVs.diatom <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Diatom"] & euk.pr2.2$Class.1 > 80]
+ASVs.dino <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Dinoflagellate"] & euk.pr2.2$Class.1 > 80]
+ASVs.smolphy <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Small phytoplankton"] & euk.pr2.2$Class.1 > 80]
 
 
 ## Taxonomic overview
@@ -230,6 +234,91 @@ legend("center",
        y.intersp = 0.7)
 
 dev.off()
+
+### attempt of a shared x axis
+
+
+# Common, ordered time axis across all sites
+all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites     <- unique(expandedDates$Site)
+
+# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
+# rename the matrix arg so it won't collide with lapply's X
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][,1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+# now this works (no name collision)
+site_mats <- setNames(
+  lapply(sites, make_site_year, M = EUK.tax.a.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.tax.a.2)))  # you already defined getPalette
+
+pdf("figures/bigplot.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,3,
+       legend = rownames(EUK.tax.a.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+
 
 ### metazoan subset 
 ## ---- Relative abundance first
@@ -300,6 +389,231 @@ legend("center",
        y.intersp = 0.7)
 dev.off()
 
+### lets make some other subsets! 
+
+
+### diatoms
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only),euk.pr2.2$X.1),]
+
+EUK.dia <- minAbundance(CountTable(as.character(euk.pr2.2.dia$Order),euk.dia.only,output = "Abundance"),minAbun=0.01)
+row.names(EUK.dia)[1] <- "Unknown"
+
+barplot(as.matrix(EUK.dia),col=rev(getPalette(dim(EUK.dia)[1])))
+legend(50,0.1,rev(rownames(EUK.dia)),fill=getPalette(dim(EUK.dia)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diaazoan ASVs (use AFTER relative abundance)
+euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1),]
+dia.fam <- euk.pr2.2.dia$Family
+dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.dia <- minAbundance(CountTable(dia.fam,euk.dia.only,output = "Abundance"),minAbun=0.01)
+EUK.dia.2 <- log10(as.matrix(EUK.dia))
+EUK.dia.2[EUK.dia.2 =="-Inf"] <- 0
+EUK.dia.3<-as.matrix(EUK.dia)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descending
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.dia.2[, colnames(EUK.dia.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.dia.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.dia.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for diatoms only
+pdf("figures/EUK.diatom.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rownames(EUK.dia.2), 
+       fill = getPalette(nrow(EUK.dia.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+## now we do the dinos 
+
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only),euk.pr2.2$X.1),]
+
+EUK.din <- minAbundance(CountTable(as.character(euk.pr2.2.din$Order),euk.din.only,output = "Abundance"),minAbun=0.01)
+row.names(EUK.din)[1] <- "Unknown"
+
+barplot(as.matrix(EUK.din),col=rev(getPalette(dim(EUK.din)[1])))
+legend(50,0.1,rev(rownames(EUK.din)),fill=getPalette(dim(EUK.din)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only dinazoan ASVs (use AFTER relative abundance)
+euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1),]
+din.fam <- euk.pr2.2.din$Family
+din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.din <- minAbundance(CountTable(din.fam,euk.din.only,output = "Abundance"),minAbun=0.01)
+EUK.din.2 <- as.matrix(EUK.din)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descending
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.din.2[, colnames(EUK.din.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.din.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.din.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for dintoms only
+pdf("figures/EUK.dino.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.din.2)), 
+       fill = getPalette(nrow(EUK.din.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+
+
+## finally small phyto
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only),euk.pr2.2$X.1),]
+
+EUK.smolphy <- minAbundance(CountTable(as.character(euk.pr2.2.smolphy$Order),euk.smolphy.only,output = "Abundance"),minAbun=0.01)
+
+
+barplot(as.matrix(EUK.smolphy),col=rev(getPalette(dim(EUK.smolphy)[1])))
+legend(50,0.1,rev(rownames(EUK.smolphy)),fill=getPalette(dim(EUK.smolphy)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only smolphyazoan ASVs (use AFTER relative abundance)
+euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, ,drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1),]
+smolphy.fam <- euk.pr2.2.smolphy$Family
+smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.smolphy <- minAbundance(CountTable(smolphy.fam,euk.smolphy.only,output = "Abundance"),minAbun=0.01)
+EUK.smolphy.2 <- as.matrix(EUK.smolphy)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descensmolphyg
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.smolphy.2[, colnames(EUK.smolphy.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.smolphy.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.smolphy.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for smolphytoms only
+pdf("figures/EUK.smolphyo.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.smolphy.2)), 
+       fill = getPalette(nrow(EUK.smolphy.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+#### what about a ratio???
+
+Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
+
+pdf("figures/EUK.dia.Smol.ratio.pdf",width = 9,height = 6)
+plot(expandedDates$CalYear[match(names(Dia.smol.ratio),expandedDates$SampleName)],
+     log10(Dia.smol.ratio),
+     col=coredata$col[match(toupper(expandedDates$Site[match(names(Dia.smol.ratio),expandedDates$SampleName)]),coredata$Site)],
+     pch=16,
+     xlim=c(2020,1770),
+     xlab="Date",ylab="log10 Diatom-SmallPhytoplankton Ratio")
+dev.off()
 
 
 

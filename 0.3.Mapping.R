@@ -88,6 +88,15 @@ dev.off()
 
 
 
+pdf("mapping/NoOutlineAntarctica.pdf",height = 4,width = 4)
+basemap(limits = -60, shapefiles = "Antarctic",
+        glaciers = TRUE,
+        gla.col  = "black",
+        land.col = "black",
+        land.border.col = "transparent",
+        grid.col = NA)                # grid.col = NA removes all grid lines  [oai_citation:1‡mikkovihtakari.github.io](https://mikkovihtakari.github.io/ggOceanMaps/articles/ggOceanMaps.html)
+dev.off()
+
 
 
 pdf("mapping/Antarctica.pdf",height = 4,width = 4)
