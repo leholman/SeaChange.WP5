@@ -317,6 +317,57 @@ write.csv(WP5.MAM.main.tax, "cleandata/MAM.WP5.main.clean.tax.csv")
 
 
 
+### now lets add in the climate data 
+
+x <- readLines("rawdata/climate/BES_SAM.txt", warn = FALSE)   # read file lines
+x <- trimws(x)                                               # trim whitespace
+x <- x[nzchar(x) & !grepl("^#", x)]                          # drop blank and comment lines
+
+hdr <- x[1]                                                  # header with month names
+months <- scan(text = hdr, what = character(), quiet = TRUE) # split header to tokens
+stopifnot(length(months) == 12)                              # require 12 months
+
+dat <- gsub("\\s+", " ", trimws(x[-1]))                      # normalize spacing on data rows
+
+sam <- read.table(text = dat, header = FALSE, fill = TRUE, stringsAsFactors = FALSE,
+                  col.names = c("Year", months), check.names = FALSE)  # parse to table
+
+yearlymean <- data.frame("Year"=sam[,1],
+                         "SAMmean"= rowMeans(sam[,-1], na.rm = TRUE))
+  
+## quick plot
+months <- colnames(sam)[-1] 
+y <- c(t(as.matrix(sam[,-1]))) 
+y <- y[!is.na(y)]  
+plot(y, type = "l", xlab = "Index", ylab = "SAM") 
+
+sam.data <- data.frame("SAM"=c(t(as.matrix(sam[,-1]))),
+                   "year"=rep(sam$Year, each = 12),
+                   "month"=rep(months,length(sam[,1])))
+sam.data <- sam.data[!is.na(sam.data$SAM),]
+
+## monthly line
+m <- match(sam.data$month, months)
+d <- as.Date(sprintf("%d-%02d-15", sam.data$year, m))
+
+## yearly mean points at mid year (July 1)
+yr <- as.numeric(yearlymean$Year)
+xyr <- as.Date(sprintf("%d-07-01", yr))
+o <- order(yr)
+xyr <- xyr[o] 
+ym <- yearlymean[o]
+
+## plot monthly with xlim covering mid year points
+plot(d, sam.data$SAM, type = "l", xlab = "Year", ylab = "SAM",
+     xaxt = "n", xlim = range(c(d, xyr)))
+axis.Date(1, at = seq(min(d), max(c(d, xyr)), by = "years"), format = "%Y",las=2)
+
+## add yearly means as points at mid year
+points(xyr, ym, pch = 16,col="darkred")
+
+
+write("cleandata/climate.SAM.monthy.txt",yearlymean)
+
 
 
 
