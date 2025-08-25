@@ -1198,7 +1198,7 @@ euk.ice.sum<- euk.ice.sum[,-1]
 
 euk.ice.sum.nreps <- NrepsMaker(euk.ice.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.ice.sum)))
 
-df <- tibble(spp = rownames(euk.ice.sum.nreps), euk.ice.sum.nreps)
+df <- tibble(spp = rownames(euk.ice.sum), euk.ice.sum.nreps)
 
 euk.ice.sum.nreps.long <- df %>% 
   pivot_longer(cols = -spp, 
@@ -1207,6 +1207,22 @@ euk.ice.sum.nreps.long <- df %>%
 
 euk.ice.sum.nreps.long$site <- expandedDates$Site[match(euk.ice.sum.nreps.long$column,expandedDates$SampleName)]
 euk.ice.sum.nreps.long$dates <- expandedDates$CalYear[match(euk.ice.sum.nreps.long$column,expandedDates$SampleName)]
+
+## lets make a avr dataset
+
+euk.ice.sum.avr <- average_by_reps(euk.ice.sum,gsub("(.*).[0-9]$","\\1",colnames(euk.ice.sum)))
+
+
+df <- tibble(spp = rownames(euk.ice.sum), euk.ice.sum.avr)
+
+euk.ice.sum.avr.long <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+euk.ice.sum.avr.long$site <- expandedDates$Site[match(euk.ice.sum.avr.long$column,expandedDates$SampleName)]
+euk.ice.sum.avr.long$dates <- expandedDates$CalYear[match(euk.ice.sum.avr.long$column,expandedDates$SampleName)]
+
 
 
 #change the values a bit so they match the dates
@@ -1263,6 +1279,28 @@ for (species in unique(euk.ice.sum.nreps.long$spp)) {
 }
 
 dev.off()
+
+
+
+##### an idea here of a new plot
+
+par(mfrow = c(3, 1))
+
+for (species in unique(euk.ice.sum.avr.long$spp)) {
+  
+  loopdat <- euk.ice.sum.avr.long[euk.ice.sum.avr.long$spp == species, ]
+  set.seed(1234)
+  plot(loopdat$dates,
+       loopdat$value,
+       col =coredata$col[match(toupper(loopdat$site), coredata$Site)],
+       main = species,
+       xlab = "Date",
+       xlim=c(2016,1768),
+       pch = ifelse(loopdat$value > 0, 16, 4),bty="n")
+
+}
+
+
 
 
 ### How aboiut this HAB species 
