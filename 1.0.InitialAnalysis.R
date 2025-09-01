@@ -318,8 +318,6 @@ dev.off()
 
 
 
-
-
 ### metazoan subset 
 ## ---- Relative abundance first
 euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
@@ -388,6 +386,66 @@ legend("center",
        cex = 0.6,
        y.intersp = 0.7)
 dev.off()
+
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_met <- setNames(
+  lapply(sites, make_site_year, M = EUK.met.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 0.2)
+pal <- rev(getPalette(nrow(EUK.met.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.met.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_met[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+   #             ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.4,
+       legend = rownames(EUK.met.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
 
 ### lets make some other subsets! 
 
@@ -462,6 +520,67 @@ legend("center",
        y.intersp = 0.7)
 dev.off()
 
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_dia <- setNames(
+  lapply(sites, make_site_year, M = EUK.dia.3, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.dia.3)))  # you already defined getPalette
+
+pdf("figures/EUK.large.dia.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_dia[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.4,
+       legend = rownames(EUK.dia.3),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+
 ## now we do the dinos 
 
 
@@ -533,6 +652,65 @@ legend("center",
 dev.off()
 
 
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_din <- setNames(
+  lapply(sites, make_site_year, M = EUK.din.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.din.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.din.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_din[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+    #            ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.12,
+       legend = rownames(EUK.din.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
 
 ## finally small phyto
 ## ---- Relative abundance first
@@ -602,20 +780,81 @@ legend("center",
        y.intersp = 0.7)
 dev.off()
 
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_smol <- setNames(
+  lapply(sites, make_site_year, M = EUK.smolphy.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.smolphy.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.smol.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_smol[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #            ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.04,
+       legend = rownames(EUK.smolphy.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+
 #### what about a ratio???
 
 Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
 
-pdf("figures/EUK.dia.Smol.ratio.pdf",width = 9,height = 6)
+pdf("figures/EUK.dia.Smol.ratio.pdf",width = 9,height = 4)
 plot(expandedDates$CalYear[match(names(Dia.smol.ratio),expandedDates$SampleName)],
      log10(Dia.smol.ratio),
      col=coredata$col[match(toupper(expandedDates$Site[match(names(Dia.smol.ratio),expandedDates$SampleName)]),coredata$Site)],
      pch=16,
-     xlim=c(2020,1770),
-     xlab="Date",ylab="log10 Diatom-SmallPhytoplankton Ratio")
+     xlim=c(2016,1780),
+     xlab="Date",ylab="log10 Diatom-SmallPhytoplankton Ratio",bty="n",axes=FALSE)
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
+axis(2)
 dev.off()
-
-
 
 ### Alpha diversity 
 
