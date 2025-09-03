@@ -1233,6 +1233,12 @@ for (group_name in names(asv_groups)) {
 
 
 ## beta diversity 
+# first a little test with UMAP
+test <- umap(t(prop.table(as.matrix(euk.reps),2)))
+plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
+text(test$layout, labels = expandedDates$CalYear[match(row.names(test$layout), expandedDates$SampleName)],cex=0.3)
+
+# now the NMDS
 EUK.nMDS.j <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),binary = TRUE,method = "jaccard"),trymax = 200,parallel=7)
 EUK.nMDS.b <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),method = "bray"),trymax = 200,parallel=7)
 
@@ -1419,6 +1425,7 @@ iceSPP <-c("Polarella_glacialis","Islandinium_minutum","Islandinium_tricingulatu
 
 euk.ice <- euk[euk.tax$Species%in%iceSPP & 
                  euk.tax$assignmentQual%in%c("High","High-MH","High_MH-S"),]
+euk.ice.2 <- euk.ice
 
 # divide by original read number to get proportion 
 euk.ice[,1:992] <- sweep(euk.ice[,1:992],2,colSums(euk),FUN="/")
@@ -1426,12 +1433,25 @@ euk.ice[euk.ice=="NaN"] <- 0
 euk.ice[is.na(euk.ice)] <- 0
 
 
+euk.ice.2[,1:992] <- sweep(euk.ice.2[,1:992],2,colSums(euk[rownames(euk)%in% ASVs.diatom, , drop = FALSE]),FUN="/")
+euk.ice.2[euk.ice.2=="NaN"] <- 0
+euk.ice.2[is.na(euk.ice.2)] <- 0
+
 
 #Aggregate same species
 datain <- cbind(euk.ice[,1:992],"Species"=euk.tax$species[match(rownames(euk.ice),euk.tax$OTU)])
 euk.ice.sum <- aggregate(.~Species,data=datain,FUN=sum)
 rownames(euk.ice.sum) <- euk.ice.sum$Species
 euk.ice.sum<- euk.ice.sum[,-1]
+
+datain <- cbind(euk.ice.2[,1:992],"Species"=euk.tax$species[match(rownames(euk.ice.2),euk.tax$OTU)])
+euk.ice.2.sum <- aggregate(.~Species,data=datain,FUN=sum)
+rownames(euk.ice.2.sum) <- euk.ice.2.sum$Species
+euk.ice.2.sum<- euk.ice.2.sum[,-1]
+
+
+
+
 
 ## Lets make an nREPs dataset 
 
@@ -1461,6 +1481,21 @@ euk.ice.sum.avr.long <- df %>%
 
 euk.ice.sum.avr.long$site <- expandedDates$Site[match(euk.ice.sum.avr.long$column,expandedDates$SampleName)]
 euk.ice.sum.avr.long$dates <- expandedDates$CalYear[match(euk.ice.sum.avr.long$column,expandedDates$SampleName)]
+
+#finally a dino normalised version 
+euk.ice.2.sum.avr <- average_by_reps(euk.ice.2.sum,gsub("(.*).[0-9]$","\\1",colnames(euk.ice.2.sum)))
+
+df <- tibble(spp = rownames(euk.ice.2.sum), euk.ice.2.sum.avr)
+
+euk.ice.2.sum.avr.long <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+euk.ice.2.sum.avr.long$site <- expandedDates$Site[match(euk.ice.2.sum.avr.long$column,expandedDates$SampleName)]
+euk.ice.2.sum.avr.long$dates <- expandedDates$CalYear[match(euk.ice.2.sum.avr.long$column,expandedDates$SampleName)]
+
+
 
 
 
@@ -1534,10 +1569,139 @@ for (species in unique(euk.ice.sum.avr.long$spp)) {
        col =coredata$col[match(toupper(loopdat$site), coredata$Site)],
        main = species,
        xlab = "Date",
-       xlim=c(2016,1768),
+       xlim=c(2020,1780),
        pch = ifelse(loopdat$value > 0, 16, 4),bty="n")
 
 }
+
+## now lets combine them into one
+
+sp_list <- intersect(unique(euk.ice.sum.nreps.long$spp),
+                     unique(euk.ice.sum.avr.long$spp))
+
+for (sp in sp_list) {
+  pdf(paste0("figures/EUK.ice.big.",sp,".pdf"), width=9, height=6)
+  par(mfrow=c(3,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
+  
+  # --- data per species
+  d1 <- euk.ice.sum.nreps.long[euk.ice.sum.nreps.long$spp==sp, ]
+  d2 <- euk.ice.sum.avr.long  [euk.ice.sum.avr.long$spp==sp, ]
+  d3 <- euk.ice.2.sum.avr.long  [euk.ice.2.sum.avr.long$spp==sp, ]
+  d1 <- d1[!is.na(d1$dates), ]
+  d2 <- d2[!is.na(d2$dates), ]
+  d3 <- d3[!is.na(d3$dates), ]
+  
+  # site-color map
+  sites <- sort(unique(toupper(c(d1$site, d2$site))))
+  cols  <- coredata$col[match(sites, coredata$Site)]
+  colv1 <- cols[match(toupper(d1$site), sites)]
+  colv2 <- cols[match(toupper(d2$site), sites)]
+  colv3 <- cols[match(toupper(d3$site), sites)]
+  
+  # --- TOP: nREps
+  set.seed(1234)
+  plot(d1$dates, jitter(d1$value, 0.8),
+       xlim=c(2024,1760),
+       xlab="", ylab="nPCR reps", main=sp,
+       pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
+  for (si in sites) {
+    d1s <- d1[toupper(d1$site)==si, ]
+    if (nrow(d1s) > 2) {
+      fit <- loess(value ~ dates, data=d1s, span=0.6, degree=1)
+      xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
+      yy  <- predict(fit, data.frame(dates=xx))
+      lines(xx, yy, col=cols[sites==si], lwd=2)
+    }
+  }
+  legend("topright", legend=sites, col=cols, pch=16, cex=0.8, bty="n")
+  
+  # --- MID: average proportion of reads
+  plot(d2$dates, d2$value,
+       xlim=c(2024,1760), 
+       xlab="", ylab="Avg proportion",
+       pch=ifelse(d2$value>0,16,4), col=colv2, bty="n")
+
+
+plot(d3$dates, d3$value,
+     xlim=c(2024,1760), 
+     xlab="Calibrated year", ylab="Avg proportion in Dinos",
+     pch=ifelse(d3$value>0,16,4), col=colv3, bty="n")
+dev.off()
+}
+
+## now the phaeocystis
+
+new_asvs  <- c("ASV_95","ASV_1748")
+
+euk.pha <- euk[rownames(euk)%in%new_asvs,]
+# divide by original read number to get proportion 
+euk.pha[,1:992] <- sweep(euk.pha[,1:992],2,colSums(euk),FUN="/")
+euk.pha[euk.pha=="NaN"] <- 0
+euk.pha[is.na(euk.pha)] <- 0
+
+
+#Aggregate same species
+euk.pha.sum<- colSums(euk.pha)
+
+## Lets make an nREPs dataset 
+
+euk.pha.sum.nreps <- NrepsMaker(euk.pha.sum*100000000000000,gsub("(.*).[0-9]$","\\1",names(euk.pha.sum)))
+
+df <- tibble(spp = rownames(euk.pha.sum), euk.pha.sum.nreps)
+
+euk.pha.sum.nreps.long <- data.frame("Site1"=names(euk.pha.sum.nreps),
+                                     "nREPs"=unlist(unname(euk.pha.sum.nreps)),
+                                     "site"=expandedDates$Site[match(names(euk.pha.sum.nreps),expandedDates$SampleName)],
+                                     "dates"=expandedDates$CalYear[match(names(euk.pha.sum.nreps),expandedDates$SampleName)])
+## lets make a avr dataset
+euk.pha.sum.avr <- tapply(euk.pha.sum, gsub("(.*).[0-9]$","\\1",names(euk.pha.sum)), mean, na.rm=TRUE)
+
+euk.pha.sum.avr.long <- data.frame("Site1"=names(euk.pha.sum.avr),
+                                     "value"=unlist(unname(euk.pha.sum.avr)),
+                                     "site"=expandedDates$Site[match(names(euk.pha.sum.avr),expandedDates$SampleName)],
+                                     "dates"=expandedDates$CalYear[match(names(euk.pha.sum.avr),expandedDates$SampleName)])
+
+
+  # --- data per species
+  d1 <- euk.pha.sum.nreps.long
+  d2 <- euk.pha.sum.avr.long  
+
+ 
+  
+  # site-color map
+  sites <- sort(unique(toupper(c(d1$site, d2$site))))
+  cols  <- coredata$col[match(sites, coredata$Site)]
+  colv1 <- cols[match(toupper(d1$site), sites)]
+  colv2 <- cols[match(toupper(d2$site), sites)]
+  
+  # --- TOP: nREps
+  pdf("figures/EUK.p.antarctica.pdf",, width=9, height=6)
+  par(mfrow=c(3,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
+  set.seed(1234)
+  par(mfrow=c(2,1))
+  plot(d1$dates, jitter(d1$nREPs, 0.8),
+       xlim=c(2024,1760),
+       xlab="", ylab="nPCR reps", main="P antarctica",
+       pch=ifelse(d1$nREPs>0,16,4), col=colv1, bty="n")
+  for (si in sites) {
+    d1s <- d1[toupper(d1$site)==si, ]
+    if (nrow(d1s) > 2) {
+      fit <- loess(nREPs ~ dates, data=d1s, span=0.6, degree=1)
+      xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
+      yy  <- predict(fit, data.frame(dates=xx))
+      lines(xx, yy, col=cols[sites==si], lwd=2)
+    }
+  }
+  # --- MID: average proportion of reads
+  plot(d2$dates, d2$value,
+       xlim=c(2024,1760), 
+       xlab="", ylab="Avg proportion",
+       pch=ifelse(d2$value>0,16,4), col=colv2, bty="n")
+  legend(1780,0.007, legend=sites, col=cols, pch=16, cex=0.8, bty="n")
+  dev.off()
+
+
+
 
 
 
