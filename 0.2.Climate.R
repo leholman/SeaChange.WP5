@@ -187,6 +187,40 @@ points(clim.SC$year,clim.SC$PZIPSO25index,
        col=coredata$col[coredata$Site=="SC"])
 dev.off()
 
+pdf("figures/clim.ip25.pdf",width=12,height=4)
+plot(clim.p68$Age..a.AD.CE.,clim.p68$C25.HBI.diene.TOC..µg.g...IPSO25.TOC..Ice.Proxy.for.the....,
+     pch=16,
+     col=coredata$col[coredata$Site=="P68"],
+     xlim=c(2016,minval),ylim=c(0,7),
+     xlab="year",ylab="IP25 ug/g",bty="n",axes=FALSE)
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
+axis(2)
+points(clim.p56$Age..a.AD.CE.,clim.p56$C25.HBI.diene.TOC..µg.g...IPSO25.TOC..Ice.Proxy.for.the....,
+       pch=16,
+       col=coredata$col[coredata$Site=="P56"])
+points(clim.SC$year,(clim.SC$IPSO25..ng.g./1000),
+       pch=16,
+       col=coredata$col[coredata$Site=="SC"])
+dev.off()
+
+pdf("figures/clim.HBI-Z.pdf",width=12,height=4)
+plot(clim.p68$Age..a.AD.CE.,clim.p68$C25.HBI..Z..triene.TOC..µg.g...Gas.chromatography...Mass.spe....,
+     pch=16,
+     col=coredata$col[coredata$Site=="P68"],
+     xlim=c(2016,minval),ylim=c(0,1.7),
+     xlab="year",ylab="HBI-Z ug/g",bty="n",axes=FALSE)
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
+axis(2)
+points(clim.p56$Age..a.AD.CE.,clim.p56$C25.HBI..Z..triene.TOC..µg.g...Gas.chromatography...Mass.spe....,
+       pch=16,
+       col=coredata$col[coredata$Site=="P56"])
+points(clim.SC$year,(clim.SC$IPSO25..ng.g./1000),
+       pch=16,
+       col=coredata$col[coredata$Site=="SC"])
+
+dev.off()
+
+
 
 
 #### AI generated basement for wavelet and correlations

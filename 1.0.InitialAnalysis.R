@@ -117,6 +117,7 @@ average_by_reps <- function (df,sampleIndex){
   # Initialize the output dataframe
   avg_df <- data.frame(matrix(ncol = length(unique_samples), nrow = nrow(df)))
   colnames(avg_df) <- unique_samples
+  rownames(avg_df) <- rownames(df) 
   
   # Compute averages for each sample
   for (sample in unique_samples) {
@@ -260,6 +261,32 @@ make_site_year <- function(site, M, map, years){
   out
 }
 
+### now a helper to plot segments between all the bars
+# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
+
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop=FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+
 # now this works (no name collision)
 site_mats <- setNames(
   lapply(sites, make_site_year, M = EUK.tax.a.2, map = expandedDates, years = all_years),
@@ -290,10 +317,19 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
+ 
 
   
   # Only the bottom panel gets the shared x-axis
@@ -419,6 +455,15 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #             ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add=TRUE)
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
@@ -443,6 +488,7 @@ legend(0,0.4,
 
 
 dev.off()
+
 
 
 
@@ -552,6 +598,16 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
+  
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
@@ -684,6 +740,15 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
@@ -812,6 +877,15 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
@@ -837,10 +911,6 @@ legend(0,0.04,
 
 dev.off()
 
-
-
-
-
 #### what about a ratio???
 
 Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
@@ -855,6 +925,113 @@ plot(expandedDates$CalYear[match(names(Dia.smol.ratio),expandedDates$SampleName)
 axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
 axis(2)
 dev.off()
+
+
+
+# change point analysis 
+
+# packages
+library(rioja)
+library(vegan)
+
+
+unique(expandedDates$Site)
+
+for (dataset in c("met","dia","din","smolphy"))
+
+  
+coniss.helper <- function(site,data){
+  data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
+  data.sub <- data[,grepl(site,data.sites)]
+  data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
+  data.sub.sort <- data.sub[,order(data.sub.years)]
+  data.dist <- vegdist(t(data.sub.sort), method = "bray")
+  data.coniss <- chclust(data.dist, method = "coniss")
+  bs <- bstick(data.coniss)                                           # expected SS decrease under null
+  return(data.coniss)
+}
+
+BB.met.con <- coniss.helper("BB",euk.met.only) # 2
+cutree(BB.met.con, k = 2)
+MC.met.con <- coniss.helper("MC",euk.met.only) # 5
+cutree(MC.met.con, k = 5)
+p56.met.con <- coniss.helper("p56",euk.met.only) # 3
+cutree(p56.met.con, k = 3)
+p68.met.con <- coniss.helper("p68",euk.met.only) # 3
+cutree(p68.met.con, k = 3)
+SC.met.con <- coniss.helper("SC",euk.met.only) # 6
+cutree(SC.met.con, k = 1)
+
+
+BB.dia.con <- coniss.helper("BB",euk.dia.only) # 3
+cutree(BB.dia.con, k = 3)
+MC.dia.con <- coniss.helper("MC",euk.dia.only) # 3
+cutree(MC.dia.con, k = 3)
+p56.dia.con <- coniss.helper("p56",euk.dia.only) # 2
+cutree(p56.dia.con, k = 2)
+p68.dia.con <- coniss.helper("p68",euk.dia.only) # 3
+cutree(p68.dia.con, k = 3)
+SC.dia.con <- coniss.helper("SC",euk.dia.only) # 6
+cutree(SC.dia.con, k = 1)
+
+
+BB.din.con <- coniss.helper("BB",euk.din.only) # 2
+cutree(BB.din.con, k = 2)
+MC.din.con <- coniss.helper("MC",euk.din.only) # 1
+cutree(MC.din.con, k = 1)
+p56.din.con <- coniss.helper("p56",euk.din.only) # 2
+cutree(p56.din.con, k = 2)
+p68.din.con <- coniss.helper("p68",euk.din.only) # 4
+cutree(p68.din.con, k = 4)
+SC.din.con <- coniss.helper("SC",euk.din.only) # 1
+cutree(SC.din.con, k = 1)
+
+
+BB.smolphy.con <- coniss.helper("BB",euk.smolphy.only) # 2
+cutree(BB.smolphy.con, k = 2)
+MC.smolphy.con <- coniss.helper("MC",euk.smolphy.only) # 1
+cutree(MC.smolphy.con, k = 1)
+p56.smolphy.con <- coniss.helper("p56",euk.smolphy.only) # 3
+cutree(p56.smolphy.con, k = 3)
+p68.smolphy.con <- coniss.helper("p68",euk.smolphy.only) # 2
+cutree(p68.smolphy.con, k = 2)
+SC.smolphy.con <- coniss.helper("SC",euk.smolphy.only) # 2
+cutree(SC.smolphy.con, k = 2)
+
+
+## what about the whole timeseries
+BB.con <- coniss.helper("BB", euk.prop) # 2
+cutree(BB.con, k = 2)
+MC.con <- coniss.helper("MC", euk.prop) # 2
+cutree(MC.con, k = 2)
+p56.con <- coniss.helper("p56", euk.prop) # 4
+cutree(p56.con, k = 4)
+p68.con <- coniss.helper("p68", euk.prop) # 3
+cutree(p68.con, k = 3)
+SC.con <- coniss.helper("SC", euk.prop) # 1
+cutree(SC.con, k = 1)
+
+
+
+  
+  
+site <- unique(expandedDates$Site)[5]
+data <- euk.met.only
+data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
+data.sub <- data[,grepl(site,data.sites)]
+data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
+data.sub.sort <- data.sub[,order(data.sub.years)]
+data.dist <- vegdist(t(data.sub.sort), method = "bray")
+data.coniss <- chclust(data.dist, method = "coniss")
+bs <- bstick(data.coniss)                                           # expected SS decrease under null
+# Quick elbow/BS pick; adjust 'k' as needed after checking plot
+k <- 3
+
+# 6) zone labels ----
+zones <- cutree(data.coniss, k = k)
+
+
+
 
 ### Alpha diversity 
 
@@ -1341,6 +1518,7 @@ euk.salkril.man[,1:992] <- sweep(euk.salkril.man[,1:992],2,colSums(euk),FUN="/")
 euk.salkril.man[euk.salkril.man=="NaN"] <- 0
 euk.salkril.man[is.na(euk.salkril.man)] <- 0
 
+
 #Aggregate same species
 datain <- cbind(euk.salkril.man[,1:992],"manualSpecies"=euk.salkril.man$Assignment)
 euk.salkril.sum <- aggregate(.~manualSpecies,data=datain,FUN=sum)
@@ -1351,13 +1529,21 @@ euk.salkril.sum <- euk.salkril.sum[!rownames(euk.salkril.sum)=="",]
 ## Lets make an nREPs dataset 
 
 euk.salkril.nReps <- NrepsMaker(euk.salkril.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
+euk.salkril.avr <- average_by_reps(euk.salkril.sum,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
 
-df <- tibble(spp = rownames(euk.salkril.nReps), euk.salkril.nReps)
 
-euk.salkril.nReps.long <- df %>% 
-  pivot_longer(cols = -spp, 
-               names_to = "column", 
-               values_to = "value") 
+
+nr_long <- tibble(spp = rownames(euk.salkril.nReps), euk.salkril.nReps) |>
+  pivot_longer(-spp, names_to = "column", values_to = "value")
+
+# long averages
+avr_long <- tibble(spp = rownames(euk.salkril.avr), euk.salkril.avr) |>
+  pivot_longer(-spp, names_to = "column", values_to = "avg")
+
+# add avg as a new column
+euk.salkril.nReps.long <- nr_long |>
+  left_join(avr_long, by = c("spp","column"))
+
 
 euk.salkril.nReps.long$site <- expandedDates$Site[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
 euk.salkril.nReps.long$dates <- expandedDates$CalYear[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
@@ -1419,6 +1605,59 @@ for (species in unique(euk.salkril.nReps.long$spp)) {
 
 dev.off()
 
+####lets plot the salps and krill 
+
+
+## now lets combine them into one
+
+sp_list <- unique(euk.salkril.nReps.long$spp)
+
+for (sp in sp_list) {
+  pdf(paste0("figures/EUK.big.",sp,".pdf"), width=9, height=6)
+  par(mfrow=c(2,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
+  
+  # --- data per species
+  d1 <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==sp, ]
+  d1 <- d1[!is.na(d1$dates), ]
+  
+  # site-color map
+  sites <- sort(unique(toupper(d1$site)))
+  cols  <- coredata$col[match(sites, coredata$Site)]
+  colv1 <- cols[match(toupper(d1$site), sites)]
+  
+  # --- TOP: nREps
+  set.seed(1234)
+  plot(d1$dates, jitter(d1$value, 0.8),
+       xlim=c(2024,1760),
+       xlab="", ylab="nPCR reps", main=sp,
+       pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
+  for (si in sites) {
+    d1s <- d1[toupper(d1$site)==si, ]
+    if (nrow(d1s) > 2) {
+      fit <- loess(value ~ dates, data=d1s, span=0.6, degree=1)
+      xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
+      yy  <- predict(fit, data.frame(dates=xx))
+      lines(xx, yy, col=cols[sites==si], lwd=2)
+    }
+  }
+  legend("topright", legend=sites, col=cols, pch=16, cex=0.8, bty="n")
+  
+  # --- MID: average proportion of reads
+  plot(d1$dates, d1$avg,
+       xlim=c(2024,1760), 
+       xlab="", ylab="Avg proportion",
+       pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
+  dev.off()
+  
+}
+
+
+
+
+
+
+
+
 ## Lets focus on some ice associated diatoms 
 
 iceSPP <-c("Polarella_glacialis","Islandinium_minutum","Islandinium_tricingulatum")
@@ -1433,7 +1672,7 @@ euk.ice[euk.ice=="NaN"] <- 0
 euk.ice[is.na(euk.ice)] <- 0
 
 
-euk.ice.2[,1:992] <- sweep(euk.ice.2[,1:992],2,colSums(euk[rownames(euk)%in% ASVs.diatom, , drop = FALSE]),FUN="/")
+euk.ice.2[,1:992] <- sweep(euk.ice.2[,1:992],2,colSums(euk[rownames(euk)%in% ASVs.dino, , drop = FALSE]),FUN="/")
 euk.ice.2[euk.ice.2=="NaN"] <- 0
 euk.ice.2[is.na(euk.ice.2)] <- 0
 
