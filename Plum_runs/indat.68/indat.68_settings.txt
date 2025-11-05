@@ -33,4 +33,4 @@ yr#age.unit
 10 #s.mean
 1 #ra.case
 TRUE #Bqkg
-3 #n.supp
+0 #n.supp

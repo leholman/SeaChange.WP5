@@ -1,0 +1,30 @@
+## Ran on Fri Oct 31 17:50:18 2025 
+
+Cal 0 : ConstCal;
+Cal 1 : IntCal20, 0;
+Cal 2 : Marine20;
+Cal 3 : SHCal20, 0;
+Cal 4 : ConstCal;
+
+##	alPhi	mPhi	alS	mS	Al	theta0	Radon_case	supported_data_file
+Cal 5 : Plum, 2, 50, 5, 10, 0.1, -69, 1, /Users/gwm297/GitHubRepos/SeaChange.WP5.2/Plum_runs/indat.SC/indat.SC_29.plum;
+##    , labID, X210Pb.Bq.kg., sd.210Pb., depth.cm., thickness.cm., density.g.cm.3., t.a, t.b, cc,  ... Plum: 210Pb data
+Det 0 : NA , 365.8, 1e+05, 0, 0.5, 4.26, 3, 4, 5;
+Det 1 : SC0.5 , 365.8, 25.1, -10, 0.5, 4.26, 3, 4, 5;
+Det 2 : SC1 , 285.7, 18.3, -10, 0.5, 4.28, 3, 4, 5;
+Det 3 : SC2 , 212.4, 14.1, -10, 0.5, 5.87, 3, 4, 5;
+Det 4 : SC3 , 118.1, 9.3, -10, 1, 7.65, 3, 4, 5;
+Det 5 : SC4 , 127.1, 9.9, -10, 1, 7.92, 3, 4, 5;
+Det 6 : SC6 , 78.3, 6.95, -10, 1, 9.58, 3, 4, 5;
+Det 7 : SC8 , 73.8, 7.5, -10, 1, 9.44, 3, 4, 5;
+Det 8 : SC10 , 80.8, 7, -10, 1, 9.6, 3, 4, 5;
+Det 9 : SC12 , 50.6, 5.65, -10, 1, 9.85, 3, 4, 5;
+Det 10 : SC14 , 39.5, 5.25, -10, 1, 12.48, 3, 4, 5;
+Det 11 : SC16 , 43, 6, -10, 1, 12.53, 3, 4, 5;
+Det 12 : SC18 , 36.9, 4.1, -10, 1, 12.27, 3, 4, 5;
+Det 13 : SC20 , 36.7, 5.15, -10, 1, 12.69, 3, 4, 5;
+Det 14 : SC22 , 45.5, 5.25, -10, 1, 11.33, 3, 4, 5;
+Det 15 : NA , 365.8, 1e+08, 28, 0.5, 4.26, 3, 4, 5;
+
+##		 K   MinAge   MaxAge   th0   th0p   w.a   w.b   alpha  beta  dmin  dmax
+Bacon 0: FixT, 29,  -69,  1e+06,  -68.99,  -68.98,  5,  5,  1.5,  0.15, 0, 29;
