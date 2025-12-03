@@ -1,0 +1,5 @@
+"name"	"coring_yr"	"date_computation"	"model_tested"	"Chernobyl"	"NWT"	"Hemisphere"	"FF"	"inst_deposit"	"ignore_depths"	"historic_depth"	"historic_age"	"historic_name"	"suppdescriptor"	"descriptor_lab"	"varves"	"sedchange"	"SML"	"age_forced_CRS_pw"	"depth_forced_CRS_pw"	"hiatus"
+"indat.MC"	"2019"	"2025-11-20 16:19:41.833453"	"CFCS, CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.MC"	"2019"	"2025-11-24 12:49:18.792239"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.MC"	"2019"	"2025-11-25 14:40:18.651889"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.MC"	"2019"	"2025-12-02 15:56:31.040367"	"CRS"	"NA"	"NA"	NA	"NA"	"0"	NA	"NA"	"NA"	"NA"	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA

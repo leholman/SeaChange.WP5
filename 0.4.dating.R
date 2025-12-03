@@ -126,7 +126,7 @@ newdat <- data.frame("lab"=dataSC$ID,
 dir.create("Plum_runs/indat.SC",)
 write.csv(newdat,file="Plum_runs/indat.SC/indat.SC.csv",row.names = FALSE,)
 
-Plum(core="indat.SC",d.min = 0,ra.case=1,d.max = 28,ssize=20000,date.sample = 2019,n.supp=0)
+Plum(core="indat.SC",d.min = 0,ra.case=1,d.max = 29,ssize=20000,date.sample = 2019,n.supp=0)
 pdf("figures/age.depth/SC.pdf",height = 8,width = 6.5)
 agedepth(BCAD=TRUE,d.max = 30,remove.tail=FALSE)
 dev.off()
@@ -160,7 +160,7 @@ write.csv(newdat,file="Plum_runs/indat.MC/indat.MC.csv",row.names = FALSE,)
 
 Plum(core="indat.MC",d.min = 0,ra.case=1,d.max = 28,ssize=20000,date.sample = 2019,n.supp=0)
 pdf("figures/age.depth/MC.pdf",height = 8,width = 6.5)
-agedepth(BCAD=TRUE,d.max = 30,remove.tail=FALSE)
+agedepth(BCAD=TRUE,d.max = 30,remove.tail=FALSE,pb.lim = c(0,300))
 dev.off()
 
 # harvest ages
@@ -173,18 +173,162 @@ for (row in grep("MC",ages.out$Site)){
   ages.out$mean[row] <- 1950-round(mean(loopages),digits=0)
 }
 
-
-
-
-
-
-
+Plum(ask=FALSE, suggest=FALSE, ssize=100, coredir=tempdir())
 
 ## Age output
 
+write.csv(ages.out,"metadata/dates.out.rPLUM.csv")
 
 
-write.csv(ages.out,"metadata/dates.out.csv")
+
+############################################################
+## 210Pb age–depth models with serac for 5 cores
+## Uses existing indat.*.csv files as input
+############################################################
+
+## 0. Install and load serac --------------------------------
+
+if (!requireNamespace("serac", quietly = TRUE)) {
+  if (!requireNamespace("devtools", quietly = TRUE)) {
+    install.packages("devtools")
+  }
+  devtools::install_github("rosalieb/serac", build_vignettes = FALSE)
+}
+
+library(serac)
+
+## 1. Helper: reformat indat.*.csv to serac input ----------
+setwd("Serac_runs/")
+# core$list element: name, infile, coring_yr
+prep_serac_input <- function(core) {
+  dat <- read.csv(core$infile, stringsAsFactors = FALSE)
+  
+  # Columns are assumed in this order in indat.*.csv:
+  # 1: labID
+  # 2: depth (cm)
+  # 3: density (g/cm^3)
+  # 4: total 210Pb (Bq/kg)
+  # 5: sd(total 210Pb)
+  # 6: thickness (cm)
+  # 7: 226Ra (Bq/kg)
+  # 8: sd(226Ra)
+  # 9: settings       – ignored
+  
+  depth_cm   <- dat[, 2]
+  dens_g_cm3 <- dat[, 3]
+  pb_tot     <- dat[, 4]
+  pb_tot_sd  <- dat[, 5]
+  thick_cm   <- dat[, 6]
+  ra_Bq_kg   <- dat[, 7]
+  ra_sd      <- dat[, 8]
+  
+  # Excess Pb and propagated sd (independent errors)
+  pb_ex      <- pb_tot - ra_Bq_kg
+  pb_ex_sd   <- sqrt(pb_tot_sd^2 + ra_sd^2)
+  
+  # Convert depth/thickness to mm for serac (input_depth_mm = TRUE)
+  serac_dat <- data.frame(
+    depth_avg = depth_cm * 10,
+    thickness = thick_cm * 10,
+    density   = dens_g_cm3,
+    Pbex      = pb_ex,
+    Pbex_er   = pb_ex_sd,
+    Ra226     = ra_Bq_kg,
+    Ra226_er  = ra_sd
+  )
+  
+  # Create Cores/<name>/<name>.txt for serac
+  cores_root <- file.path(getwd(), "Cores")
+  dir.create(cores_root, showWarnings = FALSE)
+  
+  core_dir <- file.path(cores_root, core$name)
+  dir.create(core_dir, showWarnings = FALSE)
+  
+  out_file <- file.path(core_dir, paste0(core$name, ".txt"))
+  write.table(
+    serac_dat,
+    file      = out_file,
+    sep       = "\t",
+    row.names = FALSE,
+    col.names = TRUE,
+    quote     = FALSE
+  )
+  
+  invisible(out_file)
+}
+
+## 2. Define the 5 cores ------------------------------------
+
+cores <- list(
+  list(name = "indat.68", infile = "indat.68.csv", coring_yr = 2016),
+  list(name = "indat.56", infile = "indat.56.csv", coring_yr = 2016),
+  list(name = "indat.BB", infile = "indat.BB.csv", coring_yr = 2019),
+  list(name = "indat.SC", infile = "indat.SC.csv", coring_yr = 2019),
+  list(name = "indat.MC", infile = "indat.MC.csv", coring_yr = 2019)
+)
+
+## 3. Run serac for each core -------------------------------
+
+serac_models <- list()  # analogous to storing Plum runs
+
+for (core in cores) {
+  
+  ## 3.1 Format and write serac input file
+  prep_serac_input(core)
+  
+  ## 3.2 Run serac (simple CFCS + CRS Pb-only model)
+  ##     – hemisphere / Cs / Am left out for now
+  model_obj <- serac(
+    name               = core$name,
+    coring_yr          = core$coring_yr,
+    model              ="CRS",
+    plotphoto          = FALSE,
+    plot_Pb            = TRUE,
+    plot_Cs            = FALSE,
+    plot_Am            = FALSE,
+    plot_Pb_inst_deposit = FALSE,
+    input_depth_mm     = TRUE,
+    plotpdf            = TRUE,   # serac writes its own pdf in Cores/<name>/
+    preview            = TRUE,   # set FALSE if you don’t want on-screen plots
+    save_code          = FALSE,
+    prop_width_fig     = 2.0,     
+    prop_height_fig    = 1 
+  )
+  
+  serac_models[[core$name]] <- model_obj
+}
+
+## Compare it all 
+
+
+coredata <- read.csv("metadata/sitemetadata.csv")
+coredata$col <- c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73")
+
+dates.ex <- read.csv("metadata/dates.csv")
+dates.plum <- read.csv("metadata/dates.out.rPLUM.csv")
+
+cores <- c("BB","SC","MC","68","56")
+dates.serac <- do.call(rbind, lapply(cores, function(core){
+  x <- read.table(sprintf("Serac_runs/Cores/indat.%s/indat.%s_CRS_interpolation.txt", core, core), h=1)
+  x$core <- ifelse(core=="68"|core=="56",paste0("p",core),core)
+  x
+}))
+
+
+## Expert vs plum 
+plot(dates.plum$mean,dates.ex$CalYear,col=coredata$col[match(toupper(dates.plum$Site),coredata$Site)],pch=16,xlab="rPLUM Estimates",ylab="Expert Estimates")
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+
+## Expert vs serac
+dates.serac.trim <- dates.serac[match(paste0(dates.ex$Site,dates.ex$Depth),paste0(dates.serac$core,dates.serac$depth_top_mm/10)),]
+plot(dates.serac.trim$BestAD_CRS,dates.ex$CalYear,col=coredata$col[match(toupper(dates.serac.trim$core),coredata$Site)],pch=16,xlab="serac Estimates",ylab="Expert Estimates")
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+
+## plum vs serac
+plot(dates.serac.trim$BestAD_CRS,dates.plum$mean,col=coredata$col[match(toupper(dates.serac.trim$core),coredata$Site)],pch=16,xlab="serac Estimates",ylab="rPLUM Estimates")
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+
+
 
 
 

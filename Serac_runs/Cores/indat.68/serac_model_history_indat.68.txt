@@ -1,0 +1,10 @@
+"name"	"coring_yr"	"date_computation"	"model_tested"	"Chernobyl"	"NWT"	"Hemisphere"	"FF"	"inst_deposit"	"ignore_depths"	"historic_depth"	"historic_age"	"historic_name"	"suppdescriptor"	"descriptor_lab"	"varves"	"sedchange"	"SML"	"age_forced_CRS_pw"	"depth_forced_CRS_pw"	"hiatus"
+"indat.68"	"2016"	"2025-11-20 16:19:40.752294"	"CFCS, CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-11-24 12:49:18.184942"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-11-25 14:40:18.079831"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:52:56.264275"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:53:30.101054"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:54:18.985259"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:54:48.627596"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:55:05.564451"	"CRS"	NA	NA	NA	NA	"0"	NA	NA	NA	NA	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA
+"indat.68"	"2016"	"2025-12-02 15:56:30.589554"	"CRS"	"NA"	"NA"	NA	"NA"	"0"	NA	"NA"	"NA"	"NA"	"FALSE"	NA	"FALSE"	"0"	"0"	NA	NA	NA

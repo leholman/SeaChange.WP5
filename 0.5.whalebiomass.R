@@ -66,7 +66,7 @@ ribbon <- function(df, col,yr=1850) {
 
 ## plotting
 yl <- c(0, max(blue$`0.975`, orca$`0.975`, hump$`0.975`, fin$`0.975`, na.rm = TRUE))
-plot(blue$year, blue$`0.5`, type = "n", ylim = yl, xlab = "Year", ylab = "Biomass")
+plot(blue$year, blue$`0.5`, type = "n", ylim = yl, xlab = "Year", ylab = "Biomass",x)
 
 ## ribbons first 
 ribbon(blue, "dodgerblue")
