@@ -315,6 +315,10 @@ dates.serac <- do.call(rbind, lapply(cores, function(core){
 }))
 
 
+
+pdf("figures/age.depth/comp.pdf",height=4,width = 10)
+
+par(mfrow=c(1,3))
 ## Expert vs plum 
 plot(dates.plum$mean,dates.ex$CalYear,col=coredata$col[match(toupper(dates.plum$Site),coredata$Site)],pch=16,xlab="rPLUM Estimates",ylab="Expert Estimates")
 abline(b=1,a=0,lty=2,col="darkred",cex=2)
@@ -327,6 +331,59 @@ abline(b=1,a=0,lty=2,col="darkred",cex=2)
 ## plum vs serac
 plot(dates.serac.trim$BestAD_CRS,dates.plum$mean,col=coredata$col[match(toupper(dates.serac.trim$core),coredata$Site)],pch=16,xlab="serac Estimates",ylab="rPLUM Estimates")
 abline(b=1,a=0,lty=2,col="darkred",cex=2)
+dev.off()
+
+
+##Thorbjørn68 
+TB <- read.csv("rawdata/68_TJA.csv")
+
+dat.68 <- dates.plum[dates.plum$Site=="p68",]
+dates.serac.trim[dates.serac.trim$core=="p68",]
+
+
+dates.plum$Depth[dates.plum$Site=="p68"]
+
+paste0(dat.68$Site,dat.68$Depth)
+
+paste0(dates.serac.trim$core,(dates.serac.trim$depth_top_mm/10))
+
+dat.68$TB <- TB$Date[match(paste0(dat.68$Site,dat.68$Depth),paste0("p68",TB$Depth))]
+dat.68$TB.err <-TB$error.age[match(paste0(dat.68$Site,dat.68$Depth),paste0("p68",TB$Depth))]
+dat.68$serac <- dates.serac.trim$BestAD_CRS[match(paste0(dat.68$Site,dat.68$Depth),paste0(dates.serac.trim$core,(dates.serac.trim$depth_top_mm/10)))]
+dat.68$exp <- dates$CalYear[match(paste0(dat.68$Site,dat.68$Depth),paste0(dates$Site,dates$Depth))]
+
+
+par(mfrow=c(1,3))
+plot(dat.68$mean,dat.68$TB,xlab = "rplum",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+plot(dat.68$serac,dat.68$TB,xlab = "serac",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+plot(dat.68$exp,dat.68$TB,xlab = "expert",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+
+
+##ThorbjørnSC
+TB <- read.csv("rawdata/SC_TJA.csv")
+
+dat.SC <- dates.plum[dates.plum$Site=="SC",]
+dates.serac.trim[dates.serac.trim$core=="SC",]
+
+SC.interpolated <- spline(TB$Depth,TB$Date,xout = seq(0,13.5,0.5))
+
+
+dat.SC$TB <- SC.interpolated$y[match(paste0(dat.SC$Site,dat.SC$Depth),paste0("SC",SC.interpolated$x))]
+dat.SC$serac <- dates.serac.trim$BestAD_CRS[match(paste0(dat.SC$Site,dat.SC$Depth),paste0(dates.serac.trim$core,(dates.serac.trim$depth_top_mm/10)))]
+dat.SC$exp <- dates$CalYear[match(paste0(dat.SC$Site,dat.SC$Depth),paste0(dates$Site,dates$Depth))]
+
+
+par(mfrow=c(1,3))
+plot(dat.SC$mean,dat.SC$TB,xlab = "rplum",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+plot(dat.SC$serac,dat.SC$TB,xlab = "serac",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+plot(dat.SC$exp,dat.SC$TB,xlab = "expert",ylab="Thorbjørn",pch=16)
+abline(b=1,a=0,lty=2,col="darkred",cex=2)
+
 
 
 
