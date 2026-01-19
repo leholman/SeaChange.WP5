@@ -332,7 +332,7 @@ lines_sf <- st_sf(Season = nearest_points$Season, geometry = lines_sfc)
 
 pdf("mapping/SIC.sites_and_nearest_by_season.pdf", width = 8, height = 12)
 
-p <- basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
+basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
   
   geom_sf(data = lines_sf, aes(colour = Season),
           linewidth = 0.6, alpha = 0.8, inherit.aes = FALSE) +
@@ -350,138 +350,97 @@ p <- basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE)
   annotation_north_arrow(location = "tr", which_north = "true",
                          height = unit(0.9, "cm"), width = unit(0.9, "cm"))
 
-print(p)
+
 dev.off()
 
 
-## Here is a chat made plot
+### Now get rocking with the sea ice concentration (SIC) 
 
-
-## Base R faceted time series: points (transparent) + season-wise loess per site
-## Assumes data.frame sic_sites with columns: Site, Season, Year, SIC
 stopifnot(all(c("Site","Season","Year","SIC") %in% names(sic_sites)))
 
-d <- sic_sites
-d <- d[is.finite(d$Year) & is.finite(d$SIC) & !is.na(d$Site) & !is.na(d$Season), ]
-
-d$Site   <- factor(d$Site)
-d$Season <- factor(d$Season, levels = c("DJF","MAM","JJA","SON"))
-
-season_cols <- c(
-  DJF = "#fee8c9",
-  MAM = "#fdbb84",
-  SON = "#74a9cf",
-  JJA = "#045a8d"
+d <- subset(
+  sic_sites,
+  is.finite(Year) & is.finite(SIC) & !is.na(Site) & !is.na(Season)
 )
 
-pt_alpha <- 0.20
-
-sites <- levels(d$Site)
-ns <- length(sites)
-
-nr <- floor(sqrt(ns + 1))
-nc <- ceiling((ns + 1) / nr)
-
-xlim_all <- range(d$Year, na.rm = TRUE)
-ylim_all <- range(d$SIC,  na.rm = TRUE)
-
-op <- par(no.readonly = TRUE)
-on.exit(par(op), add = TRUE)
-
-pdf("figures/climate/PerSiteSeasons.pdf",width = 8,height = 6)
-
-par(mfrow = c(5,1), mar = c(3.6, 3.8, 2.2, 0.8), xaxs = "i", yaxs = "i")
-
-for (i in seq_len(ns + 1)) {
-  
-  if (i <= ns) {
-    s  <- sites[i]
-    ds <- d[d$Site == s, ]
-    
-    plot(NA, xlim = xlim_all, ylim = ylim_all,
-         xlab = "", ylab = "", main = paste("Site", s), las = 1)
-    
-    for (sea in levels(d$Season)) {
-      dss <- ds[ds$Season == sea, ]
-      if (nrow(dss) == 0) next
-      
-      points(dss$Year, dss$SIC, xlim=c(minval,2020),
-             pch = 16, cex = 0.7,
-             col = adjustcolor(season_cols[sea], alpha.f = pt_alpha))
-      
-      ok <- is.finite(dss$Year) & is.finite(dss$SIC)
-      if (sum(ok) >= 10) {
-        lo <- loess(SIC ~ Year, data = dss[ok, ], span = 0.35, degree = 2,
-                    control = loess.control(surface = "direct"))
-        xx <- seq(min(dss$Year[ok]), max(dss$Year[ok]), length.out = 200)
-        yy <- predict(lo, newdata = data.frame(Year = xx))
-        lines(xx, yy, col = season_cols[sea], lwd = 2)
-      }
-    }
-    
-    box(col = "grey40")
-    
-  #} else {
-#    plot.new()
- #   legend("center", bty = "n",
-  #         legend = levels(d$Season),
-   #        col = season_cols[levels(d$Season)],
-    #       lwd = 2, pch = 16, pt.cex = 0.9)
-  }
-}
-dev.off()
-
-
-#######
-maxval <- 2020
-
-stopifnot(all(c("Site","Season","Year","SIC") %in% names(sic_sites)))
-
-d <- subset(sic_sites, is.finite(Year) & is.finite(SIC))
 d$Site   <- factor(d$Site)
 d$Season <- factor(d$Season, levels = c("DJF","MAM","JJA","SON"))
 
 season_cols <- c(DJF="#fee8c9", MAM="#fdbb84", SON="#74a9cf", JJA="#045a8d")
-pt_alpha <- 0.5
+pt_alpha <- 0.50
 
-sites <- levels(d$Site)
-if (length(sites) > 5) sites <- sites[1:5]
+sites    <- levels(d$Site)
+xlim_all <- c(1900, 2020)
+ylim_all <- range(d$SIC, na.rm = TRUE)
 
-xlim_all <- c(minval, maxval)
-ylim_all <- c(0,100)
+op <- par(no.readonly = TRUE)
+on.exit(par(op), add = TRUE)
 
-pdf("figures/climate/PerSiteSeasons.pdf", width = 12,height=10)
-
-par(mfrow = c(length(sites), 1),mar= c(5.1, 4.1, 1.1, 2.1))  # default margins
+pdf("figures/climate/PerSiteSeasons.pdf", width = 3.5, height = 5)
+par(mfrow = c(5, 1), mar = c(2, 2, 0.2, 1), xaxs = "i", yaxs = "i", bty = "n")
 
 for (s in sites) {
   ds <- d[d$Site == s, ]
   
-  plot(ds$Year,ds$SIC, xlim = xlim_all, ylim = ylim_all,
-       ylab = paste("Site", s), xlab = "",pch=16,col=season_cols[ds$Season],
-       xaxs = "i", yaxs = "i", bty = "n")
+  plot(NA, xlim = xlim_all, ylim = ylim_all, xlab = "", ylab = "", main = "", las = 1)
   
-  ## loess per season, but still respecting global xlim for the panel
   for (sea in levels(d$Season)) {
     dss <- ds[ds$Season == sea, ]
     if (!nrow(dss)) next
     
-    ok <- is.finite(dss$Year) & is.finite(dss$SIC)
-    if (sum(ok) < 10) next
     
-    lo <- loess(SIC ~ Year, data = dss[ok, ],
-                span = 0.35, degree = 2,
-                control = loess.control(surface = "direct"))
-    xx <- seq(max(minval, min(dss$Year[ok])),
-              min(maxval, max(dss$Year[ok])),
-              length.out = 200)
-    yy <- predict(lo, data.frame(Year = xx))
-    lines(xx, yy, col = season_cols[sea], lwd = 2)
+    points(1903,80,pch=16,col=coredata$col[match(s,coredata$Site)],cex=2)
+    
+    points(
+      dss$Year, dss$SIC,
+      pch = 16, cex = 0.7,
+      col = adjustcolor(season_cols[sea], alpha.f = pt_alpha)
+    )
+    
+    ok <- is.finite(dss$Year) & is.finite(dss$SIC)
+    if (sum(ok) >= 10) {
+      lo <- loess(
+        SIC ~ Year, data = dss[ok, ],
+        span = 0.35, degree = 2,
+        control = loess.control(surface = "direct")
+      )
+      xx <- seq(min(dss$Year[ok]), max(dss$Year[ok]), length.out = 200)
+      yy <- predict(lo, newdata = data.frame(Year = xx))
+      lines(xx, yy, col = season_cols[sea], lwd = 2)
+    }
   }
+  
+  box(col = "grey40")
 }
 
 dev.off()
-#######
+
+
+#### What about the average across seasons
+out <- aggregate(SIC ~ Site + Year, data = d, FUN = mean, na.rm = TRUE)
+
+
+pdf("figures/climate/PerSiteSIC.pdf", width = 5, height = 4)
+par(mfrow = c(1, 1), mar = c(5, 5, 0.2, 0.2), xaxs = "i", yaxs = "i", bty = "n")
+
+plot(out$Year,out$SIC,col=add.alpha(coredata$col[match(out$Site,coredata$Site)],0.3),pch=16,xlim=c(1900,2026),ylab="Sea Ice Coverage (%)",xlab="Year")
+
+for (site in coredata$Site){
+loopdat <- out[out$Site==site,]
+looploess <- loess(SIC~Year,data=loopdat,
+                   span = 0.35, degree = 2,
+                   control = loess.control(surface = "direct"))
+xx <- seq(1900, 2020,0.1)
+yy <- predict(looploess,newdata = data.frame(Year = xx))  
+
+lines(xx, yy, col = coredata$col[coredata$Site==site], lwd = 3)
+
+}
+
+dev.off()
+
+
+
 
 
 
@@ -499,25 +458,6 @@ summary(lon)
 summary(sst_out)
 nc_close(sst)
 
-sites
-
-
-# lat, lon from the netCDF file are 1D vectors of grid centres
-lat <- ncvar_get(sst, "latitude")
-lon <- ncvar_get(sst, "longitude")
-
-nearest_idx <- function(x, grid) which.min(abs(grid - x))
-
-# add nearest grid-point lat/lon to each site
-sites$newlat <- sapply(sites$Lat, function(phi)  lat[nearest_idx(phi,  lat)])
-sites$newlon <- sapply(sites$Lon, function(lam)  lon[nearest_idx(lam,  lon)])
-
-sites
-
-input <- 1 
-
-sst_out[match(sites$newlon[input],lon),match(sites$newlat[input],lat),2]
-
 
 
 # lat, lon, sst_out, sites already exist
@@ -526,6 +466,8 @@ t_index <- 2
 
 # mask of ocean points (non-NA) for this time
 sea_mask <- !is.na(sst_out[,, t_index])
+
+
 
 idx <- which(sea_mask, arr.ind = TRUE)   # row=lon index, col=lat index
 
@@ -540,24 +482,62 @@ nearest_sea <- function(phi, lam) {
 
 res <- t(mapply(nearest_sea, sites$Lat, sites$Lon))
 
+sst_out[sst_out==-1000] <- NA
+
+
+
+
 sites$newlat <- res[,"newlat"]
 sites$newlon <- res[,"newlon"]
 
 # check: all non-NA now
-test <- sst_out[ match(sites$newlon[1], lon),
-         match(sites$newlat[1], lat),]
 
-plot(test,pch=16,ylim=c(-5,10))
+par(mfrow=c(5,1), bty = "n")
+for (i in 1:5){
 
-
-
-
+test <- sst_out[ match(sites$newlon[i], lon),
+         match(sites$newlat[i], lat),]
 
 
+plot(((1:1871/12)+1870),test,pch=16,ylim=c(-2,4),ylab="SST",xlab="year",col=add.alpha(coredata$col[i],0.2))
+}
 
 
+library(strucchange)
+
+time <- (1:1871)/12 + 1870
+mon  <- rep(1:12, length.out=1871)
+
+par(mfrow=c(5,1), bty = "n")
+
+for (i in 1:5) {
+  
+  sst <- sst_out[
+    match(sites$newlon[i], lon),
+    match(sites$newlat[i], lat),
+  ]
+  
+  clim <- tapply(sst, mon, mean, na.rm=TRUE)
+  anom <- sst - clim[mon]
+  
+  ok <- is.finite(anom) & is.finite(time)
+  
+  # fit breakpoints on complete cases only
+  bp <- breakpoints(anom[ok] ~ time[ok], h=120)
+  
+  # plotting
+  plot(time, anom, type="l", col=add.alpha("grey", 0.3),
+       xlab="Year", ylab="SST anomaly (°C)")
+  
+  # fitted values only exist for ok points; put them back on full timeline
+  fit <- rep(NA_real_, length(anom))
+  fit[ok] <- fitted(bp)
+  
+  lines(time, fit, lwd=3)
+}
 
 
+### Where are the SST sites?
 basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
   
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),
