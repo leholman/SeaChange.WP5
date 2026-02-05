@@ -13,6 +13,193 @@ library(ggspatial)
 library(sf)
 
 
+####====0.1 Functions====####
+
+# month name/abbr/number -> integer 1..12
+month_num <- function(x){
+  if(is.numeric(x)) return(pmin(pmax(as.integer(x),1),12))
+  x  <- as.character(x)
+  nx <- suppressWarnings(as.integer(x))
+  out <- ifelse(!is.na(nx), nx,
+                match(toupper(substr(x,1,3)), toupper(month.abb)))
+  as.integer(out)
+}
+
+# continuous year, centered on a month (default July=7)
+make_continuous_year <- function(year, month, centre=7){
+  m  <- month_num(month)
+  c0 <- month_num(centre)[1]
+  year + (m - c0)/12
+}
+
+add.alpha <- function(col, alpha=1){
+  if(missing(col))
+    stop("Please provide a vector of colours.")
+  apply(sapply(col, col2rgb)/255, 2, 
+        function(x) 
+          rgb(x[1], x[2], x[3], alpha=alpha))  
+}
+
+
+
+####====0.2 Data in====####
+#read in metadata 
+metadat <- read.csv("metadata/RepMetaData.csv")
+dates <- read.csv("metadata/dates.csv")
+coredata <- read.csv("metadata/sitemetadata.csv")
+coredata$col <- c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73")
+climateout <- dates[,c(1,2,7)]
+minval <- 1770
+
+
+
+
+####====1.0 Southern Annular Mode data ====####
+
+## read in data
+model <- read.table("rawdata/climate/SAM_1000yr.txt",header = 1)
+obs <- read.table("rawdata/climate/BES_SAMannual.txt",header = TRUE,  comment.char = "#",fill = TRUE,strip.white = TRUE)
+
+## make shared dataframe of observational data 
+shared <- data.frame("year"=intersect(model$age_CE,obs$year),
+                     "modelObs"=model$Marshall_SAM_Index[match(intersect(model$age_CE,obs$year),model$age_CE)],
+                     "Obs"=obs$ANN[match(intersect(model$age_CE,obs$year),obs$year)])
+
+cor(shared$modelObs,shared$Obs)
+
+shift <- mean(shared$modelObs) - mean(shared$Obs)
+
+obs$adjusted <- obs$ANN+shift
+
+
+## Now we make a combined dataset to use - this uses observations adjusted to the normlaisation used in Abrams from 1957 -> 2025
+
+combinedSAM <- data.frame("year"=sort(unique(c(obs$year,model$age_CE)),decreasing = TRUE),
+             #             "year.test"=c(rev(obs$year),model$age_CE[match(1956:1000,model$age_CE)]),
+                          "SAMindex"=c(rev(obs$adjusted),model$SAM_Index[match(1956:1000,model$age_CE)]))
+##
+
+
+## First we pull in the BAS observation data
+
+x <- readLines("rawdata/climate/BES_SAM.txt", warn = FALSE)   # read file lines
+x <- trimws(x)                                               # trim whitespace
+x <- x[nzchar(x) & !grepl("^#", x)]                          # drop blank and comment lines
+
+hdr <- x[1]                                                  # header with month names
+months <- scan(text = hdr, what = character(), quiet = TRUE) # split header to tokens
+stopifnot(length(months) == 12)                              # require 12 months
+
+dat <- gsub("\\s+", " ", trimws(x[-1]))                      # normalize spacing on data rows
+
+sam <- read.table(text = dat, header = FALSE, fill = TRUE, stringsAsFactors = FALSE,
+                  col.names = c("Year", months), check.names = FALSE)  # parse to table
+yearlymean <- data.frame("Year"=sam[,1],
+                         "SAMmean"= rowMeans(sam[,-1], na.rm = TRUE))
+months <- colnames(sam)[-1] 
+y <- c(t(as.matrix(sam[,-1]))) 
+y <- y[!is.na(y)]  
+
+sam.data <- data.frame("SAM"=c(t(as.matrix(sam[,-1]))),
+                       "year"=rep(sam$Year, each = 12),
+                       "month"=rep(months,length(sam[,1])))
+sam.data <- sam.data[!is.na(sam.data$SAM),]
+
+sam.data$SAM.cont <- make_continuous_year(sam.data$year, sam.data$month, centre="JUL")
+
+## now SAM modelled long term data 
+
+SAM.long <- read.table("rawdata/climate/SAM_1000yr.txt",header = 1)
+
+#3,5 & 7 year means
+
+SAM.long$SAM_Index_3yr <- filter(SAM.long$SAM_Index, rep(1/3, 3), sides = 2)
+SAM.long$SAM_Index_5yr <- filter(SAM.long$SAM_Index, rep(1/5, 5), sides = 2)
+SAM.long$SAM_Index_7yr <- filter(SAM.long$SAM_Index, rep(1/7, 7), sides = 2)
+fit <- loess(SAM_Index ~ age_CE, data = SAM.long, span = 0.2)
+SAM.long$SAM_loess <- predict(fit)
+
+
+dat <- read.table(
+  "rawdata/climate/BES_SAMannual.txt",
+  header = TRUE,
+  comment.char = "#",
+  fill = TRUE,
+  strip.white = TRUE
+)
+ref <- dat$year >= 1961 & dat$year <= 1990 & is.finite(dat$ANN)
+mu  <- mean(dat$ANN[ref])
+sdv <- sd(dat$ANN[ref])
+
+dat$ANN_6190_z <- (dat$ANN - mu) / sdv
+
+####
+# Goal: single SAM series on Abram's Marshall_SAM_Index scale.
+## Inputs:
+##   SAM.long: Abram table with columns age_CE, SAM_Index, Marshall_SAM_Index
+##   dat: BAS annual/seasonal table with columns year, ANN (your 2026 download)
+
+## 1) make clean join keys
+SAM.long$year <- SAM.long$age_CE
+
+abr_marshall <- SAM.long[, c("year","Marshall_SAM_Index")]
+names(abr_marshall)[2] <- "Marshall_old"
+
+bas_ann <- dat[, c("year","ANN")]
+
+## 2) fit mapping from BAS ANN -> Abram Marshall scale on overlap
+ol <- merge(bas_ann, abr_marshall, by = "year", all = FALSE)
+ol <- ol[ol$year >= 1957 & ol$year <= 2007, ]
+ol <- ol[is.finite(ol$ANN) & is.finite(ol$Marshall_old), ]
+
+fit <- lm(Marshall_old ~ ANN, data = ol)
+
+## diagnostics
+c(
+  n = nrow(ol),
+  cor = cor(ol$ANN, ol$Marshall_old),
+  rmse = sqrt(mean(resid(fit)^2))
+)
+coef(fit)
+
+## 3) map BAS ANN to Abram Marshall scale (all BAS years)
+dat$Marshall_on_old_scale <- predict(fit, newdata = dat)
+
+
+
+
+
+
+####
+
+
+
+
+
+
+## SAM plot
+pdf("figures/climate/clim.SAM.pdf",width=12,height=4)
+plot(sam.data$SAM.cont,sam.data$SAM,type="l",col="grey90",
+     xlim=c(minval,2020),ylim=c(-4,4),bty="n",axes=FALSE,ylab="SAM Index",xlab="")
+points(yearlymean$Year,yearlymean$SAMmean,pch=16,col="grey10",cex=1.2)
+points(yearlymean$Year,yearlymean$SAMmean,pch=16,col="grey40",cex=0.9)
+points(SAM.long$age_CE,SAM.long$SAM_Index,xlim=c(2016,minval),pch=16,col=add.alpha("grey70",0.6))
+points(SAM.long$age_CE,SAM.long$SAM_Index_5yr,type="l",lwd=2,col=add.alpha("black",0.3))
+points(SAM.long$age_CE,SAM.long$SAM_loess,type="l",col="darkorchid3",lwd=2)
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
+axis(2)
+dev.off()
+
+#### Now match up the data 
+
+climateout$CalYear
+
+
+SAM.long$age_CE
+
+match(climateout$CalYear,SAM.long$age_CE)
+
+
 
 ####====0.1 Functions====####
 # Calculate the PZIPSO25 index from IPSO25 and HBI-III concentrations.
@@ -490,18 +677,33 @@ sst_out[sst_out==-1000] <- NA
 sites$newlat <- res[,"newlat"]
 sites$newlon <- res[,"newlon"]
 
-# check: all non-NA now
-
-par(mfrow=c(5,1), bty = "n")
-for (i in 1:5){
-
-test <- sst_out[ match(sites$newlon[i], lon),
-         match(sites$newlat[i], lat),]
+## ok now lets plot something out 
 
 
-plot(((1:1871/12)+1870),test,pch=16,ylim=c(-2,4),ylab="SST",xlab="year",col=add.alpha(coredata$col[i],0.2))
+pdf("figures/climate/clim.sst.pdf",height=9,width = 5)
+par(mfrow = c(5,1), bty = "n", mar = c(3,4,1,1))
+
+year <- 1870 + (0:(1871-1))/12  # 1871 monthly points
+
+for (i in 1:5) {
+  test <- sst_out[
+    match(sites$newlon[i], lon),
+    match(sites$newlat[i], lat),
+  ]
+  
+  plot(year, test,
+       pch = 16, ylab = "SST", xlab = "year",
+       col = add.alpha(coredata$col[i], 0.2))
+  
+  ok <- is.finite(test) & is.finite(year)
+  
+  fit <- loess(test[ok] ~ year[ok], span = 0.25, degree = 1,
+               family = "symmetric", na.action = na.exclude)
+  
+  lines(year[ok], predict(fit, year[ok]), lwd = 2, col = coredata$col[i])
 }
 
+dev.off()
 
 library(strucchange)
 
@@ -538,6 +740,7 @@ for (i in 1:5) {
 
 
 ### Where are the SST sites?
+pdf("mapping/SST.sites.pdf",height=7,width =5 )
 basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
   
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),
@@ -546,13 +749,12 @@ basemap(limits = lims, bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
   
   ggspatial::geom_spatial_point(aes(x = newlon, y = newlat, ),
                                 data = sites, cex = 3.2, alpha = 0.9, crs = 4326) +
-  
-  scale_shape_manual(values = shape_vals) +
+
   xlab("Longitude") + ylab("Latitude") +
   annotation_scale(location = "bl") +
   annotation_north_arrow(location = "tr", which_north = "true",
                          height = unit(0.9, "cm"), width = unit(0.9, "cm"))
-
+dev.off()
 
 
 

@@ -54,6 +54,7 @@ orca <- add_pristine(prep("rawdata/biomassdatafromMilo/Killer_whale__SH.csv"))
 hump <- add_pristine(prep("rawdata/biomassdatafromMilo/Humpback_whale__SH.csv"))
 fin <- add_pristine(prep("rawdata/biomassdatafromMilo/Fin_whale__SH.csv"))
 mink <- add_pristine(prep("rawdata/biomassdatafromMilo/Antarctic_minke_whale__SH.csv"))
+sei <- add_pristine(prep("rawdata/biomassdatafromMilo/Sei_whale__SH.csv"))
 
 ## ribbon (only for real data, i.e., from first non-1850 year)
 ribbon <- function(df, col,yr=1850) {
@@ -66,7 +67,7 @@ ribbon <- function(df, col,yr=1850) {
 
 ## plotting
 yl <- c(0, max(blue$`0.975`, orca$`0.975`, hump$`0.975`, fin$`0.975`, na.rm = TRUE))
-plot(blue$year, blue$`0.5`, type = "n", ylim = yl, xlab = "Year", ylab = "Biomass",x)
+plot(blue$year, blue$`0.5`, type = "n", ylim = yl, xlab = "Year", ylab = "Biomass")
 
 ## ribbons first 
 ribbon(blue, "dodgerblue")
@@ -74,6 +75,7 @@ ribbon(orca, "red")
 ribbon(hump, "grey")
 ribbon(fin,  "purple")
 ribbon(mink,  "darkgreen")
+ribbon(sei,"orange3")
 
 ## lines as current (include 1850 point)
 lines(blue$year, blue$`0.5`,lwd=2, col = "dodgerblue")
@@ -95,6 +97,12 @@ lines(fin$year, fin$`0.025`, lty = 2, col = "purple")
 lines(mink$year, mink$`0.5`, lwd=2,  col = "darkgreen")
 lines(mink$year, mink$`0.975`, lty = 2, col = "darkgreen")
 lines(mink$year, mink$`0.025`, lty = 2, col = "darkgreen")
+
+lines(sei$year, sei$`0.5`, lwd=2,  col = "orange3")
+lines(sei$year, sei$`0.975`, lty = 2, col = "orange3")
+lines(sei$year, sei$`0.025`, lty = 2, col = "orange3")
+
+
 
 
 legend("topright",
