@@ -72,105 +72,46 @@ shift <- mean(shared$modelObs) - mean(shared$Obs)
 obs$adjusted <- obs$ANN+shift
 
 
-## Now we make a combined dataset to use - this uses observations adjusted to the normlaisation used in Abrams from 1957 -> 2025
+## Now we make a combined dataset to use - this uses observations adjusted to the normalisation used in Abrams from 1957 -> 2025
 
 combinedSAM <- data.frame("year"=sort(unique(c(obs$year,model$age_CE)),decreasing = TRUE),
-             #             "year.test"=c(rev(obs$year),model$age_CE[match(1956:1000,model$age_CE)]),
-                          "SAMindex"=c(rev(obs$adjusted),model$SAM_Index[match(1956:1000,model$age_CE)]))
-##
+                          "SAM_Index"=c(rev(obs$adjusted),model$SAM_Index[match(1956:1000,model$age_CE)]))
+
+## now we make some rolling means & loess for plotting 
+combinedSAM$SAM_Index_3yr <- filter(combinedSAM$SAM_Index, rep(1/3, 3), sides = 2)
+combinedSAM$SAM_Index_5yr <- filter(combinedSAM$SAM_Index, rep(1/5, 5), sides = 2)
+combinedSAM$SAM_Index_7yr <- filter(combinedSAM$SAM_Index, rep(1/7, 7), sides = 2)
+fit <- loess(SAM_Index ~ year, data = combinedSAM, span = 0.2)
+combinedSAM$SAM_loess <- predict(fit)
+
+#make a minin dataset for plotting
+combinedSAM.s <- combinedSAM[combinedSAM$year>=minval,]
+## SAM plot
+pdf("figures/climate/clim.SAM.pdf",width=12,height=4)
+par(xpd = NA) 
+plot(combinedSAM.s$year,combinedSAM.s$SAM_Index,pch=16,col="grey90",cex=1.2,
+     xlim=c(minval,2020),ylim=c(-4.5,4.5),bty="n",axes=FALSE,ylab="SAM Index",xlab="")
+points(combinedSAM.s$year[combinedSAM.s$year>1956],combinedSAM.s$SAM_Index[combinedSAM.s$year>1956],pch=16,col="grey5",cex=0.9)
+points(combinedSAM.s$year[combinedSAM.s$year<1957],combinedSAM.s$SAM_Index[combinedSAM.s$year<1957],pch=16,col="grey50",cex=0.9)
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_3yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.4))
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_5yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.6))
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_7yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.8))
+points(combinedSAM.s$year,combinedSAM.s$SAM_loess,type="l",lwd=3,col=add.alpha("darkorchid3",0.8))
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1775,-25),labels = seq(2000,1775,-25) )  
+axis(2)
+dev.off()
+
+### SAM output for statistics here
+
+climateout$SAM_Index <- combinedSAM$SAM_Index[match(round(climateout$CalYear),combinedSAM$year)]
+climateout$SAM_Index_3yr <- combinedSAM$SAM_Index_3yr[match(round(climateout$CalYear),combinedSAM$year)]
+climateout$SAM_Index_5yr <- combinedSAM$SAM_Index_5yr[match(round(climateout$CalYear),combinedSAM$year)]
+climateout$SAM_Index_7yr <- combinedSAM$SAM_Index_7yr[match(round(climateout$CalYear),combinedSAM$year)]
 
 
-## First we pull in the BAS observation data
+####====2.0 ENSO data ====####
 
-x <- readLines("rawdata/climate/BES_SAM.txt", warn = FALSE)   # read file lines
-x <- trimws(x)                                               # trim whitespace
-x <- x[nzchar(x) & !grepl("^#", x)]                          # drop blank and comment lines
-
-hdr <- x[1]                                                  # header with month names
-months <- scan(text = hdr, what = character(), quiet = TRUE) # split header to tokens
-stopifnot(length(months) == 12)                              # require 12 months
-
-dat <- gsub("\\s+", " ", trimws(x[-1]))                      # normalize spacing on data rows
-
-sam <- read.table(text = dat, header = FALSE, fill = TRUE, stringsAsFactors = FALSE,
-                  col.names = c("Year", months), check.names = FALSE)  # parse to table
-yearlymean <- data.frame("Year"=sam[,1],
-                         "SAMmean"= rowMeans(sam[,-1], na.rm = TRUE))
-months <- colnames(sam)[-1] 
-y <- c(t(as.matrix(sam[,-1]))) 
-y <- y[!is.na(y)]  
-
-sam.data <- data.frame("SAM"=c(t(as.matrix(sam[,-1]))),
-                       "year"=rep(sam$Year, each = 12),
-                       "month"=rep(months,length(sam[,1])))
-sam.data <- sam.data[!is.na(sam.data$SAM),]
-
-sam.data$SAM.cont <- make_continuous_year(sam.data$year, sam.data$month, centre="JUL")
-
-## now SAM modelled long term data 
-
-SAM.long <- read.table("rawdata/climate/SAM_1000yr.txt",header = 1)
-
-#3,5 & 7 year means
-
-SAM.long$SAM_Index_3yr <- filter(SAM.long$SAM_Index, rep(1/3, 3), sides = 2)
-SAM.long$SAM_Index_5yr <- filter(SAM.long$SAM_Index, rep(1/5, 5), sides = 2)
-SAM.long$SAM_Index_7yr <- filter(SAM.long$SAM_Index, rep(1/7, 7), sides = 2)
-fit <- loess(SAM_Index ~ age_CE, data = SAM.long, span = 0.2)
-SAM.long$SAM_loess <- predict(fit)
-
-
-dat <- read.table(
-  "rawdata/climate/BES_SAMannual.txt",
-  header = TRUE,
-  comment.char = "#",
-  fill = TRUE,
-  strip.white = TRUE
-)
-ref <- dat$year >= 1961 & dat$year <= 1990 & is.finite(dat$ANN)
-mu  <- mean(dat$ANN[ref])
-sdv <- sd(dat$ANN[ref])
-
-dat$ANN_6190_z <- (dat$ANN - mu) / sdv
-
-####
-# Goal: single SAM series on Abram's Marshall_SAM_Index scale.
-## Inputs:
-##   SAM.long: Abram table with columns age_CE, SAM_Index, Marshall_SAM_Index
-##   dat: BAS annual/seasonal table with columns year, ANN (your 2026 download)
-
-## 1) make clean join keys
-SAM.long$year <- SAM.long$age_CE
-
-abr_marshall <- SAM.long[, c("year","Marshall_SAM_Index")]
-names(abr_marshall)[2] <- "Marshall_old"
-
-bas_ann <- dat[, c("year","ANN")]
-
-## 2) fit mapping from BAS ANN -> Abram Marshall scale on overlap
-ol <- merge(bas_ann, abr_marshall, by = "year", all = FALSE)
-ol <- ol[ol$year >= 1957 & ol$year <= 2007, ]
-ol <- ol[is.finite(ol$ANN) & is.finite(ol$Marshall_old), ]
-
-fit <- lm(Marshall_old ~ ANN, data = ol)
-
-## diagnostics
-c(
-  n = nrow(ol),
-  cor = cor(ol$ANN, ol$Marshall_old),
-  rmse = sqrt(mean(resid(fit)^2))
-)
-coef(fit)
-
-## 3) map BAS ANN to Abram Marshall scale (all BAS years)
-dat$Marshall_on_old_scale <- predict(fit, newdata = dat)
-
-
-
-
-
-
-####
+obs <- read.csv("rawdata/climate/nina34.anom.csv", header = TRUE, stringsAsFactors = FALSE, check.names = FALSE,comment.char = "#",na.strings ="-9999.000")
 
 
 
@@ -179,10 +120,10 @@ dat$Marshall_on_old_scale <- predict(fit, newdata = dat)
 
 ## SAM plot
 pdf("figures/climate/clim.SAM.pdf",width=12,height=4)
-plot(sam.data$SAM.cont,sam.data$SAM,type="l",col="grey90",
+plot(combinedSAM$year,combinedSAM$SAM_Index,pch=16,col="grey90",cex=1.2,
      xlim=c(minval,2020),ylim=c(-4,4),bty="n",axes=FALSE,ylab="SAM Index",xlab="")
-points(yearlymean$Year,yearlymean$SAMmean,pch=16,col="grey10",cex=1.2)
-points(yearlymean$Year,yearlymean$SAMmean,pch=16,col="grey40",cex=0.9)
+points(combinedSAM$year,combinedSAM$SAM_Index,pch=16,col="grey10",cex=1.2)
+points(combinedSAM$year,combinedSAM$SAM_Index,pch=16,col="grey40",cex=0.9)
 points(SAM.long$age_CE,SAM.long$SAM_Index,xlim=c(2016,minval),pch=16,col=add.alpha("grey70",0.6))
 points(SAM.long$age_CE,SAM.long$SAM_Index_5yr,type="l",lwd=2,col=add.alpha("black",0.3))
 points(SAM.long$age_CE,SAM.long$SAM_loess,type="l",col="darkorchid3",lwd=2)
