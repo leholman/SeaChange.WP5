@@ -452,9 +452,6 @@ pred <- predict(m1, newdata=data.frame(CalYear=yy))
 lines(yy, pred, lwd=2)
 
 
-
-
-
 pdf("figures/climate/PCA_PC1.pdf", width = 8, height = 3.5)
 par(mfrow = c(1, 1), mar = c(5, 5, 0.6, 0.6), xaxs = "i", yaxs = "i", bty = "n")
 plot(climate_pca$CalYear,climate_pca$PC1,col=add.alpha(coredata$col[match(toupper(climate_pca$Site),coredata$Site)],0.8),pch=16,ylab="PC1",xlab="Year",xlim=c(1900,2026),ylim=c(-2.8,2.8))
@@ -465,20 +462,8 @@ par(mfrow = c(1, 1), mar = c(5, 5, 0.6, 0.6), xaxs = "i", yaxs = "i", bty = "n")
 plot(climate_pca$CalYear,climate_pca$PC2,col=add.alpha(coredata$col[match(toupper(climate_pca$Site),coredata$Site)],0.8),pch=16,ylab="PC2",xlab="Year",xlim=c(1900,2026),ylim=c(-3.8,3.8))
 dev.off()
 
-
-     
-     ,nino34_NDJ$Nino34_NDJ,pch=16,col="grey90",cex=1.2,
-     xlim=c(minval,2020),ylim=c(-3,3),bty="n",axes=FALSE,ylab="ENSO NDJ",xlab="")
-points(nino34_NDJ$year,nino34_NDJ$Nino34_NDJ,pch=16,col="grey5",cex=0.9)
-points(nino34_NDJ$year, nino34_NDJ$value_3yr, type="l", lwd=2, col=add.alpha("firebrick",0.4))
-points(nino34_NDJ$year, nino34_NDJ$value_5yr, type="l", lwd=2, col=add.alpha("firebrick",0.6))
-points(nino34_NDJ$year, nino34_NDJ$value_7yr, type="l", lwd=2, col=add.alpha("firebrick",0.8))
-points(nino34_NDJ$year,nino34_NDJ$ENSO_loess,type="l",lwd=3,col=add.alpha("darkorchid3",0.8))
-axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1775,-25),labels = seq(2000,1775,-25) )  
-axis(2)
-dev.off()
-
-plot(out$Year,out$SIC,col=add.alpha(coredata$col[match(out$Site,coredata$Site)],0.3),pch=16,xlim=c(1900,2026),ylab="Sea Ice Coverage (%)",xlab="Year")
+write.csv(climateout,"cleandata/climate.data.all.csv")
+write.csv(climate_pca,"cleandata/climate.data.PCA.csv")
 
 
 
