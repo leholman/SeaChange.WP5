@@ -26,6 +26,15 @@ euk.tax <- read.csv("cleandata/EUK.WP5.main.clean.tax.csv",row.names = 1)
 euk.pr2 <- read.csv("taxonomy/EUK.pr2.csv",row.names = 1)
 
 coredata$col <- c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73")
+
+## climate data 
+
+clim <- read.csv("cleandata/climate.data.PCA.csv",row.names = 1)
+#get rid of bad sample
+clim <- clim[!paste(clim$Site,clim$SampleID)=="p56 1",] 
+whales <- read.csv("cleandata/whale.model.year.csv",row.names = 1)
+
+
 ## some functions
 
 
@@ -1408,8 +1417,138 @@ for (group_name in names(asv_groups)) {
   dev.off()
 }
 
+####### now let's run a mixed model 
+
+## first we make the dataset 
+
+
+#we make a new var in clim we can use to match
+clim$longname <- expandedDates$SampleName[match(paste(clim$Site,clim$SampleID,sep="_"),paste(expandedDates$Site,expandedDates$SampleID,sep="_"))]
+
+alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
+                    "site" = as.factor(clim$Site),
+                    "year" =clim$CalYear,
+                    "ASV_Q0" = alpha_avg_reps$q0_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q1" = alpha_avg_reps$q1_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q2" = alpha_avg_reps$q2_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "genus_Q0" = alpha_genus_avg_reps$q0_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "genus_Q1" = alpha_genus_avg_reps$q1_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "genus_Q2" = alpha_genus_avg_reps$q2_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
+                    "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
+                    "PC1" = clim$PC1,
+                    "PC2" = clim$PC2,
+                    "PC1_s" = scale(clim$PC1),
+                    "PC2_s" = scale(clim$PC2)
+                    
+)
+
+library(mgcv)
+
+# ASV models (with year)
+a1_A0 <- gam(ASV_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_A1 <- gam(ASV_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_A2 <- gam(ASV_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# ASV models (no year)
+a2_A0 <- gam(ASV_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_A1 <- gam(ASV_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_A2 <- gam(ASV_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# Genus models (with year)
+a1_G0 <- gam(genus_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_G1 <- gam(genus_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_G2 <- gam(genus_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# Genus models (no year)
+a2_G0 <- gam(genus_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_G1 <- gam(genus_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_G2 <- gam(genus_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+summary(a1_A0)
+summary(a1_A1)
+summary(a1_A2)
+
+summary(a2_A0)
+summary(a2_A1)
+summary(a2_A2)
+
+summary(a1_G0)
+summary(a1_G1)
+summary(a1_G2)
+
+summary(a2_G0)
+summary(a2_G1)
+summary(a2_G2)
+
 
 ## beta diversity 
+
+
+
+
+
+#### now lets run a HMSC model 
+
+library(Hmsc)
+
+# binary indicidence
+comm.b <- (as.matrix(comm) > 0) * 1
+
+prev <- colMeans(comm.b)
+comm.b.smol <- comm.b[, prev >= 0.20, drop = FALSE]
+
+
+X <- data.frame(
+  PC1   = as.numeric(scale(beta$PC1_s)),
+  whale = as.numeric(scale(beta$whale_s))
+)
+
+studyDesign <- data.frame(site = beta$site)
+rL <- HmscRandomLevel(units = studyDesign$site)
+
+
+m <- Hmsc(
+  Y = comm.b.smol,
+  XData = X,
+  XFormula = ~ PC1 + whale,
+  distr = "probit",
+  studyDesign = studyDesign,
+  ranLevels = list(site = rL)
+)
+
+
+m <- sampleMcmc(
+  m,
+  thin = 5,
+  samples = 600,
+  transient = 3000,
+  nChains = 2,
+  nParallel = 2,
+  verbose=1)
+
+
+mpost <- convertToCodaObject(m)
+effectiveSize(mpost)
+gelman.diag(mpost)
+
+
+summary(mpost$Beta)
+
+preds <- computePredictedValues(m)
+
+MF <- evaluateModelFit(hM=m,predy = preds)
+
+
+
+group <- c(0, 1, 2)   # 0=Intercept, 1=Climate, 2=Whaling
+VP <- computeVariancePartitioning(m)
+
+## variance parititonwarn 
+group <- c(1, 2)  # 1 = Climate, 2 = Whaling
+VP <- computeVariancePartitioning(m, group = group)
+colMeans(VP$vals)
+
 # first a little test with UMAP
 test <- umap(t(prop.table(as.matrix(euk.reps),2)))
 plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
@@ -1497,6 +1636,181 @@ for (group_name in names(asv_groups)) {
        labels = years, pos = 3, cex = 0.6)
   dev.off()
 }
+
+#### now let's run some tests 
+
+
+beta <- data.frame("sample" = paste(clim$Site,clim$SampleID),
+                   "site" = as.factor(clim$Site),
+                   "year" =clim$CalYear,
+                   "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
+                   "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
+                   "PC1" = clim$PC1,
+                   "PC2" = clim$PC2,
+                   "PC1_s" = scale(clim$PC1),
+                   "PC2_s" = scale(clim$PC2))
+
+
+
+## distance based rDA
+
+library(vegan)
+
+comm.raw <- prop.table(as.matrix(euk.reps),2)
+
+comm <- t(comm.raw[,match(clim$longname,colnames(comm.raw))])
+
+
+## distance basd redundnacy analysis 
+mod_bray <- dbrda(
+  comm ~ whale_s + PC1_s + Condition(site),
+  data = beta,
+  distance = "bray"
+)
+
+mod_jacc <- dbrda(
+  comm ~ whale_s +PC1_s  + Condition(site),
+  data = beta,
+  distance = "jacc"
+)
+
+##  anova with perms within cores
+perm <- how(blocks = alpha$site,nperm = 1000)
+
+anova(mod_bray, permutations = perm)
+anova(mod_bray, by = "terms", permutations = perm)
+
+anova(mod_jacc, permutations = perm)
+anova(mod_jacc, by = "terms", permutations = perm)
+
+## variance partititoning 
+
+var_bray <- varpart(vegdist(comm, "bray"), ~ PC1_s, ~ whale_s, data = beta)
+var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE), ~ PC1_s, ~ whale_s, data = beta)
+
+var_bray
+plot(var_bray)
+var_jacc
+plot(var_jacc)
+
+
+## PERMANOVA
+perm_bray <- adonis2(vegdist(comm,method="bray")~site+PC1_s+whale_s,
+                     data=beta, permutations = 10000,
+                     by="margin")
+perm_bray
+
+
+perm_jacc <- adonis2(vegdist(comm,method="jacc",binary = TRUE)~site+PC1_s+whale_s,
+                     data=beta, permutations = 10000,
+                     by="margin")
+perm_jacc
+
+
+
+## write results to file
+sink("results.txt")
+
+cat("=== Distance-based RDA and PERMANOVA results by taxonomic group ===\n\n")
+
+library(vegan)
+
+# define groups (must exist in workspace)
+asv_groups <- list(
+  Metazoa  = ASVs.met,
+  Protists = ASVs.pro,
+  Bacteria = ASVs.bac
+)
+
+for (group_name in names(asv_groups)) {
+  
+  cat("############################################################\n")
+  cat("Group:", group_name, "\n")
+  cat("############################################################\n\n")
+  
+  # subset ASVs
+  group_asvs <- asv_groups[[group_name]]
+  mat <- euk.reps[rownames(euk.reps) %in% group_asvs, , drop = FALSE]
+  
+  # relative abundance + match ordering
+  comm.raw <- prop.table(as.matrix(mat), 2)
+  comm <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
+  
+  ## dbRDA
+  cat("---- dbRDA: Bray ----\n")
+  mod_bray <- dbrda(
+    comm ~ whale_s + PC1_s + Condition(site),
+    data = beta,
+    distance = "bray"
+  )
+  
+  perm <- how(blocks = alpha$site, nperm = 1000)
+  
+  print(anova(mod_bray, permutations = perm))
+  print(anova(mod_bray, by = "terms", permutations = perm))
+  
+  cat("\n---- dbRDA: Jaccard ----\n")
+  mod_jacc <- dbrda(
+    comm ~ whale_s + PC1_s + Condition(site),
+    data = beta,
+    distance = "jacc"
+  )
+  
+  print(anova(mod_jacc, permutations = perm))
+  print(anova(mod_jacc, by = "terms", permutations = perm))
+  
+  ## variance partitioning
+  cat("\n---- Variance partitioning: Bray ----\n")
+  var_bray <- varpart(
+    vegdist(comm, "bray"),
+    ~ PC1_s,
+    ~ whale_s,
+    data = beta
+  )
+  print(var_bray)
+  
+  cat("\n---- Variance partitioning: Jaccard ----\n")
+  var_jacc <- varpart(
+    vegdist(comm, "jacc", binary = TRUE),
+    ~ PC1_s,
+    ~ whale_s,
+    data = beta
+  )
+  print(var_jacc)
+  
+  ## PERMANOVA
+  cat("\n---- PERMANOVA: Bray ----\n")
+  perm_bray <- adonis2(
+    vegdist(comm, method = "bray") ~ site + PC1_s + whale_s,
+    data = beta,
+    permutations = 10000,
+    by = "margin"
+  )
+  print(perm_bray)
+  
+  cat("\n---- PERMANOVA: Jaccard ----\n")
+  perm_jacc <- adonis2(
+    vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + whale_s,
+    data = beta,
+    permutations = 10000,
+    by = "margin"
+  )
+  print(perm_jacc)
+  
+  cat("\n\n")
+}
+
+sink()
+
+
+
+
+
+
+
+
+
+
 
 ### Now do individual SPP
 

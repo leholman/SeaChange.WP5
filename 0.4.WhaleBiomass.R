@@ -66,6 +66,7 @@ ribbon <- function(df, col,yr=1850) {
 }
 
 ## plotting
+pdf("figures/whale.biomass.pdf",height = 6.5,width = 9)
 yl <- c(0, max(blue$`0.975`, orca$`0.975`, hump$`0.975`, fin$`0.975`, na.rm = TRUE))
 plot(blue$year, blue$`0.5`, type = "n", ylim = yl, xlab = "Year", ylab = "Biomass")
 
@@ -102,12 +103,19 @@ lines(sei$year, sei$`0.5`, lwd=2,  col = "orange3")
 lines(sei$year, sei$`0.975`, lty = 2, col = "orange3")
 lines(sei$year, sei$`0.025`, lty = 2, col = "orange3")
 
-
-
-
 legend("topright",
-       legend = c("Blue", "Orca", "Humpback", "Fin","Minke"),
-       lty = 1, col = c("dodgerblue","red","grey","purple","darkgreen"), bty = "n")
+       legend = c("Blue", "Orca", "Humpback", "Fin","Minke","Sei"),
+       lty = 1, col = c("dodgerblue","red","grey","purple","darkgreen","orange3"), bty = "n")
+
+dev.off()
+
+#### Now lets pull the data out for statistics 
+## here we use only blue, hump, fin & sei 
+
+whale.out <- data.frame("year"=blue$year,
+                        "biomass"=blue$`0.5`+fin$`0.5`+hump$`0.5`+sei$`0.5`)
+plot(whale.out$year,whale.out$biomass,type="l",lwd=2)
+write.csv(whale.out,"cleandata/whale.model.year.csv")
 
 
 ### what about a comparison to metabarcoding data?
