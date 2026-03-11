@@ -1486,69 +1486,6 @@ summary(a2_G2)
 
 
 
-
-
-#### now lets run a HMSC model 
-
-library(Hmsc)
-
-# binary indicidence
-comm.b <- (as.matrix(comm) > 0) * 1
-
-prev <- colMeans(comm.b)
-comm.b.smol <- comm.b[, prev >= 0.20, drop = FALSE]
-
-
-X <- data.frame(
-  PC1   = as.numeric(scale(beta$PC1_s)),
-  whale = as.numeric(scale(beta$whale_s))
-)
-
-studyDesign <- data.frame(site = beta$site)
-rL <- HmscRandomLevel(units = studyDesign$site)
-
-
-m <- Hmsc(
-  Y = comm.b.smol,
-  XData = X,
-  XFormula = ~ PC1 + whale,
-  distr = "probit",
-  studyDesign = studyDesign,
-  ranLevels = list(site = rL)
-)
-
-
-m <- sampleMcmc(
-  m,
-  thin = 5,
-  samples = 600,
-  transient = 3000,
-  nChains = 2,
-  nParallel = 2,
-  verbose=1)
-
-
-mpost <- convertToCodaObject(m)
-effectiveSize(mpost)
-gelman.diag(mpost)
-
-
-summary(mpost$Beta)
-
-preds <- computePredictedValues(m)
-
-MF <- evaluateModelFit(hM=m,predy = preds)
-
-
-
-group <- c(0, 1, 2)   # 0=Intercept, 1=Climate, 2=Whaling
-VP <- computeVariancePartitioning(m)
-
-## variance parititonwarn 
-group <- c(1, 2)  # 1 = Climate, 2 = Whaling
-VP <- computeVariancePartitioning(m, group = group)
-colMeans(VP$vals)
-
 # first a little test with UMAP
 test <- umap(t(prop.table(as.matrix(euk.reps),2)))
 plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
@@ -1803,9 +1740,177 @@ for (group_name in names(asv_groups)) {
 sink()
 
 
+#### now lets run a HMSC model 
+library(Hmsc)
 
 
+# -- Data prep ----------------------------------------------------------------
 
+comm.raw.t <- t(as.matrix(euk.reps))
+comm.raw.t <- comm.raw.t[match(clim$longname, rownames(comm.raw.t)), ]
+
+# High-confidence Subdivision assignments only (>=60%)
+tax.filt <- euk.tax[euk.tax$Subdivision.1 >= 60 & !is.na(euk.tax$Subdivision), ]
+
+# Intersect ASVs, collapse to Subdivision, Hellinger transform
+shared.asvs <- intersect(colnames(comm.raw.t), tax.filt$ASV)
+comm.filt   <- comm.raw.t[, shared.asvs, drop = FALSE]
+tax.filt    <- tax.filt[match(shared.asvs, tax.filt$ASV), ]
+
+comm.sub <- t(rowsum(t(comm.filt), group = tax.filt$Subdivision, na.rm = TRUE))
+hell     <- function(x) sqrt(x / rowSums(x))
+Y        <- hell(comm.sub)
+
+cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
+
+# Predictors
+# whale = Southern Ocean whale biomass: high pre-whaling, crashes ~1900s
+# residual correlation PC1 ~ whale after removing time trend = 0.11 (safe to model together)
+X <- data.frame(
+  PC1   = as.numeric(scale(beta$PC1_s)),
+  whale = as.numeric(scale(beta$whale_s))
+)
+
+# -- Model --------------------------------------------------------------------
+
+studyDesign <- data.frame(site = factor(beta$site))
+rL.site     <- HmscRandomLevel(units = levels(studyDesign$site))
+
+m <- Hmsc(
+  Y           = Y,
+  XData       = X,
+  XFormula    = ~ PC1 + whale,
+  distr       = "normal",
+  studyDesign = studyDesign,
+  ranLevels   = list(site = rL.site)
+)
+
+m <- sampleMcmc(m,
+                thin      = 10,
+                samples   = 1000,
+                transient = 5000,
+                nChains   = 4,
+                nParallel = 4,
+                verbose   = 500
+)
+
+# -- Convergence --------------------------------------------------------------
+
+mpost    <- convertToCodaObject(m)
+beta_ess <- effectiveSize(mpost$Beta)
+beta_gel <- gelman.diag(mpost$Beta, multivariate = FALSE)$psrf
+
+cat("ESS — Min:", round(min(beta_ess)),
+    "| Median:", round(median(beta_ess)),
+    "| % > 200:", round(mean(beta_ess > 200) * 100, 1), "%\n")
+cat("G-R — Max:", round(max(beta_gel[, 1]), 3),
+    "| % > 1.05:", round(mean(beta_gel[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Results ------------------------------------------------------------------
+
+# Variance partitioning — design matrix cols: 1=Intercept, 2=PC1, 3=whale
+VP <- computeVariancePartitioning(m,
+                                  group = c(1, 2, 3), groupnames = c("Intercept", "Climate", "Whaling"))
+print(round(rowMeans(VP$vals), 3))
+plotVariancePartitioning(m, VP = VP)
+
+# Posterior support for fixed effects
+postBeta   <- getPostEstimate(m, parName = "Beta")
+support_df <- data.frame(
+  Subdivision = rep(colnames(Y), each = 2),
+  predictor   = rep(c("Climate_PC1", "Whaling"), times = ncol(Y)),
+  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ])),
+  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ])),
+  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ]))
+)
+support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
+support_df$strong    <- support_df$P_pos > 0.90 | support_df$P_neg > 0.90
+
+print(support_df[support_df$strong, c("Subdivision", "predictor", "mean_beta",
+                                      "P_pos", "P_neg", "direction")])
+
+# -- Metazoa family-level HMSC ------------------------------------------------
+
+# Filter to Metazoa with perfect family assignments only
+tax.meta <- euk.tax[euk.tax$Subdivision == "Metazoa" & 
+                      !is.na(euk.tax$family) &
+                      euk.tax$Family.1 == 100, ]
+
+cat("ASVs retained:", nrow(tax.meta), "\n")
+cat("Unique families:", length(unique(tax.meta$family)), "\n")
+print(sort(table(tax.meta$family), decreasing = TRUE))
+
+# Intersect with count matrix
+shared.meta <- intersect(colnames(comm.raw.t), tax.meta$ASV)
+comm.meta   <- comm.raw.t[, shared.meta, drop = FALSE]
+tax.meta    <- tax.meta[match(shared.meta, tax.meta$ASV), ]
+
+# Collapse to family, Hellinger transform
+comm.fam <- t(rowsum(t(comm.meta), group = tax.meta$family, na.rm = TRUE))
+Y.fam    <- hell(comm.fam)
+
+cat("\nSamples:", nrow(Y.fam), "| Families:", ncol(Y.fam), "\n")
+cat("Any NA:", anyNA(Y.fam), "\n")
+
+# Prevalence per family — no filtering but good to know
+prev <- colMeans(comm.fam > 0)
+print(round(sort(prev, decreasing = TRUE), 2))
+
+# -- Model --------------------------------------------------------------------
+
+m.fam <- Hmsc(
+  Y           = Y.fam,
+  XData       = X,           # same PC1 + whale as before
+  XFormula    = ~ PC1 + whale,
+  distr       = "normal",
+  studyDesign = studyDesign,
+  ranLevels   = list(site = rL.site)
+)
+
+m.fam <- sampleMcmc(m.fam,
+                    thin      = 20,
+                    samples   = 1000,
+                    transient = 000,
+                    nChains   = 4,
+                    nParallel = 4,
+                    verbose   = 500
+)
+
+# -- Convergence --------------------------------------------------------------
+
+mpost.fam    <- convertToCodaObject(m.fam)
+beta_ess.fam <- effectiveSize(mpost.fam$Beta)
+beta_gel.fam <- gelman.diag(mpost.fam$Beta, multivariate = FALSE)$psrf
+
+cat("ESS — Min:", round(min(beta_ess.fam)),
+    "| Median:", round(median(beta_ess.fam)),
+    "| % > 200:", round(mean(beta_ess.fam > 200) * 100, 1), "%\n")
+cat("G-R — Max:", round(max(beta_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(beta_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Results ------------------------------------------------------------------
+
+VP.fam <- computeVariancePartitioning(m.fam,
+                                      group = c(1, 2, 3), groupnames = c("Intercept", "Climate", "Whaling"))
+print(round(rowMeans(VP.fam$vals), 3))
+plotVariancePartitioning(m.fam, VP = VP.fam)
+
+postBeta.fam   <- getPostEstimate(m.fam, parName = "Beta")
+support.fam <- data.frame(
+  family    = rep(colnames(Y.fam), each = 2),
+  predictor = rep(c("Climate_PC1", "Whaling"), times = ncol(Y.fam)),
+  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ])),
+  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ])),
+  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ]))
+)
+support.fam$direction <- ifelse(support.fam$mean_beta > 0, "positive", "negative")
+support.fam$strong    <- support.fam$P_pos > 0.90 | support.fam$P_neg > 0.90
+
+print(support.fam[support.fam$strong, c("family", "predictor", "mean_beta",
+                                        "P_pos", "P_neg", "direction")])
+
+plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.90,
+         split = 0.4, spNamesNumbers = c(TRUE, FALSE))
 
 
 
