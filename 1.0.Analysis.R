@@ -9,6 +9,7 @@ library(RColorBrewer)
 library(iNEXT)
 library(vegan)  
 library(pbmcapply)
+library(rioja)
 
 
 #read in metadata 
@@ -219,6 +220,10 @@ expandedDates <- merge(
              stringsAsFactors = FALSE),
   dates, by = c("Site", "SampleID"), all.x = TRUE)
 
+expandedDates$originalCalYear <- expandedDates$CalYear
+
+expandedDates$CalYear <- round(expandedDates$CalYear)
+
 ##loop over sites 
 unique(expandedDates$Site)
 for (site in unique(expandedDates$Site)){
@@ -307,7 +312,7 @@ sp <- 0.2
 ylim <- c(0, 1)
 pal <- rev(getPalette(nrow(EUK.tax.a.2)))  # you already defined getPalette
 
-pdf("figures/bigplot.pdf",width = 14,height = 10)
+pdf("figures/EUK.bigplot.pdf",width = 14,height = 10)
 par(mfrow = c(length(sites), 1),
     mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
     oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
@@ -326,7 +331,7 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
   bp <- barplot(mat,
                 col    = pal,
                 space  = 0,
@@ -464,7 +469,7 @@ for (i in c(2,4,3,1,5)) {
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
   bp <- barplot(mat,
                 col    = pal,
                 space  = 0,
@@ -939,9 +944,6 @@ dev.off()
 
 # change point analysis 
 
-# packages
-library(rioja)
-library(vegan)
 
 
 unique(expandedDates$Site)
@@ -1022,26 +1024,6 @@ cutree(SC.con, k = 1)
 
 
 
-  
-  
-site <- unique(expandedDates$Site)[5]
-data <- euk.met.only
-data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
-data.sub <- data[,grepl(site,data.sites)]
-data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
-data.sub.sort <- data.sub[,order(data.sub.years)]
-data.dist <- vegdist(t(data.sub.sort), method = "bray")
-data.coniss <- chclust(data.dist, method = "coniss")
-bs <- bstick(data.coniss)                                           # expected SS decrease under null
-# Quick elbow/BS pick; adjust 'k' as needed after checking plot
-k <- 3
-
-# 6) zone labels ----
-zones <- cutree(data.coniss, k = k)
-
-
-
-
 ### Alpha diversity 
 
 #lets look at uneven read depth 
@@ -1081,18 +1063,20 @@ out_list <- pbmclapply(
   mc.preschedule = TRUE                  # preschedule identical tasks
 )
 
-
-alpha_all <- bind_rows(out_list, .id = "draw")  # stack the 100 tables
+alpha_all <- bind_rows(out_list, .id = "draw")
 
 alpha_avg <- alpha_all %>% 
   group_by(sample) %>% 
   summarise(across(q0:q2,
-                   list(mean = mean,  sd = sd), .names = "{.col}_{.fn}"))
+                   list(mean = \(x) mean(x, na.rm = TRUE),
+                        sd   = \(x) sd(x,   na.rm = TRUE)),
+                   .names = "{.col}_{.fn}"))
+
 alpha_avg_reps <- alpha_avg %>% 
   mutate(replicate = sub("(.*)\\.[0-9]+$", "\\1", sample)) %>% 
   group_by(replicate) %>% 
-  summarise(across(ends_with("_mean"), mean),
-            across(ends_with("_sd"),   \(x) sqrt(mean(x^2))))   # pooled SD
+  summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
+            across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
 
 ##Plot richness
 ##Hill NUmber Q=0 (richness)
@@ -1137,6 +1121,8 @@ points(expandedDates$CalYear[match(alpha_avg_reps$replicate,expandedDates$Sample
        pch=16,cex=1.2)
 dev.off()
 
+ASV.alpha_avg_reps <- alpha_avg_reps
+
 #### Now we loop over subsets 
 
 asv_groups <- list(
@@ -1148,6 +1134,7 @@ asv_groups <- list(
 # Rarefaction + Hill function definitions stay unchanged
 hill_3 <- function(v){
   v <- v[v > 0]
+  if(length(v) == 0 || sum(v) == 0) return(c(q0 = NA, q1 = NA, q2 = NA))
   p <- v / sum(v)
   c(q0 = length(v),
     q1 = exp(-sum(p * log(p))),
@@ -1181,13 +1168,15 @@ for (group_name in names(asv_groups)) {
   alpha_avg <- alpha_all %>% 
     group_by(sample) %>% 
     summarise(across(q0:q2,
-                     list(mean = mean,  sd = sd), .names = "{.col}_{.fn}"))
+                     list(mean = \(x) mean(x, na.rm = TRUE),
+                          sd   = \(x) sd(x,   na.rm = TRUE)),
+                     .names = "{.col}_{.fn}"))
   
   alpha_avg_reps <- alpha_avg %>% 
     mutate(replicate = sub("(.*)\\.[0-9]+$", "\\1", sample)) %>% 
     group_by(replicate) %>% 
-    summarise(across(ends_with("_mean"), mean),
-              across(ends_with("_sd"),   \(x) sqrt(mean(x^2))))   # pooled SD
+    summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
+              across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
   
   ## Plot Q0
   pdf(paste0("figures/", group_name, ".Q0.pdf"), height = 5, width = 9)
@@ -1267,19 +1256,26 @@ alpha_genus_all <- bind_rows(out_list_genus, .id = "draw")
 
 alpha_genus_avg <- alpha_genus_all %>% 
   group_by(sample) %>% 
-  summarise(across(q0:q2, list(mean = mean,  sd = sd), .names = "{.col}_{.fn}"))
+  summarise(across(q0:q2,
+                   list(mean = \(x) mean(x, na.rm = TRUE),
+                        sd   = \(x) sd(x,   na.rm = TRUE)),
+                   .names = "{.col}_{.fn}"))
 
 alpha_genus_avg_reps <- alpha_genus_avg %>% 
   mutate(replicate = sub("(.*)\\.[0-9]+$", "\\1", sample)) %>% 
   group_by(replicate) %>% 
-  summarise(across(ends_with("_mean"), mean),
-            across(ends_with("_sd"), \(x) sqrt(mean(x^2))))
+  summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
+            across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
 
-pdf("figures/EUK_genus.Q0.pdf", height = 7, width = 9)
+
+
+
+pdf("figures/EUK_genus.Q0.pdf", height = 4.5, width = 11)
 plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)],
      alpha_genus_avg$q0_mean,
      col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
      pch=16,
+     bty = "n",
      xlab="Year",
      ylab="Genus Richness")
 points(expandedDates$CalYear[match(alpha_genus_avg_reps$replicate, expandedDates$SampleName)],
@@ -1366,20 +1362,25 @@ for (group_name in names(asv_groups)) {
   alpha_avg <- alpha_all %>%
     group_by(sample) %>%
     summarise(across(q0:q2,
-                     list(mean = mean,  sd = sd), .names = "{.col}_{.fn}"))
+                    list(mean = \(x) mean(x, na.rm = TRUE),
+                         sd   = \(x) sd(x,   na.rm = TRUE)),
+                    .names = "{.col}_{.fn}"))
   
   alpha_avg_reps <- alpha_avg %>%
     mutate(replicate = sub("(.*)\\.[0-9]+$", "\\1", sample)) %>%
     group_by(replicate) %>%
-    summarise(across(ends_with("_mean"), mean),
-              across(ends_with("_sd"),   \(x) sqrt(mean(x^2))))
+    summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
+              across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
+  
+
   
   ## Plot Q0
-  pdf(paste0("figures/", group_name, ".genus.Q0.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/", group_name, ".genus.Q0.pdf"),  height = 4.5, width = 11)
   plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "", alpha_avg$sample), expandedDates$SampleName)],
        alpha_avg$q0_mean,
        col = add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "", alpha_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
        pch = 16,
+       bty="n",
        xlab = "Year",
        ylab = "Genus Richness")
   points(expandedDates$CalYear[match(alpha_avg_reps$replicate, expandedDates$SampleName)],
@@ -1428,9 +1429,9 @@ clim$longname <- expandedDates$SampleName[match(paste(clim$Site,clim$SampleID,se
 alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
                     "site" = as.factor(clim$Site),
                     "year" =clim$CalYear,
-                    "ASV_Q0" = alpha_avg_reps$q0_mean[match(clim$longname,alpha_avg_reps$replicate)],
-                    "ASV_Q1" = alpha_avg_reps$q1_mean[match(clim$longname,alpha_avg_reps$replicate)],
-                    "ASV_Q2" = alpha_avg_reps$q2_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q0" = ASV.alpha_avg_reps$q0_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q1" = ASV.alpha_avg_reps$q1_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q2" = ASV.alpha_avg_reps$q2_mean[match(clim$longname,alpha_avg_reps$replicate)],
                     "genus_Q0" = alpha_genus_avg_reps$q0_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
                     "genus_Q1" = alpha_genus_avg_reps$q1_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
                     "genus_Q2" = alpha_genus_avg_reps$q2_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
@@ -1489,17 +1490,17 @@ summary(a2_G2)
 # first a little test with UMAP
 test <- umap(t(prop.table(as.matrix(euk.reps),2)))
 plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
-text(test$layout, labels = expandedDates$CalYear[match(row.names(test$layout), expandedDates$SampleName)],cex=0.3)
+text(test$layout, labels = expandedDates$CalYear[match(row.names(test$layout), expandedDates$SampleName)],cex=0.7)
 
 # now the NMDS
 EUK.nMDS.j <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),binary = TRUE,method = "jaccard"),trymax = 200,parallel=7)
 EUK.nMDS.b <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),method = "bray"),trymax = 200,parallel=7)
 
-pdf(paste0("figures/NMDS_ALL_jaccard.pdf"), height = 7, width = 9)
+pdf(paste0("figures/NMDS_ALL_jaccard.pdf"), height = 7, width = 7.5)
 plot(EUK.nMDS.j$points[,1], 
 EUK.nMDS.j$points[,2],
 col=coredata$col[match(toupper(expandedDates$Site[match(row.names(EUK.nMDS.j$points), expandedDates$SampleName)]),toupper(coredata$Site))],
-pch=16)
+pch=16,ylab="",xlab="")
 
 text(EUK.nMDS.j$points[,1],
      EUK.nMDS.j$points[,2],
@@ -1509,16 +1510,91 @@ text(EUK.nMDS.j$points[,1],
 dev.off()
 
 
-pdf(paste0("figures/NMDS_ALL_bray.pdf"), height = 7, width = 9)
+pdf(paste0("figures/NMDS_ALL_bray.pdf"), height = 7, width = 7.5)
 plot(EUK.nMDS.b$points[,1], 
      EUK.nMDS.b$points[,2],
      col=coredata$col[match(toupper(expandedDates$Site[match(row.names(EUK.nMDS.b$points), expandedDates$SampleName)]),toupper(coredata$Site))],
-     pch=16)
+     pch=16,ylab="",xlab="")
 text(EUK.nMDS.b$points[,1],
      EUK.nMDS.b$points[,2],
      labels = expandedDates$CalYear[match(rownames(EUK.nMDS.j$points), expandedDates$SampleName)],
      pos = 3, cex = 0.6)
 dev.off()
+
+
+
+
+# A new version with connecting lines
+
+nmds_names <- rownames(EUK.nMDS.j$points)
+nmds_sites <- expandedDates$Site[match(nmds_names, expandedDates$SampleName)]
+nmds_years <- expandedDates$CalYear[match(nmds_names, expandedDates$SampleName)]
+nmds_cols <- coredata$col[match(toupper(nmds_sites), toupper(coredata$Site))]
+
+# --- Jaccard NMDS with trajectories ---
+pdf("figures/NMDS_ALL_jaccard_trajectories.pdf", height = 7, width = 7.5)
+
+plot(EUK.nMDS.j$points[,1], 
+     EUK.nMDS.j$points[,2],
+     col = nmds_cols, pch = 16, xlab = "", ylab = "")
+
+# Add trajectory lines per site
+for (s in unique(nmds_sites)) {
+  idx <- which(nmds_sites == s)
+  ord <- idx[order(nmds_years[idx])]
+  for (i in 1:(length(ord) - 1)) {
+    arrows(EUK.nMDS.j$points[ord[i], 1], EUK.nMDS.j$points[ord[i], 2],
+           EUK.nMDS.j$points[ord[i+1], 1], EUK.nMDS.j$points[ord[i+1], 2],
+           col = nmds_cols[idx[1]], length = 0.08, lwd = 2)
+  }
+}
+# Year labels
+for (s in unique(nmds_sites)) {
+  idx <- which(nmds_sites == s)
+  ord <- idx[order(nmds_years[idx])]
+  thin <- ord[seq(1, length(ord), by = 5)]
+  thin <- union(thin, ord[c(1, length(ord))])  # always include endpoints
+  text(EUK.nMDS.j$points[thin, 1], EUK.nMDS.j$points[thin, 2],
+       labels = nmds_years[thin], pos = 3, cex = 0.6,)
+}
+
+dev.off()
+
+
+# --- Bray-Curtis NMDS with trajectories ---
+nmds_names_b <- rownames(EUK.nMDS.b$points)
+nmds_sites_b <- expandedDates$Site[match(nmds_names_b, expandedDates$SampleName)]
+nmds_years_b <- expandedDates$CalYear[match(nmds_names_b, expandedDates$SampleName)]
+nmds_cols_b <- coredata$col[match(toupper(nmds_sites_b), toupper(coredata$Site))]
+
+pdf("figures/NMDS_ALL_bray_trajectories.pdf", height = 7, width = 7.5)
+plot(EUK.nMDS.b$points[,1], 
+     EUK.nMDS.b$points[,2],
+     col = nmds_cols_b, pch = 16, xlab = "", ylab = "")
+# Add trajectory lines per site
+for (s in unique(nmds_sites_b)) {
+  idx <- which(nmds_sites_b == s)
+  ord <- idx[order(nmds_years_b[idx])]
+  for (i in 1:(length(ord) - 1)) {
+    arrows(EUK.nMDS.b$points[ord[i], 1], EUK.nMDS.b$points[ord[i], 2],
+           EUK.nMDS.b$points[ord[i+1], 1], EUK.nMDS.b$points[ord[i+1], 2],
+           col = nmds_cols_b[idx[1]], length = 0.08, lwd = 2)
+  }
+}
+# Year labels
+for (s in unique(nmds_sites_b)) {
+  idx <- which(nmds_sites_b == s)
+  ord <- idx[order(nmds_years_b[idx])]
+  thin <- ord[seq(1, length(ord), by = 5)]
+  thin <- union(thin, ord[c(1, length(ord))])
+  text(EUK.nMDS.b$points[thin, 1], EUK.nMDS.b$points[thin, 2],
+       labels = nmds_years_b[thin], pos = 3, cex = 0.6)
+}
+dev.off()
+
+
+
+
 
 ### beta by group 
 
