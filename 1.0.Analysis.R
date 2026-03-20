@@ -10,6 +10,7 @@ library(iNEXT)
 library(vegan)  
 library(pbmcapply)
 library(rioja)
+library(mgcv)
 
 
 #read in metadata 
@@ -1444,43 +1445,143 @@ alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
                     
 )
 
-library(mgcv)
+## Lets make a little plot of analysed values 
 
-# ASV models (with year)
-a1_A0 <- gam(ASV_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_A1 <- gam(ASV_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_A2 <- gam(ASV_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+site_cols <- coredata$col[match(toupper(alpha$site), toupper(coredata$Site))]
+ylim <- range(c(alpha$whale_s, alpha$PC1_s), na.rm = TRUE)
 
-# ASV models (no year)
-a2_A0 <- gam(ASV_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_A1 <- gam(ASV_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_A2 <- gam(ASV_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
 
-# Genus models (with year)
-a1_G0 <- gam(genus_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_G1 <- gam(genus_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_G2 <- gam(genus_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+pdf("figures/climate/ScaledWahles&Clim.pdf",width = 11,height = 5.5)
+plot(alpha$year, alpha$whale_s,
+     bg = site_cols, col = "black", pch = 24, cex = 1.2,
+     ylim = ylim,
+     xlab = "", ylab = "Scaled value",
+     main = "",
+     bty = "n", xaxt = "n")
+points(alpha$year, alpha$PC1_s,
+       bg = site_cols, col = "black", pch = 25, cex = 1.2)
+axis(3, at = axTicks(1), labels = axTicks(1))
+dev.off()
 
-# Genus models (no year)
-a2_G0 <- gam(genus_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_G1 <- gam(genus_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_G2 <- gam(genus_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
 
-summary(a1_A0)
-summary(a1_A1)
-summary(a1_A2)
+library(lme4)
+library(lmerTest)
 
-summary(a2_A0)
-summary(a2_A1)
-summary(a2_A2)
+# Fit models
+a2_A0 <- lmer(ASV_Q0   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_A1 <- lmer(ASV_Q1   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_A2 <- lmer(ASV_Q2   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
 
-summary(a1_G0)
-summary(a1_G1)
-summary(a1_G2)
+a2_G0 <- lmer(genus_Q0 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_G1 <- lmer(genus_Q1 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_G2 <- lmer(genus_Q2 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
 
-summary(a2_G0)
-summary(a2_G1)
-summary(a2_G2)
+mods <- list(
+  "ASV Q0"   = a2_A0, "ASV Q1"   = a2_A1, "ASV Q2"   = a2_A2,
+  "Genus Q0" = a2_G0, "Genus Q1" = a2_G1, "Genus Q2" = a2_G2
+)
+
+predictors <- c("PC1_s", "PC2_s", "whale_s")
+
+# Check singular fits
+singular_status <- sapply(mods, isSingular)
+print(singular_status)
+
+# Variance components
+lapply(mods, VarCorr)
+
+# Summaries
+lapply(mods, summary)
+
+# ---- Diagnostics ----
+for (m in names(mods)) {
+  mod <- mods[[m]]
+  par(mfrow = c(2, 2))
+  plot(mod, main = m)
+  qqnorm(resid(mod), main = paste("QQ:", m))
+  qqline(resid(mod))
+  hist(resid(mod), breaks = 20, main = paste("Residuals:", m))
+  plot(fitted(mod), resid(mod), main = paste("Fitted vs Resid:", m))
+  abline(h = 0, lty = 2)
+}
+par(mfrow = c(1, 1))
+
+# ---- Extract coefficients safely ----
+coef_df <- do.call(rbind, lapply(names(mods), function(m) {
+  mod <- mods[[m]]
+  sm  <- coef(summary(mod))
+  ci  <- confint(mod, method = "Wald")
+  
+  out <- lapply(predictors, function(p) {
+    if (!p %in% rownames(sm)) return(NULL)
+    data.frame(
+      model = m,
+      predictor = p,
+      estimate = sm[p, "Estimate"],
+      se = sm[p, "Std. Error"],
+      lo = ci[p, 1],
+      hi = ci[p, 2],
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, out)
+}))
+
+# Response SD from actual model frame
+resp_sd <- sapply(names(mods), function(m) {
+  mf <- model.frame(mods[[m]])
+  sd(model.response(mf), na.rm = TRUE)
+})
+
+coef_df$est_std <- coef_df$estimate / resp_sd[coef_df$model]
+coef_df$lo_std  <- coef_df$lo / resp_sd[coef_df$model]
+coef_df$hi_std  <- coef_df$hi / resp_sd[coef_df$model]
+
+# ---- Coefficient plot ----
+xpos <- c("ASV Q0" = 1, "ASV Q1" = 2, "ASV Q2" = 3,
+          "Genus Q0" = 5, "Genus Q1" = 6, "Genus Q2" = 7)
+
+pred_cols <- c("PC1_s" = "steelblue", "PC2_s" = "darkorange", "whale_s" = "firebrick")
+offsets   <- c("PC1_s" = -0.15, "PC2_s" = 0, "whale_s" = 0.15)
+
+ylim <- range(c(coef_df$lo_std, coef_df$hi_std), na.rm = TRUE)
+
+
+pdf("figures/stat.alpha.coeff.pdf",width = 5,height = 9)
+par(mar = c(5, 5, 3, 1))
+
+plot(NULL, xlim = c(0.4, 7.6), ylim = ylim,
+     xaxt = "n", bty = "n",
+     xlab = "", ylab = "Response-standardised coefficient (± 95% CI)",
+     main = "LMM fixed-effect coefficients")
+abline(h = 0, lty = 2, col = "grey40")
+abline(v = 4, lty = 3, col = "grey70")
+
+for (p in predictors) {
+  sub <- coef_df[coef_df$predictor == p, ]
+  x <- xpos[sub$model] + offsets[p]
+  segments(x, sub$lo_std, x, sub$hi_std, col = pred_cols[p], lwd = 2)
+  points(x, sub$est_std, col = pred_cols[p], pch = 16, cex = 1.4)
+}
+
+axis(1, at = c(1, 2, 3, 5, 6, 7),
+     labels = c("Q0", "Q1", "Q2", "Q0", "Q1", "Q2"),
+     tick = FALSE, line = 0)
+
+mtext("ASV", side = 1, at = 2, line = 2.5, cex = 1.1, font = 2)
+mtext("Genus", side = 1, at = 6, line = 2.5, cex = 1.1, font = 2)
+
+legend("topleft",
+       legend = c("Climate PC1", "Climate PC2", "Whale biomass"),
+       col = pred_cols, pch = 16, lwd = 2,
+       cex = 0.8, bty = "n")
+
+
+dev.off()
+
+
+
+
 
 
 ## beta diversity 
@@ -1488,9 +1589,9 @@ summary(a2_G2)
 
 
 # first a little test with UMAP
-test <- umap(t(prop.table(as.matrix(euk.reps),2)))
-plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
-text(test$layout, labels = expandedDates$CalYear[match(row.names(test$layout), expandedDates$SampleName)],cex=0.7)
+#test <- umap(t(prop.table(as.matrix(euk.reps),2)))
+#plot(test$layout,pch=16, col=coredata$col[match(toupper(expandedDates$Site[match(row.names(test$layout), expandedDates$SampleName)]),toupper(coredata$Site))])
+#text(test$layout, labels = expandedDates$CalYear[match(row.names(test$layout), expandedDates$SampleName)],cex=0.7)
 
 # now the NMDS
 EUK.nMDS.j <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),binary = TRUE,method = "jaccard"),trymax = 200,parallel=7)
@@ -1624,44 +1725,92 @@ for (group_name in names(asv_groups)) {
   nmds_b <- metaMDS(vegdist(t(mat_rel), method = "bray"), trymax = 200, parallel = 7)
   
   # Get matching metadata
+  # Get matching metadata
   sample_names <- rownames(nmds_j$points)
   match_idx <- match(sample_names, expandedDates$SampleName)
+  sites <- expandedDates$Site[match_idx]
   years <- expandedDates$CalYear[match_idx]
-  site_col <- coredata$col[match(toupper(expandedDates$Site[match_idx]), toupper(coredata$Site))]
+  site_col <- coredata$col[match(toupper(sites), toupper(coredata$Site))]
   
   # Plot Jaccard
-  pdf(paste0("figures/NMDS_", group_name, "_jaccard.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/NMDS_", group_name, "_jaccard.pdf"), height = 7, width = 7.5)
   plot(nmds_j$points[,1], nmds_j$points[,2],
-       col = site_col,
-       pch = 16,
+       col = site_col, pch = 16,
        main = paste(group_name, "– Jaccard"))
   text(nmds_j$points[,1], nmds_j$points[,2],
        labels = years, pos = 3, cex = 0.6)
   dev.off()
   
   # Plot Bray
-  pdf(paste0("figures/NMDS_", group_name, "_bray.pdf"), height = 7, width = 9)
+  pdf(paste0("figures/NMDS_", group_name, "_bray.pdf"), height = 7, width = 7.5)
   plot(nmds_b$points[,1], nmds_b$points[,2],
-       col = site_col,
-       pch = 16,
+       col = site_col, pch = 16,
        main = paste(group_name, "– Bray-Curtis"))
   text(nmds_b$points[,1], nmds_b$points[,2],
        labels = years, pos = 3, cex = 0.6)
   dev.off()
+  
+  # --- Jaccard trajectory plot ---
+  pdf(paste0("figures/NMDS_", group_name, "_jaccard_trajectories.pdf"), height = 7, width = 7.5)
+  plot(nmds_j$points[,1], nmds_j$points[,2],
+       col = site_col, pch = 16,
+       main = paste(group_name, "– Jaccard (trajectories)"),
+       xlab = "", ylab = "")
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    for (i in 1:(length(ord) - 1)) {
+      arrows(nmds_j$points[ord[i], 1], nmds_j$points[ord[i], 2],
+             nmds_j$points[ord[i+1], 1], nmds_j$points[ord[i+1], 2],
+             col = site_col[idx[1]], length = 0.08, lwd = 2)
+    }
+  }
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    thin <- ord[seq(1, length(ord), by = 5)]
+    thin <- union(thin, ord[c(1, length(ord))])
+    text(nmds_j$points[thin, 1], nmds_j$points[thin, 2],
+         labels = years[thin], pos = 3, cex = 0.6)
+  }
+  dev.off()
+  
+  # --- Bray-Curtis trajectory plot ---
+  pdf(paste0("figures/NMDS_", group_name, "_bray_trajectories.pdf"), height = 7, width = 7.5)
+  plot(nmds_b$points[,1], nmds_b$points[,2],
+       col = site_col, pch = 16,
+       main = paste(group_name, "– Bray-Curtis (trajectories)"),
+       xlab = "", ylab = "")
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    for (i in 1:(length(ord) - 1)) {
+      arrows(nmds_b$points[ord[i], 1], nmds_b$points[ord[i], 2],
+             nmds_b$points[ord[i+1], 1], nmds_b$points[ord[i+1], 2],
+             col = site_col[idx[1]], length = 0.08, lwd = 2)
+    }
+  }
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    thin <- ord[seq(1, length(ord), by = 5)]
+    thin <- union(thin, ord[c(1, length(ord))])
+    text(nmds_b$points[thin, 1], nmds_b$points[thin, 2],
+         labels = years[thin], pos = 3, cex = 0.6)
+  }
+  dev.off()
 }
 
 #### now let's run some tests 
-
-
 beta <- data.frame("sample" = paste(clim$Site,clim$SampleID),
-                   "site" = as.factor(clim$Site),
-                   "year" =clim$CalYear,
-                   "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
-                   "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
-                   "PC1" = clim$PC1,
-                   "PC2" = clim$PC2,
-                   "PC1_s" = scale(clim$PC1),
-                   "PC2_s" = scale(clim$PC2))
+                    "site" = as.factor(clim$Site),
+                    "year" =clim$CalYear,
+                    "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
+                    "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
+                    "PC1" = clim$PC1,
+                    "PC2" = clim$PC2,
+                    "PC1_s" = scale(clim$PC1),
+                    "PC2_s" = scale(clim$PC2))
 
 
 
@@ -1676,16 +1825,64 @@ comm <- t(comm.raw[,match(clim$longname,colnames(comm.raw))])
 
 ## distance basd redundnacy analysis 
 mod_bray <- dbrda(
-  comm ~ whale_s + PC1_s + Condition(site),
+  comm ~ whale_s + PC1_s + PC2_s + Condition(site),
   data = beta,
   distance = "bray"
 )
 
 mod_jacc <- dbrda(
-  comm ~ whale_s +PC1_s  + Condition(site),
+  comm ~ whale_s + PC1_s + PC2_s + Condition(site),
   data = beta,
   distance = "jacc"
 )
+
+
+
+
+plot_dbrda <- function(mod, title) {
+  
+  sc_sites <- scores(mod, display = "sites", choices = 1:2)
+  sc_bp <- scores(mod, display = "bp", choices = 1:2)
+  
+  # beta rows are in the same order as sc_sites, so use position directly
+  sample_sites <- beta$site
+  site_cols <- coredata$col[match(toupper(sample_sites), toupper(coredata$Site))]
+  
+  eig <- eigenvals(mod)
+  eig_pct <- 100 * eig / sum(eig)
+  xlab <- paste0("dbRDA1 (", round(eig_pct[1], 1), "%)")
+  ylab <- paste0("dbRDA2 (", round(eig_pct[2], 1), "%)")
+  
+  arrow_scale <- 0.5 * max(abs(sc_sites)) / max(abs(sc_bp))
+  sc_bp_scaled <- sc_bp * arrow_scale
+  
+  plot(sc_sites[,1], sc_sites[,2],
+       col = site_cols, pch = 16, cex = 1.2,
+       xlab = xlab, ylab = ylab,
+       main = title)
+  abline(h = 0, v = 0, lty = 2, col = "grey60")
+  
+  arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
+         col = "black", lwd = 2, length = 0.1)
+  
+  text(sc_bp_scaled[,1] * 1.12, sc_bp_scaled[,2] * 1.12,
+       labels = rownames(sc_bp_scaled),
+       cex = 0.85, font = 2)
+  
+  u_sites <- unique(sample_sites)
+  u_cols <- coredata$col[match(toupper(u_sites), toupper(coredata$Site))]
+ # legend("topright", legend = u_sites, col = u_cols,
+   #      pch = 16, cex = 0.75, bty = "n")
+}
+pdf("figures/stat.beat.dbRDA.b.pdf",height = 8,width = 8)
+plot_dbrda(mod_bray, "db-RDA – Bray-Curtis")
+dev.off()
+pdf("figures/stat.beat.dbRDA.j.pdf",height = 8,width = 8)
+plot_dbrda(mod_jacc, "db-RDA – Jaccard")
+dev.off()
+
+
+
 
 ##  anova with perms within cores
 perm <- how(blocks = alpha$site,nperm = 1000)
@@ -1698,8 +1895,8 @@ anova(mod_jacc, by = "terms", permutations = perm)
 
 ## variance partititoning 
 
-var_bray <- varpart(vegdist(comm, "bray"), ~ PC1_s, ~ whale_s, data = beta)
-var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE), ~ PC1_s, ~ whale_s, data = beta)
+var_bray <- varpart(vegdist(comm, "bray"), ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE), ~ PC1_s + PC2_s, ~ whale_s, data = beta)
 
 var_bray
 plot(var_bray)
@@ -1708,16 +1905,17 @@ plot(var_jacc)
 
 
 ## PERMANOVA
-perm_bray <- adonis2(vegdist(comm,method="bray")~site+PC1_s+whale_s,
+perm_bray <- adonis2(vegdist(comm,method="bray")~site+PC1_s+PC2_s+whale_s,
                      data=beta, permutations = 10000,
                      by="margin")
 perm_bray
 
 
-perm_jacc <- adonis2(vegdist(comm,method="jacc",binary = TRUE)~site+PC1_s+whale_s,
+perm_jacc <- adonis2(vegdist(comm,method="jacc",binary = TRUE)~site+PC1_s+PC2_s+whale_s,
                      data=beta, permutations = 10000,
                      by="margin")
 perm_jacc
+
 
 
 
@@ -1752,7 +1950,7 @@ for (group_name in names(asv_groups)) {
   ## dbRDA
   cat("---- dbRDA: Bray ----\n")
   mod_bray <- dbrda(
-    comm ~ whale_s + PC1_s + Condition(site),
+    comm ~ whale_s + PC1_s + PC2_s + Condition(site),
     data = beta,
     distance = "bray"
   )
@@ -1764,7 +1962,7 @@ for (group_name in names(asv_groups)) {
   
   cat("\n---- dbRDA: Jaccard ----\n")
   mod_jacc <- dbrda(
-    comm ~ whale_s + PC1_s + Condition(site),
+    comm ~ whale_s + PC1_s + PC2_s + Condition(site),
     data = beta,
     distance = "jacc"
   )
@@ -1776,7 +1974,7 @@ for (group_name in names(asv_groups)) {
   cat("\n---- Variance partitioning: Bray ----\n")
   var_bray <- varpart(
     vegdist(comm, "bray"),
-    ~ PC1_s,
+    ~ PC1_s + PC2_s,
     ~ whale_s,
     data = beta
   )
@@ -1785,7 +1983,7 @@ for (group_name in names(asv_groups)) {
   cat("\n---- Variance partitioning: Jaccard ----\n")
   var_jacc <- varpart(
     vegdist(comm, "jacc", binary = TRUE),
-    ~ PC1_s,
+    ~ PC1_s + PC2_s,
     ~ whale_s,
     data = beta
   )
@@ -1794,7 +1992,7 @@ for (group_name in names(asv_groups)) {
   ## PERMANOVA
   cat("\n---- PERMANOVA: Bray ----\n")
   perm_bray <- adonis2(
-    vegdist(comm, method = "bray") ~ site + PC1_s + whale_s,
+    vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s,
     data = beta,
     permutations = 10000,
     by = "margin"
@@ -1803,7 +2001,7 @@ for (group_name in names(asv_groups)) {
   
   cat("\n---- PERMANOVA: Jaccard ----\n")
   perm_jacc <- adonis2(
-    vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + whale_s,
+    vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s,
     data = beta,
     permutations = 10000,
     by = "margin"
@@ -1814,6 +2012,8 @@ for (group_name in names(asv_groups)) {
 }
 
 sink()
+
+
 
 
 #### now lets run a HMSC model 
@@ -3229,8 +3429,64 @@ dev.off()
 
 ##
 
+####### why we dont use a year smooth for the alpha diversity metrics?
 
 
-####====4.0 ====####
 
+#we make a new var in clim we can use to match
+clim$longname <- expandedDates$SampleName[match(paste(clim$Site,clim$SampleID,sep="_"),paste(expandedDates$Site,expandedDates$SampleID,sep="_"))]
+
+alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
+                    "site" = as.factor(clim$Site),
+                    "year" =clim$CalYear,
+                    "ASV_Q0" = ASV.alpha_avg_reps$q0_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q1" = ASV.alpha_avg_reps$q1_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "ASV_Q2" = ASV.alpha_avg_reps$q2_mean[match(clim$longname,alpha_avg_reps$replicate)],
+                    "genus_Q0" = alpha_genus_avg_reps$q0_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "genus_Q1" = alpha_genus_avg_reps$q1_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "genus_Q2" = alpha_genus_avg_reps$q2_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
+                    "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
+                    "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
+                    "PC1" = clim$PC1,
+                    "PC2" = clim$PC2,
+                    "PC1_s" = scale(clim$PC1),
+                    "PC2_s" = scale(clim$PC2)
+                    
+)
+
+# ASV models (with year)
+a1_A0 <- gam(ASV_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_A1 <- gam(ASV_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_A2 <- gam(ASV_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# ASV models (no year)
+a2_A0 <- gam(ASV_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_A1 <- gam(ASV_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_A2 <- gam(ASV_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# Genus models (with year)
+a1_G0 <- gam(genus_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_G1 <- gam(genus_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_G2 <- gam(genus_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+# Genus models (no year)
+a2_G0 <- gam(genus_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_G1 <- gam(genus_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_G2 <- gam(genus_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+
+summary(a1_A0)
+summary(a1_A1)
+summary(a1_A2)
+
+summary(a2_A0)
+summary(a2_A1)
+summary(a2_A2)
+
+summary(a1_G0)
+summary(a1_G1)
+summary(a1_G2)
+
+summary(a2_G0)
+summary(a2_G1)
+summary(a2_G2)
 

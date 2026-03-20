@@ -10,10 +10,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   1.5442 4.5511 0.000999 ***
-Residual 80  13.5722                    
+Model     3   1.8135 3.5898 0.000999 ***
+Residual 79  13.3029                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -22,11 +22,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   1.0157 5.9870 0.000999 ***
-PC1_s     1   0.5285 3.1153 0.001998 ** 
-Residual 80  13.5722                    
+whale_s   1   1.0157 6.0318 0.000999 ***
+PC1_s     1   0.5285 3.1386 0.000999 ***
+PC2_s     1   0.2693 1.5990 0.082917 .  
+Residual 79  13.3029                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -36,10 +37,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   1.6996 3.5024 0.000999 ***
-Residual 80  19.4105                    
+Model     3   2.0428 2.8212 0.000999 ***
+Residual 79  19.0673                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -48,11 +49,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   1.1509 4.7433 0.000999 ***
-PC1_s     1   0.5487 2.2616 0.000999 ***
-Residual 80  19.4105                    
+whale_s   1   1.1509 4.7683 0.000999 ***
+PC1_s     1   0.5487 2.2735 0.000999 ***
+PC2_s     1   0.3432 1.4219 0.056943 .  
+Residual 79  19.0673                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -60,10 +62,10 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -72,14 +74,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.05826       0.04718     TRUE
+[a+c] = X1            2   0.10026       0.07884     TRUE
 [b+c] = X2            1   0.05618       0.04508     TRUE
-[a+b+c] = X1+X2       2   0.09006       0.06840     TRUE
+[a+b+c] = X1+X2       3   0.13431       0.10302     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.02332     TRUE
-[b] = X2|X1           1                 0.02121     TRUE
-[c]                   0                 0.02387    FALSE
-[d] = Residuals                         0.93160    FALSE
+[a] = X1|X2           2                 0.05794     TRUE
+[b] = X2|X1           1                 0.02418     TRUE
+[c]                   0                 0.02090    FALSE
+[d] = Residuals                         0.89698    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -87,10 +89,10 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -99,14 +101,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.02917       0.01774     TRUE
+[a+c] = X1            2   0.04906       0.02642     TRUE
 [b+c] = X2            1   0.02570       0.01424     TRUE
-[a+b+c] = X1+X2       2   0.04979       0.02717     TRUE
+[a+b+c] = X1+X2       3   0.07046       0.03686     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.01293     TRUE
-[b] = X2|X1           1                 0.00943     TRUE
-[c]                   0                 0.00482    FALSE
-[d] = Residuals                         0.97283    FALSE
+[a] = X1|X2           2                 0.02262     TRUE
+[b] = X2|X1           1                 0.01044     TRUE
+[c]                   0                 0.00380    FALSE
+[d] = Residuals                         0.96314    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -116,13 +118,14 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
-         Df SumOfSqs      R2       F    Pr(>F)    
-site      4   7.1147 0.31295 10.4843 9.999e-05 ***
-PC1_s     1   0.5285 0.02325  3.1153 0.0022998 ** 
-whale_s   1   0.6074 0.02672  3.5804 0.0005999 ***
-Residual 80  13.5722 0.59699                      
-Total    86  22.7344 1.00000                      
+adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
+         Df SumOfSqs      R2      F    Pr(>F)    
+site      4   6.3780 0.28054 9.4690 9.999e-05 ***
+PC1_s     1   0.6790 0.02987 4.0321 9.999e-05 ***
+PC2_s     1   0.2693 0.01184 1.5990   0.08019 .  
+whale_s   1   0.5066 0.02228 3.0085   0.00190 ** 
+Residual 79  13.3029 0.58514                     
+Total    86  22.7344 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -132,12 +135,13 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   6.7691 0.22678 6.2698 9.999e-05 ***
-PC1_s     1   0.4542 0.01522 1.6828    0.0221 *  
-whale_s   1   0.5596 0.01875 2.0731    0.0038 ** 
-Residual 80  21.5928 0.72342                     
+site      4   6.4663 0.21664 6.0018 9.999e-05 ***
+PC1_s     1   0.4884 0.01636 1.8132  0.014399 *  
+PC2_s     1   0.3141 0.01052 1.1660  0.176782    
+whale_s   1   0.5471 0.01833 2.0312  0.006299 ** 
+Residual 79  21.2788 0.71290                     
 Total    86  29.8482 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -153,10 +157,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   0.4503 4.3169 0.000999 ***
-Residual 80   4.1726                    
+Model     3   0.5173 3.3179 0.000999 ***
+Residual 79   4.1057                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -165,11 +169,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.2107 4.0397 0.000999 ***
-PC1_s     1   0.2396 4.5941 0.002997 ** 
-Residual 80   4.1726                    
+whale_s   1   0.2107 4.0543 0.000999 ***
+PC1_s     1   0.2396 4.6107 0.004995 ** 
+PC2_s     1   0.0670 1.2886 0.258741    
+Residual 79   4.1057                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -179,10 +184,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   0.7702 3.9193 0.000999 ***
-Residual 80   7.8603                    
+Model     3   0.9198 3.1411 0.000999 ***
+Residual 79   7.7107                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -191,11 +196,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.4000 4.0716 0.001998 ** 
-PC1_s     1   0.3701 3.7671 0.000999 ***
-Residual 80   7.8603                    
+whale_s   1   0.4000 4.0987 0.000999 ***
+PC1_s     1   0.3701 3.7922 0.003996 ** 
+PC2_s     1   0.1496 1.5325 0.127872    
+Residual 79   7.7107                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -203,10 +209,10 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -215,14 +221,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.09422       0.08357     TRUE
+[a+c] = X1            2   0.11504       0.09397     TRUE
 [b+c] = X2            1   0.05167       0.04051     TRUE
-[a+b+c] = X1+X2       2   0.11001       0.08882     TRUE
+[a+b+c] = X1+X2       3   0.13276       0.10141     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.04831     TRUE
-[b] = X2|X1           1                 0.00526     TRUE
-[c]                   0                 0.03526    FALSE
-[d] = Residuals                         0.91118    FALSE
+[a] = X1|X2           2                 0.06090     TRUE
+[b] = X2|X1           1                 0.00744     TRUE
+[c]                   0                 0.03307    FALSE
+[d] = Residuals                         0.89859    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -230,10 +236,10 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -242,14 +248,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.04200       0.03073     TRUE
+[a+c] = X1            2   0.06241       0.04009     TRUE
 [b+c] = X2            1   0.03889       0.02758     TRUE
-[a+b+c] = X1+X2       2   0.06936       0.04721     TRUE
+[a+b+c] = X1+X2       3   0.09036       0.05748     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.01962     TRUE
-[b] = X2|X1           1                 0.01647     TRUE
-[c]                   0                 0.01111    FALSE
-[d] = Residuals                         0.95279    FALSE
+[a] = X1|X2           2                 0.02990     TRUE
+[b] = X2|X1           1                 0.01740     TRUE
+[c]                   0                 0.01018    FALSE
+[d] = Residuals                         0.94252    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -259,12 +265,13 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2       F    Pr(>F)    
-site      4   4.9015 0.48074 23.4934 9.999e-05 ***
-PC1_s     1   0.2396 0.02350  4.5941  0.007499 ** 
-whale_s   1   0.1034 0.01014  1.9817  0.104990    
-Residual 80   4.1726 0.40925                      
+site      4   4.7365 0.46456 22.7848 9.999e-05 ***
+PC1_s     1   0.2846 0.02792  5.4768    0.0043 ** 
+PC2_s     1   0.0670 0.00657  1.2886    0.2357    
+whale_s   1   0.0968 0.00949  1.8623    0.1235    
+Residual 79   4.1057 0.40268                      
 Total    86  10.1957 1.00000                      
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -275,12 +282,13 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   6.8118 0.25717 7.6372 9.999e-05 ***
-PC1_s     1   0.4953 0.01870 2.2213 0.0072993 ** 
-whale_s   1   0.6955 0.02626 3.1192 0.0007999 ***
-Residual 80  17.8383 0.67347                     
+site      4   6.5049 0.24558 7.3041 9.999e-05 ***
+PC1_s     1   0.5465 0.02063 2.4547 0.0043996 ** 
+PC2_s     1   0.2493 0.00941 1.1198 0.2328767    
+whale_s   1   0.6667 0.02517 2.9944 0.0007999 ***
+Residual 79  17.5890 0.66405                     
 Total    86  26.4874 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -296,10 +304,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   1.0909 4.5801 0.000999 ***
-Residual 80   9.5275                    
+Model     3   1.2537 3.5255 0.000999 ***
+Residual 79   9.3647                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -308,11 +316,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "bray")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.4872 4.0906 0.000999 ***
-PC1_s     1   0.6038 5.0697 0.000999 ***
-Residual 80   9.5275                    
+whale_s   1   0.4872 4.1097 0.001998 ** 
+PC1_s     1   0.6038 5.0933 0.000999 ***
+PC2_s     1   0.1628 1.3735 0.218781    
+Residual 79   9.3647                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -322,10 +331,10 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-Model     2   1.4332 4.0369 0.000999 ***
-Residual 80  14.2008                    
+Model     3    1.633 3.0714 0.000999 ***
+Residual 79   14.001                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 Permutation test for dbrda under reduced model
@@ -334,11 +343,12 @@ Blocks:  alpha$site
 Permutation: free
 Number of permutations: 1000
 
-Model: dbrda(formula = comm ~ whale_s + PC1_s + Condition(site), data = beta, distance = "jacc")
+Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.7501 4.2255 0.000999 ***
-PC1_s     1   0.6831 3.8484 0.000999 ***
-Residual 80  14.2008                    
+whale_s   1   0.7501 4.2322 0.000999 ***
+PC1_s     1   0.6831 3.8545 0.000999 ***
+PC2_s     1   0.1998 1.1273 0.374625    
+Residual 79  14.0010                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -346,10 +356,10 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -358,14 +368,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.09430       0.08364     TRUE
+[a+c] = X1            2   0.13085       0.11015     TRUE
 [b+c] = X2            1   0.04991       0.03873     TRUE
-[a+b+c] = X1+X2       2   0.12257       0.10168     TRUE
+[a+b+c] = X1+X2       3   0.16075       0.13042     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.06295     TRUE
-[b] = X2|X1           1                 0.01804     TRUE
-[c]                   0                 0.02069    FALSE
-[d] = Residuals                         0.89832    FALSE
+[a] = X1|X2           2                 0.09169     TRUE
+[b] = X2|X1           1                 0.02027     TRUE
+[c]                   0                 0.01846    FALSE
+[d] = Residuals                         0.86958    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -373,10 +383,10 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s, ~whale_s, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~PC1_s + PC2_s, ~whale_s, data = beta)
 
 Explanatory tables:
-X1:  ~PC1_s
+X1:  ~PC1_s + PC2_s
 X2:  ~whale_s 
 
 No. of explanatory tables: 2 
@@ -385,14 +395,14 @@ No. of observations: 87
 
 Partition table:
                      Df R.squared Adj.R.squared Testable
-[a+c] = X1            1   0.05302       0.04188     TRUE
+[a+c] = X1            2   0.07279       0.05072     TRUE
 [b+c] = X2            1   0.04152       0.03025     TRUE
-[a+b+c] = X1+X2       2   0.07562       0.05361     TRUE
+[a+b+c] = X1+X2       3   0.09551       0.06282     TRUE
 Individual fractions                                    
-[a] = X1|X2           1                 0.02336     TRUE
-[b] = X2|X1           1                 0.01173     TRUE
-[c]                   0                 0.01852    FALSE
-[d] = Residuals                         0.94639    FALSE
+[a] = X1|X2           2                 0.03257     TRUE
+[b] = X2|X1           1                 0.01211     TRUE
+[c]                   0                 0.01814    FALSE
+[d] = Residuals                         0.93718    FALSE
 ---
 Use function ‘dbrda’ to test significance of fractions of interest
 
@@ -402,12 +412,13 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   3.5085 0.23615 7.3651 9.999e-05 ***
-PC1_s     1   0.6038 0.04064 5.0697 9.999e-05 ***
-whale_s   1   0.3875 0.02608 3.2534    0.0027 ** 
-Residual 80   9.5275 0.64128                     
+site      4   3.1040 0.20893 6.5464 9.999e-05 ***
+PC1_s     1   0.6207 0.04178 5.2363 9.999e-05 ***
+PC2_s     1   0.1628 0.01096 1.3735    0.1858    
+whale_s   1   0.3574 0.02405 3.0146    0.0049 ** 
+Residual 79   9.3647 0.63032                     
 Total    86  14.8571 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -418,23 +429,15 @@ Marginal effects of terms
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   5.9632 0.24198 7.0918 9.999e-05 ***
-PC1_s     1   0.5246 0.02129 2.4953    0.0030 ** 
-whale_s   1   0.5871 0.02383 2.7931    0.0013 ** 
-Residual 80  16.8171 0.68241                     
+site      4   5.7846 0.23473 6.9218 9.999e-05 ***
+PC1_s     1   0.6648 0.02697 3.1817 0.0006999 ***
+PC2_s     1   0.3117 0.01265 1.4921 0.0717928 .  
+whale_s   1   0.5571 0.02260 2.6663 0.0016998 ** 
+Residual 79  16.5054 0.66976                     
 Total    86  24.6439 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 
- [1] "BB 0.5" "BB 1"   "BB 2"   "BB 3"   "BB 4"   "BB 6"   "BB 8"   "BB 10"  "BB 12"  "BB 14"  "BB 16"  "BB 18"  "BB 20"  "BB 22"  "MC 0.5"
-[16] "MC 1"   "MC 2"   "MC 3"   "MC 4"   "MC 6"   "MC 8"   "MC 10"  "MC 12"  "MC 14"  "MC 16"  "MC 18"  "MC 20"  "MC 22"  "MC 24"  "SC 0.5"
-[31] "SC 1"   "SC 2"   "SC 3"   "SC 4"   "SC 6"   "SC 8"   "SC 10"  "SC 12"  "p56 2"  "p56 3"  "p56 4"  "p56 5"  "p56 6"  "p56 7"  "p56 8" 
-[46] "p56 9"  "p56 10" "p56 11" "p56 12" "p56 13" "p56 14" "p56 15" "p56 16" "p56 17" "p56 18" "p56 19" "p56 20" "p56 21" "p56 22" "p56 23"
-[61] "p56 24" "p56 25" "p56 26" "p56 27" "p68 1"  "p68 2"  "p68 3"  "p68 4"  "p68 5"  "p68 6"  "p68 7"  "p68 8"  "p68 9"  "p68 10" "p68 11"
-[76] "p68 12" "p68 13" "p68 14" "p68 15" "p68 16" "p68 17" "p68 18" "p68 19" "p68 20" "p68 21" "p68 22" "p68 23"
-Called from: metaMDS(D, trymax = 200, autotransform = FALSE, trace = 0)
-[1] 1
-Called from: metaMDS(D, trymax = 200, autotransform = FALSE, trace = 0)
