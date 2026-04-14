@@ -1,6 +1,6 @@
 ================================================================
   Poisson GLMM: eDNA ~ modelled whale biomass
-  Date: 2026-04-14 14:33 
+  Date: 2026-04-14 14:42 
 ================================================================
 
 ── Data summary ──
@@ -13,9 +13,9 @@ Response (value) range: 0 – 14
 
 ── Scaling parameters ──
 
-biomass_z = (log1p(biomass) - mu) / sd
-  mu = 14.1233 
-  sd = 2.0767 
+biomass_z = (biomass - mu) / sd
+  mu = 6912758 
+  sd = 11407367 
 
 dates_z = (year - mu) / sd
   mu = 1937.331 
@@ -28,53 +28,53 @@ Formula:          value ~ biomass_z + dates_z + spp_short + (1 | site)
 Data: whales_long
 
       AIC       BIC    logLik -2*log(L)  df.resid 
-   1491.3    1526.7    -737.6    1475.3       612 
+   1460.9    1496.3    -722.4    1444.9       612 
 
 Random effects:
 
 Conditional model:
  Groups Name        Variance Std.Dev.
- site   (Intercept) 0.3596   0.5997  
+ site   (Intercept) 0.3796   0.6161  
 Number of obs: 620, groups:  site, 5
 
 Conditional model:
-              Estimate Std. Error z value Pr(>|z|)    
-(Intercept)    0.35066    0.28420   1.234    0.217    
-biomass_z      0.66612    0.07423   8.973   <2e-16 ***
-dates_z       -0.07101    0.05417  -1.311    0.190    
-spp_shortfin  -2.22011    0.14004 -15.854   <2e-16 ***
-spp_shorthump -1.38701    0.12914 -10.741   <2e-16 ***
-spp_shortmink -1.46518    0.12874 -11.381   <2e-16 ***
-spp_shortorca -0.20815    0.21004  -0.991    0.322    
+               Estimate Std. Error z value Pr(>|z|)    
+(Intercept)    0.221216   0.292397   0.757    0.449    
+biomass_z      0.629994   0.059770  10.540  < 2e-16 ***
+dates_z       -0.009168   0.054902  -0.167    0.867    
+spp_shortfin  -2.381931   0.143438 -16.606  < 2e-16 ***
+spp_shorthump -0.869342   0.149431  -5.818 5.97e-09 ***
+spp_shortmink -0.876230   0.150374  -5.827 5.64e-09 ***
+spp_shortorca -0.696086   0.157883  -4.409 1.04e-05 ***
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 ── Fixed effects (exponentiated = rate ratios) ──
 
               Estimate     SE       z        p exp_Est exp_CI_lower exp_CI_upper
-(Intercept)     0.3507 0.2842   1.234 2.17e-01  1.4200       0.8135       2.4786
-biomass_z       0.6661 0.0742   8.973 2.88e-19  1.9467       1.6831       2.2516
-dates_z        -0.0710 0.0542  -1.311 1.90e-01  0.9315       0.8376       1.0358
-spp_shortfin   -2.2201 0.1400 -15.854 1.32e-56  0.1086       0.0825       0.1429
-spp_shorthump  -1.3870 0.1291 -10.741 6.56e-27  0.2498       0.1940       0.3218
-spp_shortmink  -1.4652 0.1287 -11.381 5.20e-30  0.2310       0.1795       0.2973
-spp_shortorca  -0.2082 0.2100  -0.991 3.22e-01  0.8121       0.5380       1.2257
+(Intercept)     0.2212 0.2924   0.757 4.49e-01  1.2476       0.7034       2.2129
+biomass_z       0.6300 0.0598  10.540 5.63e-26  1.8776       1.6700       2.1110
+dates_z        -0.0092 0.0549  -0.167 8.67e-01  0.9909       0.8898       1.1034
+spp_shortfin   -2.3819 0.1434 -16.606 6.31e-62  0.0924       0.0697       0.1224
+spp_shorthump  -0.8693 0.1494  -5.818 5.97e-09  0.4192       0.3128       0.5619
+spp_shortmink  -0.8762 0.1504  -5.827 5.64e-09  0.4163       0.3101       0.5591
+spp_shortorca  -0.6961 0.1579  -4.409 1.04e-05  0.4985       0.3658       0.6793
 
 ── Random effects ──
 
-Site intercept variance: 0.3596 
-Site intercept SD:       0.5997 
+Site intercept variance: 0.3796 
+Site intercept SD:       0.6161 
 
 ── Overdispersion check ──
 
-Pearson dispersion ratio: 1.4906 
+Pearson dispersion ratio: 1.4625 
 (1 = no overdispersion; >1.5 suggests concern)
 
 ── Model fit ──
 
-AIC:    1491.3 
-BIC:    1526.7 
-logLik: -737.6 
+AIC:    1460.9 
+BIC:    1496.3 
+logLik: -722.4 
 
 ================================================================
   End of report

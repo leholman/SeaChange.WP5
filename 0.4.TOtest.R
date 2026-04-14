@@ -333,7 +333,7 @@ whales_long <- whales_long[
                                  "site", "spp_short")]), ]
 
 # Centre & scale covariates
-whales_long$biomass_z <- as.numeric(scale(log1p(whales_long$biomass)))
+whales_long$biomass_z <- as.numeric(scale(whales_long$biomass))
 whales_long$dates_z   <- as.numeric(scale(whales_long$dates))
 
 whales_long$spp_short <- factor(whales_long$spp_short)
@@ -373,9 +373,9 @@ cat("Response (value) range:", paste(range(whales_long$value), collapse = " – 
 
 # ── Scaling parameters (needed to back-transform) ──
 cat("── Scaling parameters ──\n\n")
-cat("biomass_z = (log1p(biomass) - mu) / sd\n")
-cat("  mu =", round(mean(log1p(whales_long$biomass)), 4), "\n")
-cat("  sd =", round(sd(log1p(whales_long$biomass)), 4), "\n\n")
+cat("biomass_z = (biomass - mu) / sd\n")
+cat("  mu =", round(mean(whales_long$biomass), 4), "\n")
+cat("  sd =", round(sd(whales_long$biomass), 4), "\n\n")
 cat("dates_z = (year - mu) / sd\n")
 cat("  mu =", round(mean(whales_long$dates), 4), "\n")
 cat("  sd =", round(sd(whales_long$dates), 4), "\n\n")
@@ -442,9 +442,9 @@ newdat <- do.call(rbind, lapply(levels(d$spp_short), function(sp) {
              biomass   = seq(bmin[[sp]], bmax[[sp]], length.out = 120))
 }))
 
-mu_b  <- mean(log1p(d$biomass), na.rm = TRUE)
-sd_b  <- sd(log1p(d$biomass),   na.rm = TRUE)
-newdat$biomass_z <- (log1p(newdat$biomass) - mu_b) / sd_b
+mu_b  <- mean(d$biomass, na.rm = TRUE)
+sd_b  <- sd(d$biomass,   na.rm = TRUE)
+newdat$biomass_z <- (newdat$biomass - mu_b) / sd_b
 
 med_year <- median(d$dates, na.rm = TRUE)
 newdat$dates_z <- (med_year - mean(d$dates, na.rm = TRUE)) /
@@ -473,7 +473,7 @@ for (s in spp) {
   xlim <- range(dd$biomass[dd$biomass > 0], na.rm = TRUE)
   ylim <- c(0, max(dd$value, na.rm = TRUE))
   
-  plot(1, type = "n", log = "x",
+  plot(1, type = "n",
        xlim = xlim, ylim = ylim,
        xlab = "", ylab = "", main = s)
   
@@ -487,7 +487,7 @@ for (s in spp) {
       biomass   = seq(xlim[1], xlim[2], length.out = 120),
       site      = si
     )
-    nd$biomass_z <- (log1p(nd$biomass) - mu_b) / sd_b
+    nd$biomass_z <- (nd$biomass - mu_b) / sd_b
     nd$dates_z   <- (med_year - mean(d$dates, na.rm = TRUE)) /
       sd(d$dates, na.rm = TRUE)
     
