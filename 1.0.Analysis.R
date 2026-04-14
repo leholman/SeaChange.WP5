@@ -28,7 +28,7 @@ euk.tax <- read.csv("cleandata/EUK.WP5.main.clean.tax.csv",row.names = 1)
 euk.pr2 <- read.csv("taxonomy/EUK.pr2.csv",row.names = 1)
 
 coredata$col <- c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73")
-
+site_cols <- setNames(coredata$col, tolower(coredata$Site))
 ## climate data 
 
 clim <- read.csv("cleandata/climate.data.PCA.csv",row.names = 1)
@@ -224,6 +224,8 @@ expandedDates <- merge(
 expandedDates$originalCalYear <- expandedDates$CalYear
 
 expandedDates$CalYear <- round(expandedDates$CalYear)
+
+write.csv(expandedDates,"metadata/expandeddates.csv")
 
 ##loop over sites 
 unique(expandedDates$Site)
