@@ -974,7 +974,7 @@ cutree(p56.met.con, k = 3)
 p68.met.con <- coniss.helper("p68",euk.met.only) # 3
 cutree(p68.met.con, k = 3)
 SC.met.con <- coniss.helper("SC",euk.met.only) # 6
-cutree(SC.met.con, k = 1)
+cutree(SC.met.con, k = 6)
 
 
 BB.dia.con <- coniss.helper("BB",euk.dia.only) # 3
@@ -2017,27 +2017,48 @@ sink()
 
 
 
-
-#### now lets run a HMSC model 
+#### now lets run a HMSC model with all taxa
 library(Hmsc)
 
 
 # -- Data prep ----------------------------------------------------------------
-
 comm.raw.t <- t(as.matrix(euk.reps))
 comm.raw.t <- comm.raw.t[match(clim$longname, rownames(comm.raw.t)), ]
+
+# Normalise on full community FIRST
+comm.prop <- comm.raw.t / rowSums(comm.raw.t)
 
 # High-confidence Subdivision assignments only (>=60%)
 tax.filt <- euk.tax[euk.tax$Subdivision.1 >= 60 & !is.na(euk.tax$Subdivision), ]
 
-# Intersect ASVs, collapse to Subdivision, Hellinger transform
-shared.asvs <- intersect(colnames(comm.raw.t), tax.filt$ASV)
-comm.filt   <- comm.raw.t[, shared.asvs, drop = FALSE]
+# Intersect ASVs, subset, collapse to Subdivision
+shared.asvs <- intersect(colnames(comm.prop), tax.filt$ASV)
+comm.filt   <- comm.prop[, shared.asvs, drop = FALSE]
 tax.filt    <- tax.filt[match(shared.asvs, tax.filt$ASV), ]
+comm.sub    <- t(rowsum(t(comm.filt), group = tax.filt$Subdivision, na.rm = TRUE))
 
-comm.sub <- t(rowsum(t(comm.filt), group = tax.filt$Subdivision, na.rm = TRUE))
-hell     <- function(x) sqrt(x / rowSums(x))
-Y        <- hell(comm.sub)
+# Zero replacement and CLR transformation
+zero_replace <- function(x, delta = NULL) {
+  if (is.null(delta)) delta <- min(x[x > 0]) * 0.65
+  x[x == 0] <- delta
+  x <- x / rowSums(x)
+  x
+}
+
+clr <- function(x) {
+  lx <- log(x)
+  lx - rowMeans(lx)
+}
+
+zero_pct <- colMeans(comm.sub == 0)
+comm.sub <- comm.sub[, zero_pct < 0.70]
+comm.sub <- zero_replace(comm.sub)
+Y <- clr(comm.sub)
+cat("Subdivisions retained:", ncol(Y), "\n")
+
+
+comm.sub <- zero_replace(comm.sub)
+Y <- clr(comm.sub)
 
 cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
 
@@ -2046,6 +2067,7 @@ cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
 # residual correlation PC1 ~ whale after removing time trend = 0.11 (safe to model together)
 X <- data.frame(
   PC1   = as.numeric(scale(beta$PC1_s)),
+  PC2   = as.numeric(scale(beta$PC2_s)),
   whale = as.numeric(scale(beta$whale_s))
 )
 
@@ -2057,7 +2079,7 @@ rL.site     <- HmscRandomLevel(units = levels(studyDesign$site))
 m <- Hmsc(
   Y           = Y,
   XData       = X,
-  XFormula    = ~ PC1 + whale,
+  XFormula    = ~ PC1 + PC2 + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
@@ -2088,109 +2110,870 @@ cat("G-R — Max:", round(max(beta_gel[, 1]), 3),
 
 # Variance partitioning — design matrix cols: 1=Intercept, 2=PC1, 3=whale
 VP <- computeVariancePartitioning(m,
-                                  group = c(1, 2, 3), groupnames = c("Intercept", "Climate", "Whaling"))
+                                  group = c(1, 2, 2, 3), 
+                                  groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP$vals), 3))
-plotVariancePartitioning(m, VP = VP)
+plotVariancePartitioning(m, VP = VP,col=c("darkred","darkgreen","dodgerblue"))
 
 # Posterior support for fixed effects
 postBeta   <- getPostEstimate(m, parName = "Beta")
 support_df <- data.frame(
-  Subdivision = rep(colnames(Y), each = 2),
-  predictor   = rep(c("Climate_PC1", "Whaling"), times = ncol(Y)),
-  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ])),
-  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ])),
-  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ]))
+  Subdivision = rep(colnames(Y), each = 3),
+  predictor   = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y)),
+  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ])),
+  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ])),
+  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ]))
 )
 support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
 support_df$strong    <- support_df$P_pos > 0.90 | support_df$P_neg > 0.90
-
 print(support_df[support_df$strong, c("Subdivision", "predictor", "mean_beta",
                                       "P_pos", "P_neg", "direction")])
 
-# -- Metazoa family-level HMSC ------------------------------------------------
 
+## Nice plot
+
+# Extract and reshape VP values
+vp_mat <- VP$vals  # rows = subdivisions, cols = components
+vp_mat_rev <- vp_mat[,dim(vp_mat)[2]:1] 
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+site_var <- vp_mat_rev["Random: site", ]
+vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
+
+# Colours matching your original call
+cols <- c( "darkgreen", "dodgerblue","darkred")
+
+# Margins: bottom, left, top, right — left margin wide for taxon names
+
+pdf("figures/HMSC/subdivision.var.pdf",height=9,width = 5)
+par(mar = c(4, 10, 2, 8))
+
+bp <- barplot(
+  vp_mat_rev,
+  horiz    = TRUE,
+ col      = cols,
+  border   = NA,
+  las      = 1,
+  xlim     = c(0, 1),
+  xlab     = "Variance explained",
+  names.arg = gsub("_X","",colnames(vp_mat_rev)),
+  cex.names = 0.75,
+ axes = FALSE)
+
+# x-axis as percentages
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"),
+     cex.axis = 0.85)
+
+# Legend outside right margin
+legend(1.01,48,
+       inset   = c(-0.35, 0),
+       legend  = rownames(vp_mat_rev),
+       fill    = cols,
+       border  = NA,
+       bty     = "n",
+       cex     = 0.85,
+       xpd     = TRUE)
+
+dev.off()
+
+
+
+
+#Now we plot what subdivisions respond to what 
+
+# Identify subdivisions with at least one significant response
+sup_pos <- postBeta$support[2:4, ]
+sup_neg <- postBeta$supportNeg[2:4, ]
+keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+
+beta_mat <- postBeta$mean[2:4, keep]
+sup_pos  <- sup_pos[, keep]
+sup_neg  <- sup_neg[, keep]
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+
+# Mark significance at 0.95 threshold
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+# Order subdivisions by whaling response for readability
+
+ord <- order(beta_mat["WhaleBiomass", ])
+#ord <- rev(order(colnames(beta_mat)))
+beta_plot <- t(beta_mat[, ord])
+sig_plot  <- t(sig_mat[, ord])
+
+# Plot
+pdf("figures/HMSC/subdivision.var.sig.pdf",height=9,width=6)
+par(mar = c(5, 12, 3, 2))
+n_sub <- nrow(beta_plot)
+n_pred <- ncol(beta_plot)
+
+image(1:n_pred, 1:n_sub, t(beta_plot),
+      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
+      axes = FALSE, xlab = "", ylab = "")
+axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
+axis(2, at = 1:n_sub, labels = gsub("_X","",rownames(beta_plot)), las = 2, cex.axis = 0.6)
+
+# Add significance markers
+for (i in 1:n_pred) {
+  for (j in 1:n_sub) {
+    if (sig_plot[j, i] != "") {
+      text(i, j, sig_plot[j, i], cex = 0.7)
+    }
+  }
+}
+#title("Subdivision responses to environmental drivers",cex=0.6)
+dev.off()
+
+###Everything together plot 
+
+beta_to_col <- function(x, zlim, cols) {
+  if (is.na(x)) return("grey90")
+  idx <- round((x - zlim[1]) / diff(zlim) * (length(cols) - 1)) + 1
+  idx <- max(1, min(length(cols), idx))
+  cols[idx]
+}
+heat_cols <- colorRampPalette(c("#2166AC", "white", "#B2182B"))(100)
+
+
+# -- Combined: Subdivision -----------------------------------------------------
+vp_mat <- VP$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+
+# Order by whaling beta 
+whale_beta <- postBeta$mean[4, ]  # row 4 = whale
+whale_order <- names(sort(whale_beta))  # ascending = most positive at top in horiz barplot
+vp_mat_rev <- vp_mat_rev[, whale_order]
+taxon_order <- whale_order
+
+# Beta and significance in same order
+beta_mat <- postBeta$mean[2:4, , drop = FALSE]
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+sup_pos <- postBeta$support[2:4, ]
+sup_neg <- postBeta$supportNeg[2:4, ]
+
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+beta_full <- beta_mat[, taxon_order]
+sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
+
+zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
+cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+pred_names <- rownames(beta_full)
+
+pdf("figures/HMSC/subdivision.combined.pdf", height = 9, width = 7)
+par(mar = c(4, 10, 3, 12),xpd = TRUE)
+
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "", 
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
+mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+legend(-1,-2,
+       legend = rownames(vp_mat_rev),
+       fill   = cols_vp,
+       border = NA, bty = "n", cex = 0.8)
+
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.30
+gap     <- 0.04
+x_start <- 1.15
+
+par(xpd = TRUE)
+for (k in 1:3) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order)) {
+    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_full[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+
+# Numbers above the bar
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+
+# Beta label below the bar
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+
+dev.off()
+
+
+
+# -- Metazoa family-level HMSC ------------------------------------------------
 # Filter to Metazoa with perfect family assignments only
 tax.meta <- euk.tax[euk.tax$Subdivision == "Metazoa" & 
                       !is.na(euk.tax$family) &
                       euk.tax$Family.1 == 100, ]
-
+tax.meta <- tax.meta[tax.meta$family != "", ]
 cat("ASVs retained:", nrow(tax.meta), "\n")
 cat("Unique families:", length(unique(tax.meta$family)), "\n")
 print(sort(table(tax.meta$family), decreasing = TRUE))
 
-# Intersect with count matrix
-shared.meta <- intersect(colnames(comm.raw.t), tax.meta$ASV)
-comm.meta   <- comm.raw.t[, shared.meta, drop = FALSE]
+# Intersect with proportion matrix (normalised on full community)
+shared.meta <- intersect(colnames(comm.prop), tax.meta$ASV)
+comm.meta   <- comm.prop[, shared.meta, drop = FALSE]
 tax.meta    <- tax.meta[match(shared.meta, tax.meta$ASV), ]
 
-# Collapse to family, Hellinger transform
+# Collapse to family
 comm.fam <- t(rowsum(t(comm.meta), group = tax.meta$family, na.rm = TRUE))
-Y.fam    <- hell(comm.fam)
 
-cat("\nSamples:", nrow(Y.fam), "| Families:", ncol(Y.fam), "\n")
+# Prevalence filter
+prev <- colMeans(comm.fam > 0)
+cat("\nPrevalence distribution:\n")
+print(round(sort(prev, decreasing = TRUE), 2))
+comm.fam <- comm.fam[, prev > 0.20]
+cat("Families after prevalence filter:", ncol(comm.fam), "\n")
+
+# Zero replacement and CLR
+comm.fam <- zero_replace(comm.fam)
+Y.fam    <- clr(comm.fam)
+
+cat("Samples:", nrow(Y.fam), "| Families:", ncol(Y.fam), "\n")
 cat("Any NA:", anyNA(Y.fam), "\n")
 
-# Prevalence per family — no filtering but good to know
-prev <- colMeans(comm.fam > 0)
-print(round(sort(prev, decreasing = TRUE), 2))
-
 # -- Model --------------------------------------------------------------------
-
 m.fam <- Hmsc(
   Y           = Y.fam,
-  XData       = X,           # same PC1 + whale as before
-  XFormula    = ~ PC1 + whale,
+  XData       = X,
+  XFormula    = ~ PC1 + PC2 + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
-
 m.fam <- sampleMcmc(m.fam,
-                    thin      = 20,
+                    thin      = 100,
                     samples   = 1000,
-                    transient = 000,
+                    transient = 10000,
                     nChains   = 4,
                     nParallel = 4,
                     verbose   = 500
 )
 
 # -- Convergence --------------------------------------------------------------
-
 mpost.fam    <- convertToCodaObject(m.fam)
 beta_ess.fam <- effectiveSize(mpost.fam$Beta)
 beta_gel.fam <- gelman.diag(mpost.fam$Beta, multivariate = FALSE)$psrf
-
 cat("ESS — Min:", round(min(beta_ess.fam)),
     "| Median:", round(median(beta_ess.fam)),
     "| % > 200:", round(mean(beta_ess.fam > 200) * 100, 1), "%\n")
 cat("G-R — Max:", round(max(beta_gel.fam[, 1]), 3),
     "| % > 1.05:", round(mean(beta_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
 
-# -- Results ------------------------------------------------------------------
+omega_ess.fam <- effectiveSize(mpost.fam$Omega[[1]])
+omega_gel.fam <- gelman.diag(mpost.fam$Omega[[1]], multivariate = FALSE)$psrf
+cat("Omega ESS — Min:", round(min(omega_ess.fam)),
+    "| Median:", round(median(omega_ess.fam)),
+    "| % > 200:", round(mean(omega_ess.fam > 200) * 100, 1), "%\n")
+cat("Omega G-R — Max:", round(max(omega_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(omega_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
 
+sigma_ess.fam <- effectiveSize(mpost.fam$Sigma)
+sigma_gel.fam <- gelman.diag(mpost.fam$Sigma, multivariate = FALSE)$psrf
+cat("Sigma ESS — Min:", round(min(sigma_ess.fam)),
+    "| Median:", round(median(sigma_ess.fam)),
+    "| % > 200:", round(mean(sigma_ess.fam > 200) * 100, 1), "%\n")
+cat("Sigma G-R — Max:", round(max(sigma_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(sigma_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Results ------------------------------------------------------------------
 VP.fam <- computeVariancePartitioning(m.fam,
-                                      group = c(1, 2, 3), groupnames = c("Intercept", "Climate", "Whaling"))
+                                      group = c(1, 2, 2, 3),
+                                      groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP.fam$vals), 3))
 plotVariancePartitioning(m.fam, VP = VP.fam)
 
-postBeta.fam   <- getPostEstimate(m.fam, parName = "Beta")
+postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 support.fam <- data.frame(
-  family    = rep(colnames(Y.fam), each = 2),
-  predictor = rep(c("Climate_PC1", "Whaling"), times = ncol(Y.fam)),
-  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ])),
-  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ])),
-  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ]))
+  family    = rep(colnames(Y.fam), each = 3),
+  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam)),
+  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ])),
+  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ])),
+  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ]))
 )
 support.fam$direction <- ifelse(support.fam$mean_beta > 0, "positive", "negative")
-support.fam$strong    <- support.fam$P_pos > 0.90 | support.fam$P_neg > 0.90
-
+support.fam$strong    <- support.fam$P_pos > 0.95 | support.fam$P_neg > 0.95
 print(support.fam[support.fam$strong, c("family", "predictor", "mean_beta",
                                         "P_pos", "P_neg", "direction")])
 
-plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.90,
-         split = 0.4, spNamesNumbers = c(TRUE, FALSE))
+## Nice plot
+
+# Extract and reshape VP values
+vp_mat <- VP.fam$vals  # rows = families, cols = components
+vp_mat_rev <- vp_mat[,dim(vp_mat)[2]:1] 
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+site_var <- vp_mat_rev["Random: site", ]
+vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
+
+# Colours matching your original call
+cols <- c( "darkgreen", "dodgerblue","darkred")
+
+# Margins: bottom, left, top, right — left margin wide for taxon names
+
+pdf("figures/HMSC/metazoa.var.pdf",height=9,width = 5)
+par(mar = c(4, 10, 2, 8))
+
+bp <- barplot(
+  vp_mat_rev,
+  horiz    = TRUE,
+  col      = cols,
+  border   = NA,
+  las      = 1,
+  xlim     = c(0, 1),
+  xlab     = "Variance explained",
+  names.arg = gsub("_X","",colnames(vp_mat_rev)),
+  cex.names = 0.75,
+  axes = FALSE)
+
+# x-axis as percentages
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"),
+     cex.axis = 0.85)
+
+# Legend outside right margin
+legend(1.01,36,
+       inset   = c(-0.35, 0),
+       legend  = rownames(vp_mat_rev),
+       fill    = cols,
+       border  = NA,
+       bty     = "n",
+       cex     = 0.85,
+       xpd     = TRUE)
+
+dev.off()
 
 
+# -- heatmap ------------------------------------------------------------------
+
+
+# Extract posterior means and support
+postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
+
+beta_mat <- postBeta.fam$mean[2:4, ]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+
+sup_pos <- postBeta.fam$support[2:4, ]
+sup_neg <- postBeta.fam$supportNeg[2:4, ]
+
+# Filter to families with at least one significant response
+keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+beta_mat <- beta_mat[, keep]
+sup_pos  <- sup_pos[, keep]
+sup_neg  <- sup_neg[, keep]
+
+cat("Retained:", sum(keep), "of", length(keep), "families\n")
+
+# Significance markers
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+# Alphabetical order
+ord <- rev(order(colnames(beta_mat)))
+beta_plot <- t(beta_mat[, ord])
+sig_plot  <- t(sig_mat[, ord])
+
+# Plot
+pdf("figures/HMSC/metazoa.var.sig.pdf",height=9,width=6)
+par(mar = c(5, 12, 3, 2))
+n_fam  <- nrow(beta_plot)
+n_pred <- ncol(beta_plot)
+
+image(1:n_pred, 1:n_fam, t(beta_plot),
+      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
+      axes = FALSE, xlab = "", ylab = "")
+axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
+axis(2, at = 1:n_fam, labels = rownames(beta_plot), las = 2, cex.axis = 0.7)
+
+for (i in 1:n_pred) {
+  for (j in 1:n_fam) {
+    if (sig_plot[j, i] != "") {
+      text(i, j, sig_plot[j, i], cex = 0.7)
+    }
+  }
+}
+title("Metazoan family responses to environmental drivers")
+dev.off()
+
+# -- Combined: Metazoa CLR ----------------------------------------------------
+vp_mat <- VP.fam$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+# Order by whaling beta
+whale_beta <- postBeta.fam$mean[4, ]
+whale_order <- names(sort(whale_beta))
+vp_mat_rev <- vp_mat_rev[, whale_order]
+taxon_order <- whale_order
+# Beta and significance in same order
+beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+sup_pos <- postBeta.fam$support[2:4, ]
+sup_neg <- postBeta.fam$supportNeg[2:4, ]
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+beta_full <- beta_mat[, taxon_order]
+sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
+zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
+cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+pred_names <- rownames(beta_full)
+pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
+par(mar = c(4, 10, 3, 12), xpd = TRUE)
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "",
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
+mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+legend(-1, -2,
+       legend = rownames(vp_mat_rev),
+       fill   = cols_vp,
+       border = NA, bty = "n", cex = 0.8)
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.30
+gap     <- 0.04
+x_start <- 1.15
+par(xpd = TRUE)
+for (k in 1:3) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order)) {
+    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_full[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+dev.off()
+
+# -- Combined: Metazoa CLR ----------------------------------------------------
+vp_mat <- VP.fam$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+# Order by whaling beta
+whale_beta <- postBeta.fam$mean[4, ]
+whale_order <- names(sort(whale_beta))
+vp_mat_rev <- vp_mat_rev[, whale_order]
+taxon_order <- whale_order
+# Beta and significance in same order
+beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+sup_pos <- postBeta.fam$support[2:4, ]
+sup_neg <- postBeta.fam$supportNeg[2:4, ]
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+beta_full <- beta_mat[, taxon_order]
+sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
+zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
+cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+pred_names <- rownames(beta_full)
+pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
+par(mar = c(4, 10, 3, 12), xpd = TRUE)
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "",
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
+mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+legend(-1, -2,
+       legend = rownames(vp_mat_rev),
+       fill   = cols_vp,
+       border = NA, bty = "n", cex = 0.8)
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.30
+gap     <- 0.04
+x_start <- 1.15
+par(xpd = TRUE)
+for (k in 1:3) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order)) {
+    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_full[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+dev.off()
+
+
+
+
+
+
+# -- Metazoa family-level HMSC (presence/absence) -----------------------------
+tax.meta <- euk.tax[euk.tax$Subdivision == "Metazoa" & 
+                      !is.na(euk.tax$family) &
+                      euk.tax$Family.1 == 100, ]
+tax.meta <- tax.meta[tax.meta$family != "", ]
+cat("ASVs retained:", nrow(tax.meta), "\n")
+cat("Unique families:", length(unique(tax.meta$family)), "\n")
+
+# Intersect with raw count matrix (not proportions — we just need presence)
+shared.meta <- intersect(colnames(comm.raw.t), tax.meta$ASV)
+comm.meta.pa <- (comm.raw.t[, shared.meta, drop = FALSE] > 0) * 1
+tax.meta     <- tax.meta[match(shared.meta, tax.meta$ASV), ]
+
+# Collapse to family — present if any ASV detected
+comm.fam.pa <- t(rowsum(t(comm.meta.pa), group = tax.meta$family, na.rm = TRUE))
+comm.fam.pa <- (comm.fam.pa > 0) * 1
+
+# Prevalence filter
+prev <- colMeans(comm.fam.pa)
+cat("\nPrevalence distribution:\n")
+print(round(sort(prev, decreasing = TRUE), 2))
+
+# Remove families at 100% or 0% prevalence (no variation to model)
+comm.fam.pa <- comm.fam.pa[, prev > 0.05 & prev < 1.00]
+cat("Families after filter:", ncol(comm.fam.pa), "\n")
+
+Y.fam.pa <- comm.fam.pa
+
+cat("Samples:", nrow(Y.fam.pa), "| Families:", ncol(Y.fam.pa), "\n")
+
+# -- Model --------------------------------------------------------------------
+m.fam.pa <- Hmsc(
+  Y           = Y.fam.pa,
+  XData       = X,
+  XFormula    = ~ PC1 + PC2 + whale,
+  distr       = "probit",
+  studyDesign = studyDesign,
+  ranLevels   = list(site = rL.site)
+)
+m.fam.pa <- sampleMcmc(m.fam.pa,
+                       thin      = 100,
+                       samples   = 1000,
+                       transient = 10000,
+                       nChains   = 4,
+                       nParallel = 4,
+                       verbose   = 500
+)
+
+# -- Convergence --------------------------------------------------------------
+mpost.fam.pa    <- convertToCodaObject(m.fam.pa)
+beta_ess.fam.pa <- effectiveSize(mpost.fam.pa$Beta)
+beta_gel.fam.pa <- gelman.diag(mpost.fam.pa$Beta, multivariate = FALSE)$psrf
+cat("ESS — Min:", round(min(beta_ess.fam.pa)),
+    "| Median:", round(median(beta_ess.fam.pa)),
+    "| % > 200:", round(mean(beta_ess.fam.pa > 200) * 100, 1), "%\n")
+cat("G-R — Max:", round(max(beta_gel.fam.pa[, 1]), 3),
+    "| % > 1.05:", round(mean(beta_gel.fam.pa[, 1] > 1.05) * 100, 1), "%\n")
+
+omega_ess.fam.pa <- effectiveSize(mpost.fam.pa$Omega[[1]])
+omega_gel.fam.pa <- gelman.diag(mpost.fam.pa$Omega[[1]], multivariate = FALSE)$psrf
+cat("Omega ESS — Min:", round(min(omega_ess.fam.pa)),
+    "| Median:", round(median(omega_ess.fam.pa)),
+    "| % > 200:", round(mean(omega_ess.fam.pa > 200) * 100, 1), "%\n")
+cat("Omega G-R — Max:", round(max(omega_gel.fam.pa[, 1]), 3),
+    "| % > 1.05:", round(mean(omega_gel.fam.pa[, 1] > 1.05) * 100, 1), "%\n")
+
+sigma_ess.fam.pa <- effectiveSize(mpost.fam.pa$Sigma)
+sigma_gel.fam.pa <- gelman.diag(mpost.fam.pa$Sigma, multivariate = FALSE)$psrf
+cat("Sigma ESS — Min:", round(min(sigma_ess.fam.pa)),
+    "| Median:", round(median(sigma_ess.fam.pa)),
+    "| % > 200:", round(mean(sigma_ess.fam.pa > 200) * 100, 1), "%\n")
+cat("Sigma G-R — Max:", round(max(sigma_gel.fam.pa[, 1]), 3),
+    "| % > 1.05:", round(mean(sigma_gel.fam.pa[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Results ------------------------------------------------------------------
+VP.fam.pa <- computeVariancePartitioning(m.fam.pa,
+                                         group = c(1, 2, 2, 3),
+                                         groupnames = c("Intercept", "Climate", "Whaling"))
+print(round(rowMeans(VP.fam.pa$vals), 3))
+plotVariancePartitioning(m.fam.pa, VP = VP.fam.pa)
+
+postBeta.fam.pa <- getPostEstimate(m.fam.pa, parName = "Beta")
+support.fam.pa <- data.frame(
+  family    = rep(colnames(Y.fam.pa), each = 3),
+  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam.pa)),
+  mean_beta = c(rbind(postBeta.fam.pa$mean[2, ],       postBeta.fam.pa$mean[3, ],       postBeta.fam.pa$mean[4, ])),
+  P_pos     = c(rbind(postBeta.fam.pa$support[2, ],    postBeta.fam.pa$support[3, ],    postBeta.fam.pa$support[4, ])),
+  P_neg     = c(rbind(postBeta.fam.pa$supportNeg[2, ], postBeta.fam.pa$supportNeg[3, ], postBeta.fam.pa$supportNeg[4, ]))
+)
+support.fam.pa$direction <- ifelse(support.fam.pa$mean_beta > 0, "positive", "negative")
+support.fam.pa$strong    <- support.fam.pa$P_pos > 0.95 | support.fam.pa$P_neg > 0.95
+print(support.fam.pa[support.fam.pa$strong, c("family", "predictor", "mean_beta",
+                                              "P_pos", "P_neg", "direction")])
+
+## Nice VP plot
+vp_mat <- VP.fam.pa$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+
+cols <- c("darkgreen", "dodgerblue", "darkred")
+
+pdf("figures/HMSC/metazoa.pa.var.pdf", height = 9, width = 5)
+par(mar = c(4, 10, 2, 8))
+
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols,
+  border    = NA,
+  las       = 1,
+  xlim      = c(0, 1),
+  xlab      = "Variance explained",
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.75,
+  axes      = FALSE)
+
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"),
+     cex.axis = 0.85)
+
+legend(1.01, 36,
+       inset  = c(-0.35, 0),
+       legend = rownames(vp_mat_rev),
+       fill   = cols,
+       border = NA,
+       bty    = "n",
+       cex    = 0.85,
+       xpd    = TRUE)
+
+dev.off()
+
+# -- Heatmap ------------------------------------------------------------------
+beta_mat <- postBeta.fam.pa$mean[2:4, ]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+
+sup_pos <- postBeta.fam.pa$support[2:4, ]
+sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
+
+keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+beta_mat <- beta_mat[, keep]
+sup_pos  <- sup_pos[, keep]
+sup_neg  <- sup_neg[, keep]
+
+cat("Retained:", sum(keep), "of", length(keep), "families\n")
+
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+ord <- rev(order(colnames(beta_mat)))
+beta_plot <- t(beta_mat[, ord])
+sig_plot  <- t(sig_mat[, ord])
+
+pdf("figures/HMSC/metazoa.pa.sig.pdf", height = 9, width = 6)
+par(mar = c(5, 12, 3, 2))
+n_fam  <- nrow(beta_plot)
+n_pred <- ncol(beta_plot)
+
+image(1:n_pred, 1:n_fam, t(beta_plot),
+      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
+      axes = FALSE, xlab = "", ylab = "")
+axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
+axis(2, at = 1:n_fam, labels = rownames(beta_plot), las = 2, cex.axis = 0.7)
+
+for (i in 1:n_pred) {
+  for (j in 1:n_fam) {
+    if (sig_plot[j, i] != "") {
+      text(i, j, sig_plot[j, i], cex = 0.7)
+    }
+  }
+}
+title("Metazoan family responses (presence/absence)")
+dev.off()
+
+# -- Combined: Metazoa PA -----------------------------------------------------
+vp_mat <- VP.fam.pa$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+# Order by whaling beta
+whale_beta <- postBeta.fam.pa$mean[4, ]
+whale_order <- names(sort(whale_beta))
+vp_mat_rev <- vp_mat_rev[, whale_order]
+taxon_order <- whale_order
+# Beta and significance in same order
+beta_mat <- postBeta.fam.pa$mean[2:4, , drop = FALSE]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+sup_pos <- postBeta.fam.pa$support[2:4, ]
+sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+beta_full <- beta_mat[, taxon_order]
+sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
+zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
+cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+pred_names <- rownames(beta_full)
+pdf("figures/HMSC/metazoa.pa.combined.pdf", height = 16, width = 7)
+par(mar = c(4, 10, 3, 12), xpd = TRUE)
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "",
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
+mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+legend(-1, -2,
+       legend = rownames(vp_mat_rev),
+       fill   = cols_vp,
+       border = NA, bty = "n", cex = 0.8)
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.30
+gap     <- 0.04
+x_start <- 1.15
+par(xpd = TRUE)
+for (k in 1:3) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order)) {
+    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_full[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+dev.off()
 
 
 
@@ -2325,7 +3108,7 @@ for (sp in sp_list) {
   # --- TOP: nREps
   set.seed(1234)
   plot(d1$dates, jitter(d1$value, 0.8),
-       xlim=c(2024,1760),
+       xlim=c(1760,2024),
        xlab="", ylab="nPCR reps", main=sp,
        pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
   for (si in sites) {
@@ -2341,12 +3124,77 @@ for (sp in sp_list) {
   
   # --- MID: average proportion of reads
   plot(d1$dates, d1$avg,
-       xlim=c(2024,1760), 
+       xlim=c(1760,2024), 
        xlab="", ylab="Avg proportion",
        pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
   dev.off()
   
 }
+
+### Let's make some GAMS
+
+sp<- unique(euk.salkril.nReps.long$spp)[1]
+
+# --- data per species
+d1 <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==sp, ]
+d1 <- d1[!is.na(d1$dates), ]
+
+d2 <- cbind(d1,beta[match(paste(d1$site,d1$dates,sep=" "),paste(beta$site,round(beta$year),sep=" ")),])
+
+fit <- glm(cbind(value, 8 - value) ~ PC1_s + PC2_s + whale_s + site,
+           family = binomial, data = d2)
+
+
+plot(fit)
+
+summary(fit)
+
+
+
+sp_list <- unique(d2$spp)
+
+for (sp in sp_list) {
+  pdf(paste0("figures/test/EUK.big.",sp,".pdf"), width=9, height=6)
+  par(mfrow=c(2,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
+  
+  # --- data per species
+  d1 <- d2[d2$spp==sp, ]
+  
+  # site-color map
+  sites <- sort(unique(toupper(d1$site)))
+  cols  <- coredata$col[match(sites, coredata$Site)]
+  colv1 <- cols[match(toupper(d1$site), sites)]
+  
+  # --- TOP: nREps
+  set.seed(1234)
+  plot(d1$dates, jitter(d1$value, 0.8),
+       xlim=c(1760,2024),
+       xlab="", ylab="nPCR reps", main=sp,
+       pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
+  for (si in sites) {
+    d1s <- d1[toupper(d1$site)==si, ]
+    if (nrow(d1s) > 2) {
+      fit <- loess(value ~ dates, data=d1s, span=0.6, degree=1)
+      xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
+      yy  <- predict(fit, data.frame(dates=xx))
+      lines(xx, yy, col=cols[sites==si], lwd=2)
+    }
+  }
+  legend("topright", legend=sites, col=cols, pch=16, cex=0.8, bty="n")
+  
+  # --- MID: average proportion of reads
+  plot(d1$dates, d1$avg,
+       xlim=c(1760,2024), 
+       xlab="", ylab="Avg proportion",
+       pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
+  dev.off()
+  
+}
+
+
+
+
+
 
 
 
@@ -3491,4 +4339,293 @@ summary(a1_G2)
 summary(a2_G0)
 summary(a2_G1)
 summary(a2_G2)
+
+
+
+
+
+#### HMSC models — Hellinger transformation ####
+
+library(Hmsc)
+
+# -- Data prep ----------------------------------------------------------------
+comm.raw.t <- t(as.matrix(euk.reps))
+comm.raw.t <- comm.raw.t[match(clim$longname, rownames(comm.raw.t)), ]
+
+# Normalise on full community FIRST
+comm.prop <- comm.raw.t / rowSums(comm.raw.t)
+
+# High-confidence Subdivision assignments only (>=60%)
+tax.filt <- euk.tax[euk.tax$Subdivision.1 >= 60 & !is.na(euk.tax$Subdivision), ]
+
+# Intersect ASVs, subset, collapse to Subdivision
+shared.asvs <- intersect(colnames(comm.prop), tax.filt$ASV)
+comm.filt   <- comm.prop[, shared.asvs, drop = FALSE]
+tax.filt    <- tax.filt[match(shared.asvs, tax.filt$ASV), ]
+comm.sub    <- t(rowsum(t(comm.filt), group = tax.filt$Subdivision, na.rm = TRUE))
+
+# Hellinger transformation
+Y <- sqrt(comm.sub)
+
+cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
+
+# Predictors
+X <- data.frame(
+  PC1   = as.numeric(scale(beta$PC1_s)),
+  PC2   = as.numeric(scale(beta$PC2_s)),
+  whale = as.numeric(scale(beta$whale_s))
+)
+
+# -- Subdivision model --------------------------------------------------------
+studyDesign <- data.frame(site = factor(beta$site))
+rL.site     <- HmscRandomLevel(units = levels(studyDesign$site))
+
+m <- Hmsc(
+  Y           = Y,
+  XData       = X,
+  XFormula    = ~ PC1 + PC2 + whale,
+  distr       = "normal",
+  studyDesign = studyDesign,
+  ranLevels   = list(site = rL.site)
+)
+
+m <- sampleMcmc(m,
+                thin      = 10,
+                samples   = 1000,
+                transient = 5000,
+                nChains   = 4,
+                nParallel = 4,
+                verbose   = 500
+)
+
+# -- Convergence --------------------------------------------------------------
+mpost    <- convertToCodaObject(m)
+beta_ess <- effectiveSize(mpost$Beta)
+beta_gel <- gelman.diag(mpost$Beta, multivariate = FALSE)$psrf
+
+cat("ESS — Min:", round(min(beta_ess)),
+    "| Median:", round(median(beta_ess)),
+    "| % > 200:", round(mean(beta_ess > 200) * 100, 1), "%\n")
+cat("G-R — Max:", round(max(beta_gel[, 1]), 3),
+    "| % > 1.05:", round(mean(beta_gel[, 1] > 1.05) * 100, 1), "%\n")
+
+omega_ess <- effectiveSize(mpost$Omega[[1]])
+omega_gel <- gelman.diag(mpost$Omega[[1]], multivariate = FALSE)$psrf
+cat("Omega ESS — Min:", round(min(omega_ess)),
+    "| Median:", round(median(omega_ess)),
+    "| % > 200:", round(mean(omega_ess > 200) * 100, 1), "%\n")
+cat("Omega G-R — Max:", round(max(omega_gel[, 1]), 3),
+    "| % > 1.05:", round(mean(omega_gel[, 1] > 1.05) * 100, 1), "%\n")
+
+sigma_ess <- effectiveSize(mpost$Sigma)
+sigma_gel <- gelman.diag(mpost$Sigma, multivariate = FALSE)$psrf
+cat("Sigma ESS — Min:", round(min(sigma_ess)),
+    "| Median:", round(median(sigma_ess)),
+    "| % > 200:", round(mean(sigma_ess > 200) * 100, 1), "%\n")
+cat("Sigma G-R — Max:", round(max(sigma_gel[, 1]), 3),
+    "| % > 1.05:", round(mean(sigma_gel[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Subdivision results ------------------------------------------------------
+VP <- computeVariancePartitioning(m,
+                                  group = c(1, 2, 2, 3),
+                                  groupnames = c("Intercept", "Climate", "Whaling"))
+print(round(rowMeans(VP$vals), 3))
+plotVariancePartitioning(m, VP = VP)
+
+postBeta <- getPostEstimate(m, parName = "Beta")
+support_df <- data.frame(
+  Subdivision = rep(colnames(Y), each = 3),
+  predictor   = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y)),
+  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ])),
+  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ])),
+  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ]))
+)
+support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
+support_df$strong    <- support_df$P_pos > 0.95 | support_df$P_neg > 0.95
+print(support_df[support_df$strong, c("Subdivision", "predictor", "mean_beta",
+                                      "P_pos", "P_neg", "direction")])
+
+# -- Subdivision heatmap ------------------------------------------------------
+sup_pos <- postBeta$support[2:4, ]
+sup_neg <- postBeta$supportNeg[2:4, ]
+keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+
+beta_mat <- postBeta$mean[2:4, keep]
+sup_pos  <- sup_pos[, keep]
+sup_neg  <- sup_neg[, keep]
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+ord <- rev(order(colnames(beta_mat)))
+beta_plot <- t(beta_mat[, ord])
+sig_plot  <- t(sig_mat[, ord])
+
+par(mar = c(5, 12, 3, 2))
+n_sub  <- nrow(beta_plot)
+n_pred <- ncol(beta_plot)
+
+image(1:n_pred, 1:n_sub, t(beta_plot),
+      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
+      axes = FALSE, xlab = "", ylab = "")
+axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
+axis(2, at = 1:n_sub, labels = gsub("_X", "", rownames(beta_plot)), las = 2, cex.axis = 0.6)
+
+for (i in 1:n_pred) {
+  for (j in 1:n_sub) {
+    if (sig_plot[j, i] != "") {
+      text(i, j, sig_plot[j, i], cex = 0.7)
+    }
+  }
+}
+title("Subdivision responses to environmental drivers")
+
+# =============================================================================
+# -- Metazoa family-level HMSC ------------------------------------------------
+# =============================================================================
+
+tax.meta <- euk.tax[euk.tax$Subdivision == "Metazoa" &
+                      !is.na(euk.tax$family) &
+                      euk.tax$Family.1 == 100, ]
+tax.meta <- tax.meta[tax.meta$family != "", ]
+cat("ASVs retained:", nrow(tax.meta), "\n")
+cat("Unique families:", length(unique(tax.meta$family)), "\n")
+print(sort(table(tax.meta$family), decreasing = TRUE))
+
+# Intersect with proportion matrix (normalised on full community)
+shared.meta <- intersect(colnames(comm.prop), tax.meta$ASV)
+comm.meta   <- comm.prop[, shared.meta, drop = FALSE]
+tax.meta    <- tax.meta[match(shared.meta, tax.meta$ASV), ]
+
+# Collapse to family
+comm.fam <- t(rowsum(t(comm.meta), group = tax.meta$family, na.rm = TRUE))
+
+# Prevalence filter
+prev <- colMeans(comm.fam > 0)
+cat("\nPrevalence distribution:\n")
+print(round(sort(prev, decreasing = TRUE), 2))
+comm.fam <- comm.fam[, prev > 0.20]
+cat("Families after prevalence filter:", ncol(comm.fam), "\n")
+
+# Hellinger transformation
+Y.fam <- sqrt(comm.fam)
+
+cat("Samples:", nrow(Y.fam), "| Families:", ncol(Y.fam), "\n")
+cat("Any NA:", anyNA(Y.fam), "\n")
+
+# -- Family model -------------------------------------------------------------
+m.fam <- Hmsc(
+  Y           = Y.fam,
+  XData       = X,
+  XFormula    = ~ PC1 + PC2 + whale,
+  distr       = "normal",
+  studyDesign = studyDesign,
+  ranLevels   = list(site = rL.site)
+)
+m.fam <- sampleMcmc(m.fam,
+                    thin      = 100,
+                    samples   = 1000,
+                    transient = 10000,
+                    nChains   = 4,
+                    nParallel = 4,
+                    verbose   = 500
+)
+
+# -- Convergence --------------------------------------------------------------
+mpost.fam    <- convertToCodaObject(m.fam)
+beta_ess.fam <- effectiveSize(mpost.fam$Beta)
+beta_gel.fam <- gelman.diag(mpost.fam$Beta, multivariate = FALSE)$psrf
+cat("ESS — Min:", round(min(beta_ess.fam)),
+    "| Median:", round(median(beta_ess.fam)),
+    "| % > 200:", round(mean(beta_ess.fam > 200) * 100, 1), "%\n")
+cat("G-R — Max:", round(max(beta_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(beta_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
+
+omega_ess.fam <- effectiveSize(mpost.fam$Omega[[1]])
+omega_gel.fam <- gelman.diag(mpost.fam$Omega[[1]], multivariate = FALSE)$psrf
+cat("Omega ESS — Min:", round(min(omega_ess.fam)),
+    "| Median:", round(median(omega_ess.fam)),
+    "| % > 200:", round(mean(omega_ess.fam > 200) * 100, 1), "%\n")
+cat("Omega G-R — Max:", round(max(omega_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(omega_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
+
+sigma_ess.fam <- effectiveSize(mpost.fam$Sigma)
+sigma_gel.fam <- gelman.diag(mpost.fam$Sigma, multivariate = FALSE)$psrf
+cat("Sigma ESS — Min:", round(min(sigma_ess.fam)),
+    "| Median:", round(median(sigma_ess.fam)),
+    "| % > 200:", round(mean(sigma_ess.fam > 200) * 100, 1), "%\n")
+cat("Sigma G-R — Max:", round(max(sigma_gel.fam[, 1]), 3),
+    "| % > 1.05:", round(mean(sigma_gel.fam[, 1] > 1.05) * 100, 1), "%\n")
+
+# -- Family results -----------------------------------------------------------
+VP.fam <- computeVariancePartitioning(m.fam,
+                                      group = c(1, 2, 2, 3),
+                                      groupnames = c("Intercept", "Climate", "Whaling"))
+print(round(rowMeans(VP.fam$vals), 3))
+plotVariancePartitioning(m.fam, VP = VP.fam)
+
+postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
+support.fam <- data.frame(
+  family    = rep(colnames(Y.fam), each = 3),
+  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam)),
+  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ])),
+  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ])),
+  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ]))
+)
+support.fam$direction <- ifelse(support.fam$mean_beta > 0, "positive", "negative")
+support.fam$strong    <- support.fam$P_pos > 0.95 | support.fam$P_neg > 0.95
+print(support.fam[support.fam$strong, c("family", "predictor", "mean_beta",
+                                        "P_pos", "P_neg", "direction")])
+
+plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.95,
+         split = 0.4, spNamesNumbers = c(TRUE, FALSE))
+
+# -- Family heatmap -----------------------------------------------------------
+beta_mat <- postBeta.fam$mean[2:4, ]
+rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+
+sup_pos <- postBeta.fam$support[2:4, ]
+sup_neg <- postBeta.fam$supportNeg[2:4, ]
+
+keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+beta_mat <- beta_mat[, keep]
+sup_pos  <- sup_pos[, keep]
+sup_neg  <- sup_neg[, keep]
+
+cat("Retained:", sum(keep), "of", length(keep), "families\n")
+
+sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+
+ord <- rev(order(colnames(beta_mat)))
+beta_plot <- t(beta_mat[, ord])
+sig_plot  <- t(sig_mat[, ord])
+
+par(mar = c(5, 12, 3, 2))
+n_fam  <- nrow(beta_plot)
+n_pred <- ncol(beta_plot)
+
+image(1:n_pred, 1:n_fam, t(beta_plot),
+      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
+      axes = FALSE, xlab = "", ylab = "")
+axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
+axis(2, at = 1:n_fam, labels = rownames(beta_plot), las = 2, cex.axis = 0.7)
+
+for (i in 1:n_pred) {
+  for (j in 1:n_fam) {
+    if (sig_plot[j, i] != "") {
+      text(i, j, sig_plot[j, i], cex = 0.7)
+    }
+  }
+}
+title("Metazoan family responses to environmental drivers")
+
+
+
+
 

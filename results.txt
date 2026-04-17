@@ -26,7 +26,7 @@ Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = 
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   1.0157 6.0318 0.000999 ***
 PC1_s     1   0.5285 3.1386 0.000999 ***
-PC2_s     1   0.2693 1.5990 0.082917 .  
+PC2_s     1   0.2693 1.5990 0.086913 .  
 Residual 79  13.3029                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -52,8 +52,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   1.1509 4.7683 0.000999 ***
-PC1_s     1   0.5487 2.2735 0.000999 ***
-PC2_s     1   0.3432 1.4219 0.056943 .  
+PC1_s     1   0.5487 2.2735 0.001998 ** 
+PC2_s     1   0.3432 1.4219 0.061938 .  
 Residual 79  19.0673                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -121,9 +121,9 @@ Number of permutations: 10000
 adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
 site      4   6.3780 0.28054 9.4690 9.999e-05 ***
-PC1_s     1   0.6790 0.02987 4.0321 9.999e-05 ***
-PC2_s     1   0.2693 0.01184 1.5990   0.08019 .  
-whale_s   1   0.5066 0.02228 3.0085   0.00190 ** 
+PC1_s     1   0.6790 0.02987 4.0321   0.00030 ***
+PC2_s     1   0.2693 0.01184 1.5990   0.07639 .  
+whale_s   1   0.5066 0.02228 3.0085   0.00220 ** 
 Residual 79  13.3029 0.58514                     
 Total    86  22.7344 1.00000                     
 ---
@@ -138,9 +138,9 @@ Number of permutations: 10000
 adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
 site      4   6.4663 0.21664 6.0018 9.999e-05 ***
-PC1_s     1   0.4884 0.01636 1.8132  0.014399 *  
-PC2_s     1   0.3141 0.01052 1.1660  0.176782    
-whale_s   1   0.5471 0.01833 2.0312  0.006299 ** 
+PC1_s     1   0.4884 0.01636 1.8132    0.0122 *  
+PC2_s     1   0.3141 0.01052 1.1660    0.1704    
+whale_s   1   0.5471 0.01833 2.0312    0.0049 ** 
 Residual 79  21.2788 0.71290                     
 Total    86  29.8482 1.00000                     
 ---
@@ -172,8 +172,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.2107 4.0543 0.000999 ***
-PC1_s     1   0.2396 4.6107 0.004995 ** 
-PC2_s     1   0.0670 1.2886 0.258741    
+PC1_s     1   0.2396 4.6107 0.002997 ** 
+PC2_s     1   0.0670 1.2886 0.249750    
 Residual 79   4.1057                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -199,8 +199,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.4000 4.0987 0.000999 ***
-PC1_s     1   0.3701 3.7922 0.003996 ** 
-PC2_s     1   0.1496 1.5325 0.127872    
+PC1_s     1   0.3701 3.7922 0.002997 ** 
+PC2_s     1   0.1496 1.5325 0.108891    
 Residual 79   7.7107                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -268,9 +268,9 @@ Number of permutations: 10000
 adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2       F    Pr(>F)    
 site      4   4.7365 0.46456 22.7848 9.999e-05 ***
-PC1_s     1   0.2846 0.02792  5.4768    0.0043 ** 
-PC2_s     1   0.0670 0.00657  1.2886    0.2357    
-whale_s   1   0.0968 0.00949  1.8623    0.1235    
+PC1_s     1   0.2846 0.02792  5.4768    0.0036 ** 
+PC2_s     1   0.0670 0.00657  1.2886    0.2367    
+whale_s   1   0.0968 0.00949  1.8623    0.1197    
 Residual 79   4.1057 0.40268                      
 Total    86  10.1957 1.00000                      
 ---
@@ -285,8 +285,8 @@ Number of permutations: 10000
 adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
 site      4   6.5049 0.24558 7.3041 9.999e-05 ***
-PC1_s     1   0.5465 0.02063 2.4547 0.0043996 ** 
-PC2_s     1   0.2493 0.00941 1.1198 0.2328767    
+PC1_s     1   0.5465 0.02063 2.4547 0.0039996 ** 
+PC2_s     1   0.2493 0.00941 1.1198 0.2326767    
 whale_s   1   0.6667 0.02517 2.9944 0.0007999 ***
 Residual 79  17.5890 0.66405                     
 Total    86  26.4874 1.00000                     
@@ -318,9 +318,9 @@ Number of permutations: 1000
 
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.4872 4.1097 0.001998 ** 
+whale_s   1   0.4872 4.1097 0.000999 ***
 PC1_s     1   0.6038 5.0933 0.000999 ***
-PC2_s     1   0.1628 1.3735 0.218781    
+PC2_s     1   0.1628 1.3735 0.232767    
 Residual 79   9.3647                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -347,7 +347,7 @@ Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = 
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.7501 4.2322 0.000999 ***
 PC1_s     1   0.6831 3.8545 0.000999 ***
-PC2_s     1   0.1998 1.1273 0.374625    
+PC2_s     1   0.1998 1.1273 0.370629    
 Residual 79  14.0010                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -416,8 +416,8 @@ adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_
          Df SumOfSqs      R2      F    Pr(>F)    
 site      4   3.1040 0.20893 6.5464 9.999e-05 ***
 PC1_s     1   0.6207 0.04178 5.2363 9.999e-05 ***
-PC2_s     1   0.1628 0.01096 1.3735    0.1858    
-whale_s   1   0.3574 0.02405 3.0146    0.0049 ** 
+PC2_s     1   0.1628 0.01096 1.3735    0.1862    
+whale_s   1   0.3574 0.02405 3.0146    0.0039 ** 
 Residual 79   9.3647 0.63032                     
 Total    86  14.8571 1.00000                     
 ---
@@ -432,9 +432,9 @@ Number of permutations: 10000
 adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
 site      4   5.7846 0.23473 6.9218 9.999e-05 ***
-PC1_s     1   0.6648 0.02697 3.1817 0.0006999 ***
+PC1_s     1   0.6648 0.02697 3.1817 0.0005999 ***
 PC2_s     1   0.3117 0.01265 1.4921 0.0717928 .  
-whale_s   1   0.5571 0.02260 2.6663 0.0016998 ** 
+whale_s   1   0.5571 0.02260 2.6663 0.0014999 ** 
 Residual 79  16.5054 0.66976                     
 Total    86  24.6439 1.00000                     
 ---
