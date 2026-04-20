@@ -2140,7 +2140,8 @@ site_var <- vp_mat_rev["Random: site", ]
 vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
 
 # Colours matching your original call
-cols <- c( "darkgreen", "dodgerblue","darkred")
+cols <- c("#7A9B76", "#C9A66B", "#8A7090") 
+
 
 # Margins: bottom, left, top, right — left margin wide for taxon names
 
@@ -2210,7 +2211,7 @@ n_sub <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_sub, t(beta_plot),
-      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -2235,7 +2236,7 @@ beta_to_col <- function(x, zlim, cols) {
   idx <- max(1, min(length(cols), idx))
   cols[idx]
 }
-heat_cols <- colorRampPalette(c("#2166AC", "white", "#B2182B"))(100)
+heat_cols <- colorRampPalette(c( "#B2182B","white","#2166AC"))(100)
 
 
 # -- Combined: Subdivision -----------------------------------------------------
@@ -2263,8 +2264,9 @@ beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090") 
 pred_names <- rownames(beta_full)
+
 
 pdf("figures/HMSC/subdivision.combined.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12),xpd = TRUE)
@@ -2447,7 +2449,7 @@ site_var <- vp_mat_rev["Random: site", ]
 vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
 
 # Colours matching your original call
-cols <- c( "darkgreen", "dodgerblue","darkred")
+cols <- c("#7A9B76", "#C9A66B", "#8A7090") 
 
 # Margins: bottom, left, top, right — left margin wide for taxon names
 
@@ -2491,7 +2493,7 @@ dev.off()
 postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 
 beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
@@ -2521,7 +2523,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -2548,7 +2550,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -2557,7 +2559,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
 pred_names <- rownames(beta_full)
 pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
@@ -2634,7 +2636,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -2643,7 +2645,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
 pred_names <- rownames(beta_full)
 pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
@@ -2813,7 +2815,7 @@ vp_mat <- VP.fam.pa$vals
 vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 
-cols <- c("darkgreen", "dodgerblue", "darkred")
+cols <- c("#7A9B76", "#C9A66B", "#8A7090")
 
 pdf("figures/HMSC/metazoa.pa.var.pdf", height = 9, width = 5)
 par(mar = c(4, 10, 2, 8))
@@ -2847,7 +2849,7 @@ dev.off()
 
 # -- Heatmap ------------------------------------------------------------------
 beta_mat <- postBeta.fam.pa$mean[2:4, ]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 
 sup_pos <- postBeta.fam.pa$support[2:4, ]
 sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
@@ -2873,7 +2875,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -2900,7 +2902,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam.pa$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 sup_pos <- postBeta.fam.pa$support[2:4, ]
 sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -2909,7 +2911,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("darkgreen", "dodgerblue", "darkred")
+cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
 pred_names <- rownames(beta_full)
 pdf("figures/HMSC/metazoa.pa.combined.pdf", height = 16, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
@@ -4468,7 +4470,7 @@ n_sub  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_sub, t(beta_plot),
-      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -4585,7 +4587,7 @@ plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.95,
 
 # -- Family heatmap -----------------------------------------------------------
 beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("ENSO/Ice", "SAM", "Whaling")
+rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
 
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
@@ -4610,7 +4612,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c("#2166AC", "white", "#B2182B"))(100),
+      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
