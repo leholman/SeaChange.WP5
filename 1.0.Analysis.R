@@ -2493,7 +2493,7 @@ dev.off()
 postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 
 beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
@@ -2550,7 +2550,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -2636,7 +2636,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -2849,7 +2849,7 @@ dev.off()
 
 # -- Heatmap ------------------------------------------------------------------
 beta_mat <- postBeta.fam.pa$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 
 sup_pos <- postBeta.fam.pa$support[2:4, ]
 sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
@@ -2902,7 +2902,7 @@ vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
 beta_mat <- postBeta.fam.pa$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 sup_pos <- postBeta.fam.pa$support[2:4, ]
 sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
 sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
@@ -3135,7 +3135,8 @@ for (sp in sp_list) {
 
 ### Let's make some GAMS
 
-sp<- unique(euk.salkril.nReps.long$spp)[1]
+for (sp in unique(euk.salkril.nReps.long$spp)){
+
 
 # --- data per species
 d1 <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==sp, ]
@@ -3143,17 +3144,53 @@ d1 <- d1[!is.na(d1$dates), ]
 
 d2 <- cbind(d1,beta[match(paste(d1$site,d1$dates,sep=" "),paste(beta$site,round(beta$year),sep=" ")),])
 
+pdf(paste0("figures/test/EUK.big.",sp,".pdf"), width=9, height=6)
+par(mfrow=c(2,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i",xpd = TRUE)
+
+
+# site-color map
+sites <- sort(unique(toupper(d2$site)))
+cols  <- coredata$col[match(sites, coredata$Site)]
+colv1 <- cols[match(toupper(d2$site), sites)]
+
+# --- TOP: nREps
+set.seed(1234)
+plot(d2$dates, jitter(d2$value, 0.8),
+     xlim=c(1760,2024),
+     xlab="", ylab="nPCR reps", main=sp,
+     pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
+#for (si in sites) {
+#  d2s <- d2[toupper(d2$site)==si, ]
+#  if (nrow(d2s) > 2) {
+#    fit <- loess(value ~ dates, data=d2s, span=0.6, degree=1)
+#    xx  <- seq(min(d2s$dates), max(d2s$dates), length.out=300)
+#    yy  <- predict(fit, data.frame(dates=xx))
+#    lines(xx, yy, col=cols[sites==si], lwd=2)
+ # }
+#}
+legend(1750,-0.5, legend=sites, col=cols, pch=16, cex=0.6, bty="n")
+
+# --- MID: average proportion of reads
+plot(d2$dates, d2$avg,
+     xlim=c(1760,2024), 
+     xlab="", ylab="Avg proportion",
+     pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
+dev.off()
+
+
+}
+
+
+
 fit <- glm(cbind(value, 8 - value) ~ PC1_s + PC2_s + whale_s + site,
            family = binomial, data = d2)
-
-
 plot(fit)
 
 summary(fit)
 
 
 
-sp_list <- unique(d2$spp)
+sp_list <- unique(euk.salkril.nReps.long$spp)
 
 for (sp in sp_list) {
   pdf(paste0("figures/test/EUK.big.",sp,".pdf"), width=9, height=6)
@@ -3195,7 +3232,154 @@ for (sp in sp_list) {
 
 
 
-
+plotall <- function(tax_filter,
+                    euk_data = euk,
+                    euk_taxonomy = euk.tax,
+                    manual_csv = NULL,
+                    group_name = "group",
+                    expanded_dates = expandedDates,
+                    core_data = coredata,
+                    beta_data = beta,
+                    out_prefix = NULL,
+                    n_cols_data = 992) {
+  
+  
+  plotall <- function(tax_filter,
+                      euk_data = euk,
+                      euk_taxonomy = euk.tax,
+                      manual_csv = NULL,
+                      group_name = "group",
+                      expanded_dates = expandedDates,
+                      core_data = coredata,
+                      beta_data = beta,
+                      out_prefix = NULL,
+                      n_cols_data = 992) {
+  
+    tax_filter='family=="Euphausiidae"'
+    euk_data = euk
+    euk_taxonomy = euk.tax
+    expanded_dates = expandedDates
+    core_data = coredata
+    beta_data = beta
+    
+  # --- 1. Subset by the taxonomy filter ---------------------------------
+  # tax_filter should be a logical vector matching rows of euk_taxonomy
+  sub <- euk_taxonomy[family=="Euphausiidae", ]
+    euk_taxonomy[euk_taxonomy$family=="Euphausiidae",]
+    
+    
+    # --- 1. Evaluate the filter expression inside euk_taxonomy ------------
+    keep <- eval(str2lang(tax_filter), euk_taxonomy)
+    
+    sub_tax <- euk_taxonomy[keep, ]
+    sub_tax <- sub_tax[!is.na(sub_tax[, 1]), ]
+    sub     <- euk_data[match(sub_tax$X.1, rownames(euk_data)), ]
+    sub     <- sub[!is.na(sub[, 1]), ]
+    sub_tax <- euk_taxonomy[match(rownames(sub), euk_taxonomy$X.1), ]
+    
+    if (nrow(sub) == 0) stop("No rows match the taxonomy filter.")
+  sub <- sub[!is.na(sub[, 1]), ]
+  sub_tax <- euk_taxonomy[match(rownames(sub), euk_taxonomy$X.1), ]
+  
+  if (nrow(sub) == 0) {
+    stop("No rows match the taxonomy filter.")
+  }
+  
+  # --- 2. Either load manual annotation, or use raw taxonomy ------------
+    # normalize by original library size
+  
+  ###################### WE ARE HERE!!!!!
+  
+  
+    dat[, 1:n_cols_data] <- sweep(dat[, 1:n_cols_data], 2,
+                                  colSums(euk_data), FUN = "/")
+    dat[is.na(dat) | dat == "NaN"] <- 0
+    species_col <- dat$Assignment
+  } else {
+    # fall back to using the taxonomy column that was filtered on
+    dat <- sub
+    dat[, 1:n_cols_data] <- sweep(dat[, 1:n_cols_data], 2,
+                                  colSums(euk_data), FUN = "/")
+    dat[is.na(dat)] <- 0
+    # use the finest taxonomy level that is non-empty; default: species if available
+    species_col <- if (!is.null(sub_tax$species)) sub_tax$species else sub_tax$genus
+  }
+  
+  # --- 3. Aggregate by species ------------------------------------------
+  datain <- cbind(dat[, 1:n_cols_data], manualSpecies = species_col)
+  agg <- aggregate(. ~ manualSpecies, data = datain, FUN = sum)
+  rownames(agg) <- agg$manualSpecies
+  agg <- agg[, -1]
+  agg <- agg[rownames(agg) != "", , drop = FALSE]
+  
+  if (nrow(agg) == 0) stop("Aggregation produced no rows.")
+  
+  # --- 4. Build nReps + averages ----------------------------------------
+  sample_groups <- gsub("(.*).[0-9]$", "\\1", colnames(agg))
+  nReps <- NrepsMaker(agg * 1e14, sample_groups)
+  avr   <- average_by_reps(agg, sample_groups)
+  
+  # --- 5. Long-format (base R, no tidyverse) ----------------------------
+  to_long <- function(mat, valname) {
+    m <- as.matrix(mat)
+    data.frame(
+      spp    = rep(rownames(m), ncol(m)),
+      column = rep(colnames(m), each = nrow(m)),
+      v      = as.vector(m),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    ) |> setNames(c("spp", "column", valname))
+  }
+  
+  nr_long  <- to_long(nReps, "value")
+  avr_long <- to_long(avr,   "avg")
+  
+  long <- merge(nr_long, avr_long, by = c("spp", "column"), all.x = TRUE)
+  
+  long$site  <- expanded_dates$Site[match(long$column, expanded_dates$SampleName)]
+  long$dates <- expanded_dates$CalYear[match(long$column, expanded_dates$SampleName)]
+  
+  # --- 6. Plot per species ----------------------------------------------
+  tag <- if (!is.null(out_prefix)) out_prefix else group_name
+  
+  for (sp in unique(long$spp)) {
+    d1 <- long[long$spp == sp & !is.na(long$dates), ]
+    if (nrow(d1) == 0) next
+    
+    # optional join with beta (if provided)
+    d2 <- if (!is.null(beta_data)) {
+      cbind(d1, beta_data[match(paste(d1$site, d1$dates),
+                                paste(beta_data$site, round(beta_data$year))), ])
+    } else d1
+    
+    sites <- sort(unique(toupper(d2$site)))
+    cols  <- core_data$col[match(sites, core_data$Site)]
+    colv1 <- cols[match(toupper(d2$site), sites)]
+    
+    pdf(paste0("figures/EUK.", tag, ".", sp, ".pdf"), width = 9, height = 6)
+    par(mfrow = c(2, 1), mar = c(3.5, 4, 2.5, 1), oma = c(0, 0, 0, 0),
+        xaxs = "i", xpd = TRUE)
+    
+    # Top: nREps
+    set.seed(1234)
+    plot(d2$dates, jitter(d2$value, 0.8),
+         xlim = c(1760, 2024),
+         xlab = "", ylab = "nPCR reps", main = sp,
+         pch = ifelse(d2$value > 0, 16, 4), col = colv1, bty = "n")
+    legend(1750, -0.5, legend = sites, col = cols,
+           pch = 16, cex = 0.6, bty = "n")
+    
+    # Bottom: avg proportion
+    plot(d2$dates, d2$avg,
+         xlim = c(1760, 2024),
+         xlab = "", ylab = "Avg proportion",
+         pch = ifelse(d2$avg > 0, 16, 4), col = colv1, bty = "n")
+    
+    dev.off()
+  }
+  
+  invisible(long)
+}
 
 
 
@@ -4587,7 +4771,7 @@ plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.95,
 
 # -- Family heatmap -----------------------------------------------------------
 beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WahleBiomass")
+rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
 
 sup_pos <- postBeta.fam$support[2:4, ]
 sup_neg <- postBeta.fam$supportNeg[2:4, ]
