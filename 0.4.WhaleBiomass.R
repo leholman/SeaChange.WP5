@@ -118,6 +118,36 @@ plot(whale.out$year,whale.out$biomass,type="l",lwd=2)
 write.csv(whale.out,"cleandata/whale.model.year.csv")
 
 
+#### Now a plot for a big one! 
+pdf("figures/whales.fig1.pdf", width = 12, height = 2.8)
+par(mfrow = c(1, 1), mar = c(4, 4, 1, 3), xaxs = "i", yaxs = "i", bty = "n")
+
+upper <- blue$`0.975` + fin$`0.975` + hump$`0.975` + sei$`0.975`
+lower <- blue$`0.025` + fin$`0.025` + hump$`0.025` + sei$`0.025`
+mid   <- blue$`0.5`   + fin$`0.5`   + hump$`0.5`   + sei$`0.5`
+
+upper <-upper[blue$year>1775]/1000000
+lower <-lower[blue$year>1775]/1000000
+mid <-mid[blue$year>1775]/1000000
+year <- blue$year[blue$year>1775]
+
+plot(year, mid, type = "n", xlim = c(1770, 2026), bty = "n",ylab="",xlab="",
+     ylim = c(0, max(upper)),axes=FALSE)
+
+polygon(c(year, rev(year)),
+        c(upper, rev(lower)),
+        col = "#7ba0a0",
+        border = NA)
+
+
+lines(year, mid, col = "#2f4f4f",lwd=3)
+axis(2)
+abline(v=1986,lty=2,lwd=2,col="darkred")
+axis(1,lwd=1,lwd.ticks = 1,at = seq(2025,1775,-25),labels = seq(2025,1775,-25) )  
+dev.off()
+
+
+
 ### what about a comparison to metabarcoding data?
 
 

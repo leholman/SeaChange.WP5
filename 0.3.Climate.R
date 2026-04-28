@@ -160,13 +160,42 @@ points(nino34_NDJ$year, nino34_NDJ$value_5yr, type="l", lwd=2, col=add.alpha("fi
 points(nino34_NDJ$year, nino34_NDJ$value_7yr, type="l", lwd=2, col=add.alpha("firebrick",0.8))
 points(nino34_NDJ$year,nino34_NDJ$ENSO_loess,type="l",lwd=3,col=add.alpha("darkorchid3",0.8))
 axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1775,-25),labels = seq(2000,1775,-25) )  
-axis(2)
+axis(4)
 dev.off()
 
 climateout$ENSO <- nino34_NDJ$Nino34_NDJ[match(round(climateout$CalYear),nino34_NDJ$year)]
 climateout$ENSO_3yr <- nino34_NDJ$value_3yr[match(round(climateout$CalYear),nino34_NDJ$year)]
 climateout$ENSO_5yr <- nino34_NDJ$value_5yr[match(round(climateout$CalYear),nino34_NDJ$year)]
 climateout$ENSO_7yr <- nino34_NDJ$value_7yr[match(round(climateout$CalYear),nino34_NDJ$year)]
+
+
+### SAM and ENSO 
+
+pdf("figures/climate/clim.SAM&ENSO.pdf",width=12,height=5)
+par(xpd = NA,mfrow=c(2,1),mar=c(1, 4, 0.5, 3),xpd = NA) 
+plot(combinedSAM.s$year,combinedSAM.s$SAM_Index,pch=16,col="grey90",cex=1.2,
+     xlim=c(1770,2026),ylim=c(-4.6,5.14),bty="n",axes=FALSE,ylab="",xlab="", xaxs = "i", yaxs = "i")
+points(combinedSAM.s$year[combinedSAM.s$year>1956],combinedSAM.s$SAM_Index[combinedSAM.s$year>1956],pch=16,col="grey5",cex=0.9)
+points(combinedSAM.s$year[combinedSAM.s$year<1957],combinedSAM.s$SAM_Index[combinedSAM.s$year<1957],pch=16,col="grey50",cex=0.9)
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_3yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.4))
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_5yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.6))
+points(combinedSAM.s$year,combinedSAM.s$SAM_Index_7yr,type="l",lwd=2,col=add.alpha("dodgerblue",0.8))
+points(combinedSAM.s$year,combinedSAM.s$SAM_loess,type="l",lwd=3,col=add.alpha("darkorchid3",0.8))
+#axis(1,lwd=1,lwd.ticks = 1,at = seq(2000,1775,-25),labels = seq(2000,1775,-25) )  
+axis(2)
+
+
+plot(nino34_NDJ$year,nino34_NDJ$Nino34_NDJ,pch=16,col="grey90",cex=1.2,
+     xlim=c(1770,2026),ylim=c(-3,3),bty="n",axes=FALSE,ylab="",xlab="")
+points(nino34_NDJ$year,nino34_NDJ$Nino34_NDJ,pch=16,col="grey5",cex=0.9)
+points(nino34_NDJ$year, nino34_NDJ$value_3yr, type="l", lwd=2, col=add.alpha("firebrick",0.4))
+points(nino34_NDJ$year, nino34_NDJ$value_5yr, type="l", lwd=2, col=add.alpha("firebrick",0.6))
+points(nino34_NDJ$year, nino34_NDJ$value_7yr, type="l", lwd=2, col=add.alpha("firebrick",0.8))
+points(nino34_NDJ$year,nino34_NDJ$ENSO_loess,type="l",lwd=3,col=add.alpha("darkorchid3",0.8))
+#axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1775,-25),labels = seq(2000,1775,-25) )  
+axis(4)
+dev.off()
+
 
 
 
@@ -361,10 +390,14 @@ dev.off()
 out <- aggregate(SIC ~ Site + Year, data = d, FUN = mean, na.rm = TRUE)
 
 
-pdf("figures/climate/PerSiteSIC.pdf", width = 5, height = 4)
-par(mfrow = c(1, 1), mar = c(5, 5, 0.2, 0.2), xaxs = "i", yaxs = "i", bty = "n")
+pdf("figures/climate/PerSiteSIC.pdf", width = 12, height = 4)
+par(mfrow = c(1, 1), mar = c(4, 4, 1, 3), xaxs = "i", yaxs = "i", bty = "n",xpd = NA)
 
-plot(out$Year,out$SIC,col=add.alpha(coredata$col[match(out$Site,coredata$Site)],0.3),pch=16,xlim=c(1900,2026),ylab="Sea Ice Coverage (%)",xlab="Year")
+plot(out$Year,out$SIC,col=add.alpha(coredata$col[match(out$Site,coredata$Site)],0.3),pch=16,xlim=c(1770,2026),ylab="",xlab="",axes=FALSE)
+#axis(1,lwd=1,lwd.ticks = 1,at = seq(2025,1775,-25),labels = seq(2025,1775,-25) )  
+axis(4)
+
+
 
 for (site in coredata$Site){
   loopdat <- out[out$Site==site,]

@@ -18,6 +18,7 @@ basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glacie
   ylab("Latitude")+
   annotation_scale(location = "bl")+ 
   annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))
+
 dev.off()
 
 pdf("mapping/OverviewV3smol.pdf",height = 5,width = 3.5)
@@ -26,10 +27,14 @@ basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glacie
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color ="black",cex=3.5,crs = 4326)+
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat),data = pt, color = c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73"),cex=2.5,crs = 4326)+
   #ggspatial::geom_spatial_text(aes(x = Lon, y = Lat+0.04,label=CoreID),data = metadata, color = "darkred",cex=2)+
-  xlab("Longitude")+
-  ylab("Latitude")+
+  xlab("")+
+  ylab("")+
   annotation_scale(location = "bl")+ 
-  annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))
+  annotation_north_arrow(location = "tr", which_north = "true", height = unit(0.9, "cm"), width = unit(0.9, "cm"))+
+  theme(legend.position = "right",
+          legend.justification = "bottom",
+          legend.background = element_rect(fill = "transparent", color = NA),
+          legend.key = element_rect(fill = "transparent", color = NA))
 dev.off()
 
 
