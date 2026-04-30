@@ -198,7 +198,7 @@ ASVs.smolphy <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Catego
 ## Taxonomic overview
 
 #EUK taxonomy all family 
-EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Family),euk.reps,output = "Abundance"),minAbun=0.01)
+EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Subdivision),euk.reps,output = "Abundance"),minAbun=0.01)
 row.names(EUK.tax.a)[1] <- "Unknown"
 EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[,sort(colnames(EUK.tax.a))]),margin = 2))
 barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
@@ -306,20 +306,22 @@ connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
 
 # now this works (no name collision)
 site_mats <- setNames(
-  lapply(sites, make_site_year, M = EUK.tax.a.2, map = expandedDates, years = all_years),
+  lapply(sites, make_site_year, M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1,], map = expandedDates, years = all_years),
   sites
 )
 
 # Consistent spacing and limits
 sp <- 0.2
 ylim <- c(0, 1)
-pal <- rev(getPalette(nrow(EUK.tax.a.2)))  # you already defined getPalette
+pal <- getPalette(nrow(EUK.tax.a.2)) # you already defined getPalette
 
 pdf("figures/EUK.bigplot.pdf",width = 14,height = 10)
 par(mfrow = c(length(sites), 1),
-    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    mar = c(0.2, 4.1, 0.5, 1.1),  # small bottom margins for all but last
     oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
     xpd = NA)
+
+
 
 for (i in c(2,4,3,1,5)) {
   site <- sites[i]
@@ -359,7 +361,7 @@ for (i in c(2,4,3,1,5)) {
 # legend
 legend(0,3,
        legend = rownames(EUK.tax.a.2),
-       fill   = pal,
+       fill   = rev(pal),
        border = NA,
        cex    = 0.6,
        bty    = "n",
@@ -368,6 +370,161 @@ legend(0,3,
 
 dev.off()
 
+
+##### How about this 
+# Common, ordered time axis across all sites
+all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites     <- unique(expandedDates$Site)
+
+# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][, 1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+site_mats <- setNames(
+  lapply(sites, make_site_year,
+         M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1, ],
+         map = expandedDates,
+         years = all_years),
+  sites
+)
+
+# --- Pastel, colourblind-friendly palette for up to ~15 categories ---
+pastelize <- function(hex, mix = 0.40){
+  rgb_mat <- col2rgb(hex) / 255
+  white   <- matrix(1, nrow = 3, ncol = ncol(rgb_mat))
+  out     <- rgb_mat * (1 - mix) + white * mix
+  rgb(out[1, ], out[2, ], out[3, ])
+}
+
+
+# --- Soft palette with more contrast between taxa ---
+soft_pal <- c(
+  "Unknown"          = "#BDB7AE",  # darker warm grey — recedes
+  "Apicomplexa"      = "#9B7EBD",  # deeper lilac/purple
+  "Bigyra"           = "#5FA8A3",  # teal — saturated but soft
+  "Cercozoa"         = "#E89F71",  # warm peach-orange
+  "Chlorophyta_X"    = "#B8D87A",  # bright sage — pops
+  "Ciliophora"       = "#6FA8DC",  # clear powder blue
+  "Dinoflagellata"   = "#E87A8A",  # rosy pink — saturated
+  "Fungi"            = "#8B6F47",  # warm brown — earthy, distinct
+  "Gyrista"          = "#4A9D6C",  # deeper diatom green
+  "Ichthyosporea"    = "#F2C9A0",  # pale apricot
+  "Metazoa"          = "#C75B93",  # magenta — animal pop
+  "Proteobacteria_X" = "#3D5A80",  # deep slate blue
+  "Radiolaria"       = "#F0D060",  # golden yellow
+  "Others"           = "#8A8A7A"   # darker olive-grey — recedes
+)
+
+pal <- rev(soft_pal[rownames(EUK.tax.a.2)])
+
+# Consistent spacing and limits
+sp   <- 0.2
+ylim <- c(0, 1)
+
+# --- X-axis tick positions: every ~25 years, on round numbers ---
+tick_step  <- 25
+tick_years <- seq(1775,
+                  2025,
+                  by = tick_step)
+
+
+pdf("figures/EUK.bigplot.2.pdf", width = 10, height = 6.5)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.2, 4.1, 0.5, 1.1),
+    oma = c(6, 0, 0, 0),
+    xpd = NA,
+    las = 1)
+
+site_order <- c(2, 4, 3, 1, 5)
+
+for (idx in seq_along(site_order)) {
+  i    <- site_order[idx]
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  mat[, colSums(mat) == 0] <- NA
+  
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width  = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "s")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  barplot(mat,
+          col    = pal,
+          space  = 0,
+          width  = 30,
+          ylim   = ylim,
+          border = NA,
+          xaxt   = "n",
+          yaxt   = "n",
+          add    = TRUE)
+  
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  # Only the bottom panel gets the shared x-axis
+  if (idx == length(site_order)) {
+    # Map calendar years to bar-plot positions (bp is aligned with all_years)
+    tick_pos <- bp[match(tick_years, all_years)]
+    keep     <- !is.na(tick_pos)
+    axis(1,
+         at      = tick_pos[keep],
+         labels  = tick_years[keep],
+         las     = 1,
+         cex.axis = 1.5)
+    mtext("", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,2.2,
+       legend = gsub("_X","",rownames(EUK.tax.a.2)),
+       fill   = rev(pal),            # match plotting order (no rev needed)
+       border = NA,
+       cex    = 1.2,
+       bty    = "n",
+       inset  = c(-0.01, 0),
+       xpd    = NA)
+
+dev.off()
 
 
 
@@ -1273,7 +1430,7 @@ alpha_genus_avg_reps <- alpha_genus_avg %>%
 
 
 
-pdf("figures/EUK_genus.Q0.pdf", height = 4.5, width = 11)
+pdf("figures/EUK_genus.Q0.pdf", height = 4.5, width = 12)
 plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)],
      alpha_genus_avg$q0_mean,
      col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
@@ -1378,7 +1535,7 @@ for (group_name in names(asv_groups)) {
 
   
   ## Plot Q0
-  pdf(paste0("figures/", group_name, ".genus.Q0.pdf"),  height = 4.5, width = 11)
+  pdf(paste0("figures/", group_name, ".genus.Q0.pdf"),  height = 4.5, width = 12)
   plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "", alpha_avg$sample), expandedDates$SampleName)],
        alpha_avg$q0_mean,
        col = add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "", alpha_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
@@ -1625,116 +1782,163 @@ text(EUK.nMDS.b$points[,1],
 dev.off()
 
 
-
-
 # A new version with connecting lines
+# --- helper: mix a color toward white or black ---
+shade_col <- function(col, amount) {
+  # amount in [-1, 1]: positive = toward white, negative = toward black
+  rgb_vals <- col2rgb(col) / 255
+  if (amount >= 0) {
+    mixed <- rgb_vals + (1 - rgb_vals) * amount
+  } else {
+    mixed <- rgb_vals * (1 + amount)
+  }
+  rgb(mixed[1, ], mixed[2, ], mixed[3, ])
+}
 
-nmds_names <- rownames(EUK.nMDS.j$points)
-nmds_sites <- expandedDates$Site[match(nmds_names, expandedDates$SampleName)]
-nmds_years <- expandedDates$CalYear[match(nmds_names, expandedDates$SampleName)]
-nmds_cols <- coredata$col[match(toupper(nmds_sites), toupper(coredata$Site))]
-
-# --- Jaccard NMDS with trajectories ---
-pdf("figures/NMDS_ALL_jaccard_trajectories.pdf", height = 7, width = 7.5)
-
-plot(EUK.nMDS.j$points[,1], 
-     EUK.nMDS.j$points[,2],
-     col = nmds_cols, pch = 16, xlab = "", ylab = "")
-
-# Add trajectory lines per site
-for (s in unique(nmds_sites)) {
-  idx <- which(nmds_sites == s)
-  ord <- idx[order(nmds_years[idx])]
-  for (i in 1:(length(ord) - 1)) {
-    arrows(EUK.nMDS.j$points[ord[i], 1], EUK.nMDS.j$points[ord[i], 2],
-           EUK.nMDS.j$points[ord[i+1], 1], EUK.nMDS.j$points[ord[i+1], 2],
-           col = nmds_cols[idx[1]], length = 0.08, lwd = 2)
+# --- helper: draw trajectories on an existing plot ---
+draw_trajectories <- function(points, sites, years, site_col,
+                              smooth = FALSE, spar = 0.7,
+                              year_step = 25,
+                              base_lighten = 0.5,   # how much to lighten site col -> trajectory midtone
+                              shade_offset = 0.18) { # +/- around midtone for alternating bands
+  
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    
+    # build the two alternating shades from the site color
+    midtone     <- shade_col(site_col[idx[1]], base_lighten)
+    shade_light <- shade_col(midtone,  shade_offset)
+    shade_dark  <- shade_col(midtone, -shade_offset)
+    
+    if (smooth && length(ord) >= 4) {
+      x <- points[ord, 1]; y <- points[ord, 2]; yr <- years[ord]
+      t <- c(0, cumsum(sqrt(diff(x)^2 + diff(y)^2)))
+      tt <- seq(min(t), max(t), length.out = 400)
+      sx <- predict(smooth.spline(t, x, spar = spar), tt)$y
+      sy <- predict(smooth.spline(t, y, spar = spar), tt)$y
+      
+      # year at every point along tt: invert (yr -> t) mapping, then back to year via tt
+      tt_to_yr <- approx(t, yr, xout = tt, rule = 2)$y
+      
+      # alternation index: floor((year - oldest) / year_step) %% 2
+      band_idx <- floor((tt_to_yr - min(yr)) / year_step) %% 2
+      seg_cols <- ifelse(band_idx[-length(band_idx)] == 0, shade_dark, shade_light)
+      
+      segments(sx[-length(sx)], sy[-length(sy)],
+               sx[-1],           sy[-1],
+               col = seg_cols, lwd = 2)
+      
+      # arrowhead in whichever shade the final segment uses
+      final_col <- if (tail(band_idx, 1) == 0) shade_dark else shade_light
+      arrows(sx[length(sx) - 1], sy[length(sy) - 1],
+             sx[length(sx)],     sy[length(sy)],
+             col = final_col, length = 0.08, lwd = 2)
+      
+    } else if (length(ord) >= 2) {
+      x <- points[ord, 1]; y <- points[ord, 2]; yr <- years[ord]
+      # alternation by year of the starting point of each segment
+      band_idx <- floor((yr[-length(yr)] - min(yr)) / year_step) %% 2
+      seg_cols <- ifelse(band_idx == 0, shade_dark, shade_light)
+      for (i in seq_len(length(ord) - 1)) {
+        arrows(x[i], y[i], x[i+1], y[i+1],
+               col = seg_cols[i], length = 0.08, lwd = 2)
+      }
+    }
+  }
+  
+  # redraw points on top in their original (unlightened) site color
+  points(points[, 1], points[, 2], col = site_col, pch = 16, cex = 0.8)
+  
+  # label first and last year per site
+  for (s in unique(sites)) {
+    idx <- which(sites == s)
+    ord <- idx[order(years[idx])]
+    endpts <- ord[c(1, length(ord))]
+    text(points[endpts, 1], points[endpts, 2],
+         labels = years[endpts], pos = 3, cex = 0.6,col=adjustcolor(coredata$col[match(toupper(s), toupper(coredata$Site))],red.f = 0.5, green.f = 0.5, blue.f = 0.5))
   }
 }
-# Year labels
-for (s in unique(nmds_sites)) {
-  idx <- which(nmds_sites == s)
-  ord <- idx[order(nmds_years[idx])]
-  thin <- ord[seq(1, length(ord), by = 5)]
-  thin <- union(thin, ord[c(1, length(ord))])  # always include endpoints
-  text(EUK.nMDS.j$points[thin, 1], EUK.nMDS.j$points[thin, 2],
-       labels = nmds_years[thin], pos = 3, cex = 0.6,)
+
+# --- helper: full trajectory plot to PDF ---
+trajectory_pdf <- function(file, points, sites, years, site_col,
+                           main, smooth = FALSE, year_step = 20,
+                           base_lighten = 0.5, shade_offset = 0.3) {
+  pdf(file, height = 5, width = 5)
+  plot(points[,1], points[,2],
+       col = site_col, pch = 16, cex=0.8,
+       main = main, xlab = "", ylab = "")
+  draw_trajectories(points, sites, years, site_col,
+                    smooth = smooth, year_step = year_step,
+                    base_lighten = base_lighten, shade_offset = shade_offset)
+  dev.off()
 }
 
-dev.off()
+# ======================================================
+# ALL eukaryotes
+# ======================================================
+nmds_names_j <- rownames(EUK.nMDS.j$points)
+nmds_sites_j <- expandedDates$Site[match(nmds_names_j, expandedDates$SampleName)]
+nmds_years_j <- expandedDates$CalYear[match(nmds_names_j, expandedDates$SampleName)]
+nmds_cols_j  <- coredata$col[match(toupper(nmds_sites_j), toupper(coredata$Site))]
 
-
-# --- Bray-Curtis NMDS with trajectories ---
 nmds_names_b <- rownames(EUK.nMDS.b$points)
 nmds_sites_b <- expandedDates$Site[match(nmds_names_b, expandedDates$SampleName)]
 nmds_years_b <- expandedDates$CalYear[match(nmds_names_b, expandedDates$SampleName)]
-nmds_cols_b <- coredata$col[match(toupper(nmds_sites_b), toupper(coredata$Site))]
+nmds_cols_b  <- coredata$col[match(toupper(nmds_sites_b), toupper(coredata$Site))]
 
-pdf("figures/NMDS_ALL_bray_trajectories.pdf", height = 7, width = 7.5)
-plot(EUK.nMDS.b$points[,1], 
-     EUK.nMDS.b$points[,2],
-     col = nmds_cols_b, pch = 16, xlab = "", ylab = "")
-# Add trajectory lines per site
-for (s in unique(nmds_sites_b)) {
-  idx <- which(nmds_sites_b == s)
-  ord <- idx[order(nmds_years_b[idx])]
-  for (i in 1:(length(ord) - 1)) {
-    arrows(EUK.nMDS.b$points[ord[i], 1], EUK.nMDS.b$points[ord[i], 2],
-           EUK.nMDS.b$points[ord[i+1], 1], EUK.nMDS.b$points[ord[i+1], 2],
-           col = nmds_cols_b[idx[1]], length = 0.08, lwd = 2)
-  }
-}
-# Year labels
-for (s in unique(nmds_sites_b)) {
-  idx <- which(nmds_sites_b == s)
-  ord <- idx[order(nmds_years_b[idx])]
-  thin <- ord[seq(1, length(ord), by = 5)]
-  thin <- union(thin, ord[c(1, length(ord))])
-  text(EUK.nMDS.b$points[thin, 1], EUK.nMDS.b$points[thin, 2],
-       labels = nmds_years_b[thin], pos = 3, cex = 0.6)
-}
-dev.off()
+# Jaccard – straight + wiggly
+trajectory_pdf("figures/NMDS_ALL_jaccard_trajectories.pdf",
+               EUK.nMDS.j$points, nmds_sites_j, nmds_years_j, nmds_cols_j,
+               main = "",
+               smooth = FALSE)
+
+trajectory_pdf("figures/NMDS_ALL_jaccard_wiggly_trajectories.pdf",
+               EUK.nMDS.j$points, nmds_sites_j, nmds_years_j, nmds_cols_j,
+               main = "",
+               smooth = TRUE)
+
+# Bray – straight + wiggly
+trajectory_pdf("figures/NMDS_ALL_bray_trajectories.pdf",
+               EUK.nMDS.b$points, nmds_sites_b, nmds_years_b, nmds_cols_b,
+               main = "",
+               smooth = FALSE)
+
+trajectory_pdf("figures/NMDS_ALL_bray_wiggly_trajectories.pdf",
+               EUK.nMDS.b$points, nmds_sites_b, nmds_years_b, nmds_cols_b,
+               main = "",
+               smooth = TRUE)
 
 
-
-
-
-### beta by group 
-
-# Define ASV groups
+# ======================================================
+# By group
+# ======================================================
 asv_groups <- list(
   Metazoa  = ASVs.met,
   Protists = ASVs.pro,
   Bacteria = ASVs.bac
 )
 
-# Loop through each group
 for (group_name in names(asv_groups)) {
   
-  # Subset count matrix
   group_asvs <- asv_groups[[group_name]]
   mat <- euk.reps[rownames(euk.reps) %in% group_asvs, , drop = FALSE]
-  
-  # Transpose + convert to relative abundance
   mat_rel <- prop.table(as.matrix(mat), 2)
   
-  # NMDS - Jaccard (presence/absence)
   set.seed(42)
-  nmds_j <- metaMDS(vegdist(t(mat_rel), binary = TRUE, method = "jaccard"), trymax = 200, parallel = 7)
-  
-  # NMDS - Bray-Curtis
+  nmds_j <- metaMDS(vegdist(t(mat_rel), binary = TRUE, method = "jaccard"),
+                    trymax = 200, parallel = 7)
   set.seed(42)
-  nmds_b <- metaMDS(vegdist(t(mat_rel), method = "bray"), trymax = 200, parallel = 7)
+  nmds_b <- metaMDS(vegdist(t(mat_rel), method = "bray"),
+                    trymax = 200, parallel = 7)
   
-  # Get matching metadata
-  # Get matching metadata
   sample_names <- rownames(nmds_j$points)
   match_idx <- match(sample_names, expandedDates$SampleName)
   sites <- expandedDates$Site[match_idx]
   years <- expandedDates$CalYear[match_idx]
   site_col <- coredata$col[match(toupper(sites), toupper(coredata$Site))]
   
-  # Plot Jaccard
+  # Plain plots (no trajectories)
   pdf(paste0("figures/NMDS_", group_name, "_jaccard.pdf"), height = 7, width = 7.5)
   plot(nmds_j$points[,1], nmds_j$points[,2],
        col = site_col, pch = 16,
@@ -1743,7 +1947,6 @@ for (group_name in names(asv_groups)) {
        labels = years, pos = 3, cex = 0.6)
   dev.off()
   
-  # Plot Bray
   pdf(paste0("figures/NMDS_", group_name, "_bray.pdf"), height = 7, width = 7.5)
   plot(nmds_b$points[,1], nmds_b$points[,2],
        col = site_col, pch = 16,
@@ -1752,56 +1955,30 @@ for (group_name in names(asv_groups)) {
        labels = years, pos = 3, cex = 0.6)
   dev.off()
   
-  # --- Jaccard trajectory plot ---
-  pdf(paste0("figures/NMDS_", group_name, "_jaccard_trajectories.pdf"), height = 7, width = 7.5)
-  plot(nmds_j$points[,1], nmds_j$points[,2],
-       col = site_col, pch = 16,
-       main = paste(group_name, "– Jaccard (trajectories)"),
-       xlab = "", ylab = "")
-  for (s in unique(sites)) {
-    idx <- which(sites == s)
-    ord <- idx[order(years[idx])]
-    for (i in 1:(length(ord) - 1)) {
-      arrows(nmds_j$points[ord[i], 1], nmds_j$points[ord[i], 2],
-             nmds_j$points[ord[i+1], 1], nmds_j$points[ord[i+1], 2],
-             col = site_col[idx[1]], length = 0.08, lwd = 2)
-    }
-  }
-  for (s in unique(sites)) {
-    idx <- which(sites == s)
-    ord <- idx[order(years[idx])]
-    thin <- ord[seq(1, length(ord), by = 5)]
-    thin <- union(thin, ord[c(1, length(ord))])
-    text(nmds_j$points[thin, 1], nmds_j$points[thin, 2],
-         labels = years[thin], pos = 3, cex = 0.6)
-  }
-  dev.off()
+  # Jaccard trajectories – straight + wiggly
+  trajectory_pdf(paste0("figures/NMDS_", group_name, "_jaccard_trajectories.pdf"),
+                 nmds_j$points, sites, years, site_col,
+                 main = paste(group_name, "– Jaccard (trajectories)"),
+                 smooth = FALSE)
   
-  # --- Bray-Curtis trajectory plot ---
-  pdf(paste0("figures/NMDS_", group_name, "_bray_trajectories.pdf"), height = 7, width = 7.5)
-  plot(nmds_b$points[,1], nmds_b$points[,2],
-       col = site_col, pch = 16,
-       main = paste(group_name, "– Bray-Curtis (trajectories)"),
-       xlab = "", ylab = "")
-  for (s in unique(sites)) {
-    idx <- which(sites == s)
-    ord <- idx[order(years[idx])]
-    for (i in 1:(length(ord) - 1)) {
-      arrows(nmds_b$points[ord[i], 1], nmds_b$points[ord[i], 2],
-             nmds_b$points[ord[i+1], 1], nmds_b$points[ord[i+1], 2],
-             col = site_col[idx[1]], length = 0.08, lwd = 2)
-    }
-  }
-  for (s in unique(sites)) {
-    idx <- which(sites == s)
-    ord <- idx[order(years[idx])]
-    thin <- ord[seq(1, length(ord), by = 5)]
-    thin <- union(thin, ord[c(1, length(ord))])
-    text(nmds_b$points[thin, 1], nmds_b$points[thin, 2],
-         labels = years[thin], pos = 3, cex = 0.6)
-  }
-  dev.off()
+  trajectory_pdf(paste0("figures/NMDS_", group_name, "_jaccard_wiggly_trajectories.pdf"),
+                 nmds_j$points, sites, years, site_col,
+                 main = paste(group_name, "– Jaccard (smoothed trajectories)"),
+                 smooth = TRUE)
+  
+  # Bray trajectories – straight + wiggly
+  trajectory_pdf(paste0("figures/NMDS_", group_name, "_bray_trajectories.pdf"),
+                 nmds_b$points, sites, years, site_col,
+                 main = paste(group_name, "– Bray-Curtis (trajectories)"),
+                 smooth = FALSE)
+  
+  trajectory_pdf(paste0("figures/NMDS_", group_name, "_bray_wiggly_trajectories.pdf"),
+                 nmds_b$points, sites, years, site_col,
+                 main = paste(group_name, "– Bray-Curtis (smoothed trajectories)"),
+                 smooth = TRUE)
 }
+
+
 
 #### now let's run some tests 
 beta <- data.frame("sample" = paste(clim$Site,clim$SampleID),
@@ -1841,7 +2018,7 @@ mod_jacc <- dbrda(
 
 
 
-plot_dbrda <- function(mod, title) {
+plot_dbrda <- function(mod, title, trajectories = FALSE) {
   
   sc_sites <- scores(mod, display = "sites", choices = 1:2)
   sc_bp <- scores(mod, display = "bp", choices = 1:2)
@@ -1864,6 +2041,39 @@ plot_dbrda <- function(mod, title) {
        main = title)
   abline(h = 0, v = 0, lty = 2, col = "grey60")
   
+  if (trajectories) {
+    years <- beta$year
+    for (s in unique(sample_sites)) {
+      idx <- which(sample_sites == s)
+      ord <- idx[order(years[idx])]
+      if (length(ord) >= 3) {
+        x <- sc_sites[ord, 1]
+        y <- sc_sites[ord, 2]
+        t <- c(0, cumsum(sqrt(diff(x)^2 + diff(y)^2)))
+        tt <- seq(min(t), max(t), length.out = 100)
+        sx <- predict(smooth.spline(t, x, spar = 0.5), tt)$y
+        sy <- predict(smooth.spline(t, y, spar = 0.5), tt)$y
+        lines(sx, sy, col = add.alpha(site_cols[idx[1]],alpha = 0.4), lwd = 1.5)
+        arrows(sx[length(sx) - 1], sy[length(sy) - 1],
+               sx[length(sx)],     sy[length(sy)],
+               col = add.alpha(site_cols[idx[1]],alpha = 0.4), length = 0.08, lwd = 1.5)
+      }
+    }
+    
+   points(sc_sites[,1], sc_sites[,2],
+         col = site_cols, pch = 16, cex = 1.2)
+    
+    # year labels (unchanged)
+    for (s in unique(sample_sites)) {
+      idx <- which(sample_sites == s)
+      ord <- idx[order(years[idx])]
+      thin <- ord[seq(1, length(ord), by = 5)]
+      thin <- union(thin, ord[c(1, length(ord))])
+      text(sc_sites[thin, 1], sc_sites[thin, 2],
+           labels = years[thin], pos = 3, cex = 0.6)
+    }
+  }
+  
   arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
          col = "black", lwd = 2, length = 0.1)
   
@@ -1873,14 +2083,14 @@ plot_dbrda <- function(mod, title) {
   
   u_sites <- unique(sample_sites)
   u_cols <- coredata$col[match(toupper(u_sites), toupper(coredata$Site))]
- # legend("topright", legend = u_sites, col = u_cols,
-   #      pch = 16, cex = 0.75, bty = "n")
+  # legend("topright", legend = u_sites, col = u_cols,
+  #      pch = 16, cex = 0.75, bty = "n")
 }
 pdf("figures/stat.beat.dbRDA.b.pdf",height = 8,width = 8)
-plot_dbrda(mod_bray, "db-RDA – Bray-Curtis")
+plot_dbrda(mod_bray, "db-RDA – Bray-Curtis",trajectories =TRUE )
 dev.off()
 pdf("figures/stat.beat.dbRDA.j.pdf",height = 8,width = 8)
-plot_dbrda(mod_jacc, "db-RDA – Jaccard")
+plot_dbrda(mod_jacc, "db-RDA – Jaccard",trajectories =TRUE )
 dev.off()
 
 
@@ -4810,6 +5020,73 @@ for (i in 1:n_pred) {
   }
 }
 title("Metazoan family responses to environmental drivers")
+
+
+nmds_names <- rownames(EUK.nMDS.j$points)
+nmds_sites <- expandedDates$Site[match(nmds_names, expandedDates$SampleName)]
+nmds_years <- expandedDates$CalYear[match(nmds_names, expandedDates$SampleName)]
+nmds_cols <- coredata$col[match(toupper(nmds_sites), toupper(coredata$Site))]
+
+# --- Jaccard NMDS with trajectories ---
+pdf("figures/NMDS_ALL_jaccard_trajectories.pdf", height = 7, width = 7.5)
+
+plot(EUK.nMDS.j$points[,1], 
+     EUK.nMDS.j$points[,2],
+     col = nmds_cols, pch = 16, xlab = "", ylab = "")
+
+# Add trajectory lines per site
+for (s in unique(nmds_sites)) {
+  idx <- which(nmds_sites == s)
+  ord <- idx[order(nmds_years[idx])]
+  for (i in 1:(length(ord) - 1)) {
+    arrows(EUK.nMDS.j$points[ord[i], 1], EUK.nMDS.j$points[ord[i], 2],
+           EUK.nMDS.j$points[ord[i+1], 1], EUK.nMDS.j$points[ord[i+1], 2],
+           col = nmds_cols[idx[1]], length = 0.08, lwd = 2)
+  }
+}
+# Year labels
+for (s in unique(nmds_sites)) {
+  idx <- which(nmds_sites == s)
+  ord <- idx[order(nmds_years[idx])]
+  thin <- ord[seq(1, length(ord), by = 5)]
+  thin <- union(thin, ord[c(1, length(ord))])  # always include endpoints
+  text(EUK.nMDS.j$points[thin, 1], EUK.nMDS.j$points[thin, 2],
+       labels = nmds_years[thin], pos = 3, cex = 0.6,)
+}
+
+dev.off()
+
+
+# --- Bray-Curtis NMDS with trajectories ---
+nmds_names_b <- rownames(EUK.nMDS.b$points)
+nmds_sites_b <- expandedDates$Site[match(nmds_names_b, expandedDates$SampleName)]
+nmds_years_b <- expandedDates$CalYear[match(nmds_names_b, expandedDates$SampleName)]
+nmds_cols_b <- coredata$col[match(toupper(nmds_sites_b), toupper(coredata$Site))]
+
+pdf("figures/NMDS_ALL_bray_trajectories.pdf", height = 7, width = 7.5)
+plot(EUK.nMDS.b$points[,1], 
+     EUK.nMDS.b$points[,2],
+     col = nmds_cols_b, pch = 16, xlab = "", ylab = "")
+# Add trajectory lines per site
+for (s in unique(nmds_sites_b)) {
+  idx <- which(nmds_sites_b == s)
+  ord <- idx[order(nmds_years_b[idx])]
+  for (i in 1:(length(ord) - 1)) {
+    arrows(EUK.nMDS.b$points[ord[i], 1], EUK.nMDS.b$points[ord[i], 2],
+           EUK.nMDS.b$points[ord[i+1], 1], EUK.nMDS.b$points[ord[i+1], 2],
+           col = nmds_cols_b[idx[1]], length = 0.08, lwd = 2)
+  }
+}
+# Year labels
+for (s in unique(nmds_sites_b)) {
+  idx <- which(nmds_sites_b == s)
+  ord <- idx[order(nmds_years_b[idx])]
+  thin <- ord[seq(1, length(ord), by = 5)]
+  thin <- union(thin, ord[c(1, length(ord))])
+  text(EUK.nMDS.b$points[thin, 1], EUK.nMDS.b$points[thin, 2],
+       labels = nmds_years_b[thin], pos = 3, cex = 0.6)
+}
+dev.off()
 
 
 
