@@ -515,7 +515,7 @@ for (idx in seq_along(site_order)) {
 }
 
 # legend
-legend(0,2.2,
+legend(0,2.4,
        legend = gsub("_X","",rownames(EUK.tax.a.2)),
        fill   = rev(pal),            # match plotting order (no rev needed)
        border = NA,
@@ -1183,6 +1183,381 @@ SC.con <- coniss.helper("SC", euk.prop) # 1
 cutree(SC.con, k = 1)
 
 
+####====Taxonomic overview + CONISS zoned big plots====####
+## Assumes everything up to and including '## Taxonomic overview' has been run
+
+####----0. Build the EUK Subdivision-level matrix used by the first big plot----####
+EUK.tax.a <- minAbundance(
+  CountTable(as.character(euk.pr2.2$Subdivision), euk.reps, output = "Abundance"),
+  minAbun = 0.01
+)
+row.names(EUK.tax.a)[1] <- "Unknown"
+EUK.tax.a.2 <- as.matrix(prop.table(
+  as.matrix(EUK.tax.a[, sort(colnames(EUK.tax.a))]), margin = 2
+))
+
+
+####----1. Helpers shared by all big plots----####
+
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][, 1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+coniss.helper <- function(site, data){
+  data.sites <- expandedDates$Site[match(colnames(data), expandedDates$SampleName)]
+  data.sub   <- data[, grepl(site, data.sites), drop = FALSE]
+  yrs        <- expandedDates$CalYear[match(colnames(data.sub), expandedDates$SampleName)]
+  data.sort  <- data.sub[, order(yrs), drop = FALSE]
+  d   <- vegdist(t(data.sort), method = "bray")
+  con <- chclust(d, method = "coniss")
+  con
+}
+
+coniss_boundaries <- function(con, k, map = expandedDates){
+  if (is.null(con) || k < 2) return(numeric(0))
+  cl  <- cutree(con, k = k)
+  yrs <- map$CalYear[match(names(cl), map$SampleName)]
+  br  <- which(diff(cl) != 0)
+  if (length(br) == 0) return(numeric(0))
+  (yrs[br] + yrs[br + 1]) / 2
+}
+
+draw_zone_lines <- function(boundary_years, bp, all_years,
+                            col = "darkred", lwd = 2, lty = 5){
+  if (length(boundary_years) == 0) return(invisible(NULL))
+  x <- approx(x = all_years, y = bp, xout = boundary_years, rule = 2)$y
+  abline(v = x, col = col, lwd = lwd, lty = lty, xpd = FALSE)
+}
+
+
+####----2. Build per-taxon community matrices----####
+
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## Metazoa
+euk.met.only  <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
+euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only), euk.pr2.2$X.1), ]
+met.fam <- euk.pr2.2.met$Family
+met.fam[is.na(met.fam) | met.fam == ""] <- "Unknown"
+EUK.met   <- minAbundance(CountTable(met.fam, euk.met.only, output = "Abundance"), minAbun = 0.01)
+EUK.met.2 <- as.matrix(EUK.met)
+
+## Diatoms
+euk.dia.only  <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1), ]
+dia.fam <- euk.pr2.2.dia$Family
+dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
+EUK.dia   <- minAbundance(CountTable(dia.fam, euk.dia.only, output = "Abundance"), minAbun = 0.01)
+EUK.dia.3 <- as.matrix(EUK.dia)
+
+## Dinoflagellates
+euk.din.only  <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1), ]
+din.fam <- euk.pr2.2.din$Family
+din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
+EUK.din   <- minAbundance(CountTable(din.fam, euk.din.only, output = "Abundance"), minAbun = 0.01)
+EUK.din.2 <- as.matrix(EUK.din)
+
+## Small phytoplankton
+euk.smolphy.only  <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1), ]
+smolphy.fam <- euk.pr2.2.smolphy$Family
+smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
+EUK.smolphy   <- minAbundance(CountTable(smolphy.fam, euk.smolphy.only, output = "Abundance"), minAbun = 0.01)
+EUK.smolphy.2 <- as.matrix(EUK.smolphy)
+
+
+####----3. Site/year scaffolding----####
+
+site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
+
+if (!exists("expandedDates")) {
+  cn <- colnames(euk.reps)
+  expandedDates <- merge(
+    data.frame(SampleName = cn,
+               Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
+               SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
+               stringsAsFactors = FALSE),
+    dates, by = c("Site", "SampleID"), all.x = TRUE
+  )
+  expandedDates$originalCalYear <- expandedDates$CalYear
+  expandedDates$CalYear         <- round(expandedDates$CalYear)
+}
+
+all_years  <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites      <- unique(expandedDates$Site)
+site_order <- c(2, 4, 3, 1, 5)
+
+
+####----4. CONISS for every site x dataset combination----####
+
+k_all  <- c(BB = 2, MC = 2, p56 = 4, p68 = 3, SC = 1)
+k_met  <- c(BB = 2, MC = 5, p56 = 3, p68 = 3, SC = 6)
+k_dia  <- c(BB = 3, MC = 3, p56 = 2, p68 = 3, SC = 1)
+k_din  <- c(BB = 2, MC = 1, p56 = 2, p68 = 4, SC = 1)
+k_smol <- c(BB = 2, MC = 1, p56 = 3, p68 = 2, SC = 2)
+
+run_coniss_all_sites <- function(M){
+  setNames(lapply(sites, function(s) coniss.helper(s, M)), sites)
+}
+
+con_all  <- run_coniss_all_sites(euk.prop)
+con_met  <- run_coniss_all_sites(euk.met.only)
+con_dia  <- run_coniss_all_sites(euk.dia.only)
+con_din  <- run_coniss_all_sites(euk.din.only)
+con_smol <- run_coniss_all_sites(euk.smolphy.only)
+
+zone_years <- function(con_list, k_vec){
+  setNames(lapply(names(con_list),
+                  function(s) coniss_boundaries(con_list[[s]], k_vec[s])),
+           names(con_list))
+}
+
+zones_all  <- zone_years(con_all,  k_all)
+zones_met  <- zone_years(con_met,  k_met)
+zones_dia  <- zone_years(con_dia,  k_dia)
+zones_din  <- zone_years(con_din,  k_din)
+zones_smol <- zone_years(con_smol, k_smol)
+
+
+####----5. Pre-compute site x year matrices and shared ylim per dataset----####
+
+build_site_mats <- function(M_full){
+  setNames(
+    lapply(sites, make_site_year, M = M_full,
+           map = expandedDates, years = all_years),
+    sites
+  )
+}
+
+# largest stacked-bar total observed across all sites for this dataset
+shared_ylim_max <- function(site_mats){
+  vals <- unlist(lapply(site_mats, function(mat) {
+    mat[is.na(mat)] <- 0
+    colSums(mat)
+  }))
+  max(vals, na.rm = TRUE)
+}
+
+site_mats_all  <- build_site_mats(EUK.tax.a.2[nrow(EUK.tax.a.2):1, ])
+site_mats_met  <- build_site_mats(EUK.met.2)
+site_mats_dia  <- build_site_mats(EUK.dia.3)
+site_mats_din  <- build_site_mats(EUK.din.2)
+site_mats_smol <- build_site_mats(EUK.smolphy.2)
+
+ymax_all  <- shared_ylim_max(site_mats_all)    # ~1 (proportions sum to 1)
+ymax_met  <- shared_ylim_max(site_mats_met)
+ymax_dia  <- shared_ylim_max(site_mats_dia)
+ymax_din  <- shared_ylim_max(site_mats_din)
+ymax_smol <- shared_ylim_max(site_mats_smol)
+
+
+####----6. Core plotting function----####
+# Same y-axis (0, ymax) across all 5 site panels of a dataset.
+# Legend placed on the LAST (bottom) panel using user-supplied coords,
+# matching the carefully placed legends from the original plots.
+
+big_plot_with_zones <- function(site_mats,
+                                zones_by_site,
+                                pal,
+                                ymax,
+                                pdf_path,
+                                legend_x, legend_y,
+                                legend_labels,
+                                legend_fill,
+                                legend_cex   = 0.6,
+                                ribbon_alpha = 0.70,
+                                width = 14, height = 10){
+  pdf(pdf_path, width = width, height = height)
+  par(mfrow = c(length(sites), 1),
+      mar = c(0.5, 4.1, 1.1, 1.1),
+      oma = c(6, 0, 0, 0),
+      xpd = NA)
+  
+  ylim <- c(0, ymax)
+  
+  for (idx in seq_along(site_order)) {
+    i    <- site_order[idx]
+    site <- sites[i]
+    mat  <- site_mats[[site]]
+    
+    bp <- barplot(mat,
+                  col    = pal,
+                  space  = 0,
+                  width  = 30,
+                  ylim   = ylim,
+                  border = NA,
+                  xaxt   = "n",
+                  yaxt   = "t")
+    connect_observed(M = mat, bp = bp, cols = pal, alpha = ribbon_alpha)
+    barplot(mat,
+            col    = pal,
+            space  = 0,
+            width  = 30,
+            ylim   = ylim,
+            border = NA,
+            xaxt   = "n",
+            yaxt   = "t",
+            add    = TRUE)
+    
+    draw_zone_lines(zones_by_site[[site]], bp, all_years)
+    
+    mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+    
+    if (idx == length(site_order)) {
+      axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+      mtext("Calibrated year", side = 1, line = 4)
+      
+      # Legend on the bottom panel; xpd = NA lets it draw outside the panel
+      legend(legend_x, legend_y,
+             legend = legend_labels,
+             fill   = legend_fill,
+             border = NA,
+             cex    = legend_cex,
+             bty    = "n",
+             inset  = c(-0.01, 0),
+             xpd    = NA)
+    }
+  }
+  dev.off()
+}
+
+
+####----7. Produce all five zoned big plots, with original legend placement----####
+
+if (!dir.exists("figures")) dir.create("figures", recursive = TRUE)
+
+# 7a. Whole-community Subdivision plot
+#     Original (EUK.bigplot.pdf): legend(0, 3, ..., fill = rev(pal), cex = 0.6)
+pal_all <- getPalette(nrow(EUK.tax.a.2))
+big_plot_with_zones(
+  site_mats     = site_mats_all,
+  zones_by_site = zones_all,
+  pal           = pal_all,
+  ymax          = ymax_all,
+  pdf_path      = "figures/EUK.bigplot.zoned.pdf",
+  legend_x      = 0, legend_y = 3,
+  legend_labels = rownames(EUK.tax.a.2),
+  legend_fill   = rev(pal_all),
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.70
+)
+
+# 7b. Metazoa
+#     Original (EUK.large.met.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
+pal_met <- rev(getPalette(nrow(EUK.met.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_met,
+  zones_by_site = zones_met,
+  pal           = pal_met,
+  ymax          = ymax_met,
+  pdf_path      = "figures/EUK.large.met.zoned.pdf",
+  legend_x      = 0, legend_y = 0.4,
+  legend_labels = rownames(EUK.met.2),
+  legend_fill   = pal_met,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.70
+)
+
+# 7c. Diatoms
+#     Original (EUK.large.dia.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
+pal_dia <- rev(getPalette(nrow(EUK.dia.3)))
+big_plot_with_zones(
+  site_mats     = site_mats_dia,
+  zones_by_site = zones_dia,
+  pal           = pal_dia,
+  ymax          = ymax_dia,
+  pdf_path      = "figures/EUK.large.dia.zoned.pdf",
+  legend_x      = 0, legend_y = 0.4,
+  legend_labels = rownames(EUK.dia.3),
+  legend_fill   = pal_dia,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+# 7d. Dinoflagellates
+#     Original (EUK.large.din.pdf): legend(0, 0.12, ..., fill = pal, cex = 0.6)
+pal_din <- rev(getPalette(nrow(EUK.din.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_din,
+  zones_by_site = zones_din,
+  pal           = pal_din,
+  ymax          = ymax_din,
+  pdf_path      = "figures/EUK.large.din.zoned.pdf",
+  legend_x      = 0, legend_y = 0.12,
+  legend_labels = rownames(EUK.din.2),
+  legend_fill   = pal_din,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+# 7e. Small phytoplankton
+#     Original (EUK.large.smol.pdf): legend(0, 0.04, ..., fill = pal, cex = 0.6)
+pal_smol <- rev(getPalette(nrow(EUK.smolphy.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_smol,
+  zones_by_site = zones_smol,
+  pal           = pal_smol,
+  ymax          = ymax_smol,
+  pdf_path      = "figures/EUK.large.smol.zoned.pdf",
+  legend_x      = 0, legend_y = 0.2,
+  legend_labels = rownames(EUK.smolphy.2),
+  legend_fill   = pal_smol,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+####----8. PDF → PNG via sips (one line each)----####
+
+library(parallel)
+
+pdfs <- c("figures/EUK.bigplot.zoned.pdf",
+          "figures/EUK.large.met.zoned.pdf",
+          "figures/EUK.large.dia.zoned.pdf",
+          "figures/EUK.large.din.zoned.pdf",
+          "figures/EUK.large.smol.zoned.pdf")
+
+invisible(mclapply(pdfs, function(f) {
+  system2("sips", c("-s","format","png","-z",6000,8400, f, "--out", sub("\\.pdf$",".png",f)))
+}, mc.cores = 5))
+
+
+
+
 
 ### Alpha diversity 
 
@@ -1393,7 +1768,7 @@ genus_names <- genus_map[rownames(euk_genus)]  # This may contain duplicates
 # Sum ASV counts by genus
 euk_genus_agg <- rowsum(euk_genus, group = genus_names)
 
-n_reads <- 20000
+n_reads <- 30000
 colSums(euk_genus_agg)[colSums(euk_genus_agg)<n_reads]
 lib_sizes_genus <- colSums(euk_genus_agg)
 euk_genus_filt <- as.matrix(euk_genus_agg[, lib_sizes_genus >= n_reads])
