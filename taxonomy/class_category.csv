@@ -1,157 +1,156 @@
-Class,Category
-Mediophyceae,Diatom
-Filosa-Thecofilosea,Other/Unknown
-Ascomycota,Other/Unknown
-,Other/Unknown
-Filosa-Imbricatea,Other/Unknown
-Gregarinomorphea,Other/Unknown
-Gyrista_X,Other/Unknown
-Craniata,Other/Unknown
-Dictyochophyceae,Small phytoplankton
-Phaeophyceae,Other/Unknown
-Dinophyceae,Dinoflagellate
-Sagenista,Other/Unknown
-Deltaproteobacteria,Other/Unknown
-Gammaproteobacteria,Other/Unknown
-Arthropoda,Other/Unknown
-Opalozoa,Other/Unknown
-Urochordata,Other/Unknown
-Syndiniales,Dinoflagellate
-Mamiellophyceae,Small phytoplankton
-Alphaproteobacteria,Other/Unknown
-Ichthyophonida,Other/Unknown
-Pirsoniales,Dinoflagellate
-Nematoda,Other/Unknown
-Echinodermata,Other/Unknown
-Prostomatea,Other/Unknown
-Prymnesiophyceae,Small phytoplankton
-Spirotrichea,Other/Unknown
-Basidiomycota,Other/Unknown
-Cnidaria,Other/Unknown
-Chlorophyceae,Small phytoplankton
-Coscinodiscophyceae,Diatom
-Apusomonadidae,Other/Unknown
-Prasinodermophyceae,Small phytoplankton
-Pyramimonadophyceae,Small phytoplankton
-Campylobacteria,Other/Unknown
-Endomyxa,Other/Unknown
-Endomyxa-Phytomyxea,Other/Unknown
-Annelida,Other/Unknown
-Platyhelminthes,Other/Unknown
-Acantharea,Other/Unknown
-Breviatea_XX,Other/Unknown
-Florideophyceae,Other/Unknown
-Endomyxa-Ascetosporea,Other/Unknown
-Oligohymenophorea,Other/Unknown
-Carpediemonadea,Other/Unknown
-Filosa-Sarcomonadea,Other/Unknown
-Polycystinea,Other/Unknown
-Bolidophyceae,Small phytoplankton
-Cryptophyceae,Small phytoplankton
-Hemichordata,Other/Unknown
-Choanoflagellatea,Other/Unknown
-Bacillariophyceae,Diatom
-Chrysophyceae,Small phytoplankton
-Clostridia,Other/Unknown
-Peronosporomycetes,Other/Unknown
-Verrucomicrobiae,Other/Unknown
-Coccidiomorphea,Other/Unknown
-RAD-B,Other/Unknown
-Elardia,Other/Unknown
-Planctomycetacia,Other/Unknown
-Litostomatea,Other/Unknown
-Pelagophyceae,Small phytoplankton
-Nephroselmidophyceae,Small phytoplankton
-Embryophyceae,Other/Unknown
-Mollusca,Other/Unknown
-Phyllopharyngea,Other/Unknown
-Brachiopoda,Other/Unknown
-Nemertea,Other/Unknown
-Sainouroidea,Other/Unknown
-Bryozoa,Other/Unknown
-Variosea,Other/Unknown
-Porifera,Other/Unknown
-RAD-C,Other/Unknown
-Ulvophyceae,Small phytoplankton
-Chytridiomycota,Other/Unknown
-Thermoplasmata,Other/Unknown
-Monothalamids,Other/Unknown
-Thermoanaerobaculia,Other/Unknown
-Globothalamea,Other/Unknown
-Priapulida,Other/Unknown
-Kinetoplastea,Other/Unknown
-Telonemia_XX,Other/Unknown
-Colpodellidea,Other/Unknown
-Diplonemea,Other/Unknown
-Nitrospirae_XX,Other/Unknown
-Kinorhyncha,Other/Unknown
-Picozoa_subdivision_2_X,Other/Unknown
-Ciliophora_X,Other/Unknown
-Heterolobosea,Other/Unknown
-Centramoebia,Other/Unknown
-Eustigmatophyceae,Small phytoplankton
-Phycisphaerae,Other/Unknown
-Bicoecea,Other/Unknown
-Mucoromycota,Other/Unknown
-MOCH-2,Other/Unknown
-Picomonadea,Other/Unknown
-Dadabacteriia,Other/Unknown
-Euglenida,Other/Unknown
-Hemimastigophora_XX,Other/Unknown
-Ellobiophyceae,Dinoflagellate
-CONThreeP,Other/Unknown
-Cryptophyceae:nucl,Small phytoplankton
-Ctenophora,Other/Unknown
-Trebouxiophyceae,Small phytoplankton
-Nitrososphaeria,Other/Unknown
-Tubothalamea,Other/Unknown
-Chrysomerophyceae,Small phytoplankton
-Kiritimatiellae,Other/Unknown
-Entoprocta,Other/Unknown
-Ellobiopsidae,Dinoflagellate
-Gastrotricha,Other/Unknown
-Chlorarachniophyceae,Other/Unknown
-Stygamoebida,Other/Unknown
-RAD-A,Other/Unknown
-Flabellinia,Other/Unknown
-Methanomicrobia,Other/Unknown
-Phaeodarea,Other/Unknown
-Perkinsida,Dinoflagellate
-Archamoebea,Other/Unknown
-Bangiophyceae,Other/Unknown
-MOCH-4,Other/Unknown
-Chaetognatha,Other/Unknown
-Nitrospinia,Other/Unknown
-CONTH_6,Other/Unknown
-Endomyxa-Gromiidea,Other/Unknown
-Alveolata_XX,Other/Unknown
-Symbiontida,Other/Unknown
-Radiolaria_X,Other/Unknown
-Klebsormidiophyceae,Other/Unknown
-Opisthokonta_XX,Other/Unknown
-Pterocystida,Other/Unknown
-Heterotrichea,Other/Unknown
-Dermocystida,Other/Unknown
-Hyphochytriomyceta,Other/Unknown
-Metamonada_XX,Other/Unknown
-Holophagae,Other/Unknown
-Novel-clade-10-12,Other/Unknown
-Brocadiae,Other/Unknown
-Ancyromonadida_XX,Other/Unknown
-Nebulidea,Other/Unknown
-Actinobacteria_XX,Other/Unknown
-Rotosphaerida_X,Other/Unknown
-Zoopagomycota,Other/Unknown
-Opisthosporidia,Other/Unknown
-Xanthophyceae,Small phytoplankton
-Pavlovophyceae,Small phytoplankton
-Filosa-Granofilosea,Other/Unknown
-Plagiopylea,Other/Unknown
-Euglenophyceae,Other/Unknown
-Haptophyta_Clade_HAP4,Small phytoplankton
-Pseudoscourfieldiophyceae,Small phytoplankton
-Chloropicophyceae,Small phytoplankton
-Karyorelictea,Other/Unknown
-Mesozoa,Other/Unknown
-Kathablepharidea,Other/Unknown
-Hydrogenedentia,Other/Unknown
+Class,Category,CategoryFine
+Mediophyceae,Diatom,Diatom
+Filosa-Thecofilosea,Other/Unknown,Other/Unknown
+Ascomycota,Other/Unknown,Other/Unknown
+Filosa-Imbricatea,Other/Unknown,Other/Unknown
+Gregarinomorphea,Other/Unknown,Other/Unknown
+Gyrista_X,Other/Unknown,Other/Unknown
+Craniata,Other/Unknown,Other/Unknown
+Dictyochophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Phaeophyceae,Macroalgae,Macroalgae
+Dinophyceae,Dinoflagellate,Dinoflagellate
+Sagenista,Other/Unknown,Other/Unknown
+Deltaproteobacteria,Other/Unknown,Other/Unknown
+Gammaproteobacteria,Other/Unknown,Other/Unknown
+Arthropoda,Other/Unknown,Other/Unknown
+Opalozoa,Other/Unknown,Other/Unknown
+Urochordata,Other/Unknown,Other/Unknown
+Syndiniales,Parasitic alveolate,Parasitic alveolate
+Mamiellophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Alphaproteobacteria,Other/Unknown,Other/Unknown
+Ichthyophonida,Other/Unknown,Other/Unknown
+Pirsoniales,Other/Unknown,Other/Unknown
+Nematoda,Other/Unknown,Other/Unknown
+Echinodermata,Other/Unknown,Other/Unknown
+Prostomatea,Other/Unknown,Other/Unknown
+Prymnesiophyceae,Pico/nanophytoplankton,Haptophyte
+Spirotrichea,Other/Unknown,Other/Unknown
+Basidiomycota,Other/Unknown,Other/Unknown
+Cnidaria,Other/Unknown,Other/Unknown
+Chlorophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Coscinodiscophyceae,Diatom,Diatom
+Apusomonadidae,Other/Unknown,Other/Unknown
+Prasinodermophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Pyramimonadophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Campylobacteria,Other/Unknown,Other/Unknown
+Endomyxa,Other/Unknown,Other/Unknown
+Endomyxa-Phytomyxea,Other/Unknown,Other/Unknown
+Annelida,Other/Unknown,Other/Unknown
+Platyhelminthes,Other/Unknown,Other/Unknown
+Acantharea,Zooplankton/heterotroph,Zooplankton/heterotroph
+Breviatea_XX,Other/Unknown,Other/Unknown
+Florideophyceae,Macroalgae,Macroalgae
+Endomyxa-Ascetosporea,Other/Unknown,Other/Unknown
+Oligohymenophorea,Other/Unknown,Other/Unknown
+Carpediemonadea,Other/Unknown,Other/Unknown
+Filosa-Sarcomonadea,Other/Unknown,Other/Unknown
+Polycystinea,Zooplankton/heterotroph,Zooplankton/heterotroph
+Bolidophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Cryptophyceae,Pico/nanophytoplankton,Cryptophyte
+Hemichordata,Other/Unknown,Other/Unknown
+Choanoflagellatea,Other/Unknown,Other/Unknown
+Bacillariophyceae,Diatom,Diatom
+Chrysophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Clostridia,Other/Unknown,Other/Unknown
+Peronosporomycetes,Other/Unknown,Other/Unknown
+Verrucomicrobiae,Other/Unknown,Other/Unknown
+Coccidiomorphea,Other/Unknown,Other/Unknown
+RAD-B,Other/Unknown,Other/Unknown
+Elardia,Other/Unknown,Other/Unknown
+Planctomycetacia,Other/Unknown,Other/Unknown
+Litostomatea,Other/Unknown,Other/Unknown
+Pelagophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Nephroselmidophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Embryophyceae,Land plant,Land plant
+Mollusca,Other/Unknown,Other/Unknown
+Phyllopharyngea,Other/Unknown,Other/Unknown
+Brachiopoda,Other/Unknown,Other/Unknown
+Nemertea,Other/Unknown,Other/Unknown
+Sainouroidea,Other/Unknown,Other/Unknown
+Bryozoa,Other/Unknown,Other/Unknown
+Variosea,Other/Unknown,Other/Unknown
+Porifera,Other/Unknown,Other/Unknown
+RAD-C,Other/Unknown,Other/Unknown
+Ulvophyceae,Macroalgae,Macroalgae
+Chytridiomycota,Other/Unknown,Other/Unknown
+Thermoplasmata,Other/Unknown,Other/Unknown
+Monothalamids,Other/Unknown,Other/Unknown
+Thermoanaerobaculia,Other/Unknown,Other/Unknown
+Globothalamea,Other/Unknown,Other/Unknown
+Priapulida,Other/Unknown,Other/Unknown
+Kinetoplastea,Other/Unknown,Other/Unknown
+Telonemia_XX,Other/Unknown,Other/Unknown
+Colpodellidea,Other/Unknown,Other/Unknown
+Diplonemea,Other/Unknown,Other/Unknown
+Nitrospirae_XX,Other/Unknown,Other/Unknown
+Kinorhyncha,Other/Unknown,Other/Unknown
+Picozoa_subdivision_2_X,Other/Unknown,Other/Unknown
+Ciliophora_X,Other/Unknown,Other/Unknown
+Heterolobosea,Other/Unknown,Other/Unknown
+Centramoebia,Other/Unknown,Other/Unknown
+Eustigmatophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Phycisphaerae,Other/Unknown,Other/Unknown
+Bicoecea,Other/Unknown,Other/Unknown
+Mucoromycota,Other/Unknown,Other/Unknown
+MOCH-2,Other/Unknown,Other/Unknown
+Picomonadea,Other/Unknown,Other/Unknown
+Dadabacteriia,Other/Unknown,Other/Unknown
+Euglenida,Other/Unknown,Other/Unknown
+Hemimastigophora_XX,Other/Unknown,Other/Unknown
+Ellobiophyceae,Parasitic alveolate,Parasitic alveolate
+CONThreeP,Other/Unknown,Other/Unknown
+Cryptophyceae:nucl,Pico/nanophytoplankton,Cryptophyte
+Ctenophora,Other/Unknown,Other/Unknown
+Trebouxiophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Nitrososphaeria,Other/Unknown,Other/Unknown
+Tubothalamea,Other/Unknown,Other/Unknown
+Chrysomerophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Kiritimatiellae,Other/Unknown,Other/Unknown
+Entoprocta,Other/Unknown,Other/Unknown
+Ellobiopsidae,Parasitic alveolate,Parasitic alveolate
+Gastrotricha,Other/Unknown,Other/Unknown
+Chlorarachniophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - other
+Stygamoebida,Other/Unknown,Other/Unknown
+RAD-A,Other/Unknown,Other/Unknown
+Flabellinia,Other/Unknown,Other/Unknown
+Methanomicrobia,Other/Unknown,Other/Unknown
+Phaeodarea,Other/Unknown,Other/Unknown
+Perkinsida,Parasitic alveolate,Parasitic alveolate
+Archamoebea,Other/Unknown,Other/Unknown
+Bangiophyceae,Macroalgae,Macroalgae
+MOCH-4,Other/Unknown,Other/Unknown
+Chaetognatha,Other/Unknown,Other/Unknown
+Nitrospinia,Other/Unknown,Other/Unknown
+CONTH_6,Other/Unknown,Other/Unknown
+Endomyxa-Gromiidea,Other/Unknown,Other/Unknown
+Alveolata_XX,Other/Unknown,Other/Unknown
+Symbiontida,Other/Unknown,Other/Unknown
+Radiolaria_X,Other/Unknown,Other/Unknown
+Klebsormidiophyceae,Streptophyte algae,Streptophyte algae
+Opisthokonta_XX,Other/Unknown,Other/Unknown
+Pterocystida,Other/Unknown,Other/Unknown
+Heterotrichea,Other/Unknown,Other/Unknown
+Dermocystida,Other/Unknown,Other/Unknown
+Hyphochytriomyceta,Other/Unknown,Other/Unknown
+Metamonada_XX,Other/Unknown,Other/Unknown
+Holophagae,Other/Unknown,Other/Unknown
+Novel-clade-10-12,Other/Unknown,Other/Unknown
+Brocadiae,Other/Unknown,Other/Unknown
+Ancyromonadida_XX,Other/Unknown,Other/Unknown
+Nebulidea,Other/Unknown,Other/Unknown
+Actinobacteria_XX,Other/Unknown,Other/Unknown
+Rotosphaerida_X,Other/Unknown,Other/Unknown
+Zoopagomycota,Other/Unknown,Other/Unknown
+Opisthosporidia,Other/Unknown,Other/Unknown
+Xanthophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - stramenopile
+Pavlovophyceae,Pico/nanophytoplankton,Haptophyte
+Filosa-Granofilosea,Other/Unknown,Other/Unknown
+Plagiopylea,Other/Unknown,Other/Unknown
+Euglenophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - other
+Haptophyta_Clade_HAP4,Pico/nanophytoplankton,Haptophyte
+Pseudoscourfieldiophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Chloropicophyceae,Pico/nanophytoplankton,Pico/nanophytoplankton - green
+Karyorelictea,Other/Unknown,Other/Unknown
+Mesozoa,Other/Unknown,Other/Unknown
+Kathablepharidea,Other/Unknown,Other/Unknown
+Hydrogenedentia,Other/Unknown,Other/Unknown

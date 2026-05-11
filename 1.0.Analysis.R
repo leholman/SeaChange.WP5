@@ -192,7 +192,7 @@ classes <- read.csv("taxonomy/class_category.csv")
 
 ASVs.diatom <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Diatom"] & euk.pr2.2$Class.1 > 80]
 ASVs.dino <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Dinoflagellate"] & euk.pr2.2$Class.1 > 80]
-ASVs.smolphy <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Small phytoplankton"] & euk.pr2.2$Class.1 > 80]
+ASVs.smolphy <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Pico/nanophytoplankton"] & euk.pr2.2$Class.1 > 80]
 
 
 ## Taxonomic overview
@@ -1558,7 +1558,6 @@ invisible(mclapply(pdfs, function(f) {
 
 
 
-
 ### Alpha diversity 
 
 #lets look at uneven read depth 
@@ -2492,15 +2491,17 @@ plot(var_jacc)
 
 
 ## PERMANOVA
-perm_bray <- adonis2(vegdist(comm,method="bray")~site+PC1_s+PC2_s+whale_s,
-                     data=beta, permutations = 10000,
-                     by="margin")
+perm_bray <- adonis2(vegdist(comm, method = "bray") ~ PC1_s + PC2_s + whale_s,
+                     data = beta,
+                     permutations = how(blocks = beta$site, nperm = 10000),
+                     by = "margin")
 perm_bray
 
+perm_jacc <- adonis2(vegdist(comm, method = "jacc",binary = TRUE) ~ PC1_s + PC2_s + whale_s,
+                     data = beta,
+                     permutations = how(blocks = beta$site, nperm = 10000),
+                     by = "margin")
 
-perm_jacc <- adonis2(vegdist(comm,method="jacc",binary = TRUE)~site+PC1_s+PC2_s+whale_s,
-                     data=beta, permutations = 10000,
-                     by="margin")
 perm_jacc
 
 
@@ -2579,18 +2580,18 @@ for (group_name in names(asv_groups)) {
   ## PERMANOVA
   cat("\n---- PERMANOVA: Bray ----\n")
   perm_bray <- adonis2(
-    vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s,
+    vegdist(comm, method = "bray") ~  PC1_s + PC2_s + whale_s,
     data = beta,
-    permutations = 10000,
+    permutations = how(blocks = beta$site, nperm = 10000),
     by = "margin"
   )
   print(perm_bray)
   
   cat("\n---- PERMANOVA: Jaccard ----\n")
   perm_jacc <- adonis2(
-    vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s,
+    vegdist(comm, method = "jacc", binary = TRUE) ~  PC1_s + PC2_s + whale_s,
     data = beta,
-    permutations = 10000,
+    permutations = how(blocks = beta$site, nperm = 10000),
     by = "margin"
   )
   print(perm_jacc)

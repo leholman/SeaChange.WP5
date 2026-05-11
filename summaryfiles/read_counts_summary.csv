@@ -1,0 +1,10 @@
+"stage","marker","sample_type","n","mean","sd"
+"filtered","EUK","Experimental",1352,163145.109467457,186709.23463797
+"filtered","EUK","ControlN",140,28.2214285714286,54.2059844126637
+"filtered","EUK","ControlP",56,77307.1964285714,116481.748874299
+"filtered","RIZ","Experimental",813,32951.1931119312,60635.9330246663
+"filtered","RIZ","ControlN",98,4399.51020408163,20311.3996904815
+"filtered","RIZ","ControlP",24,137103.958333333,240193.418853564
+"filtered","MAM","Experimental",983,74300.1383519836,107812.973608177
+"filtered","MAM","ControlN",125,10538.84,47101.8639142869
+"filtered","MAM","ControlP",32,151064.21875,174153.902434995

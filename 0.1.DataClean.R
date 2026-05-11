@@ -315,9 +315,42 @@ write.csv(WP5.MAM.main.4, "cleandata/MAM.WP5.main.clean.csv")
 write.csv(WP5.MAM.main.tax, "cleandata/MAM.WP5.main.clean.tax.csv")
 
 
+##### Lets do some read counting 
+#let's count up the reads
+readCounts <- read.csv("rawdata/readcounts/ReadCounts.csv")
+
+cat_map <- c(EXP = "Experimental", NTC = "ControlN", PTC = "ControlP")
+
+out <- do.call(rbind, lapply(unique(readCounts$Marker), function(m) {
+  loopDat <- readCounts[readCounts$Marker == m, ]
+  do.call(rbind, lapply(names(cat_map), function(cat) {
+    sub <- loopDat[loopDat$Cat == cat, ]
+    totals <- sub$SenseDemultiplex + sub$AntiSenseDemultiplex
+    data.frame(stage = "demultiplexed", marker = m, sample_type = cat_map[[cat]],
+               n = length(totals), mean = mean(totals), sd = sd(totals))
+  }))
+}))
+
+write.table(out, "summaryfiles/read_counts_summary.csv",
+            sep = ",", row.names = FALSE, col.names = FALSE,
+            append = TRUE)
 
 
+### count up the post bioinformatvics pre control Qc'd data  data 
 
+markers <- list(EUK = EUK, RIZ = RIZ, MAM = MAM)
+out <- do.call(rbind, lapply(names(markers), function(m) {
+  d <- markers[[m]]
+  do.call(rbind, lapply(c("Experimental", "ControlN", "ControlP"), function(s) {
+    ids <- metadata$UniqueID[metadata$PrimerID == m & metadata$SampleType == s]
+    cols <- na.omit(match(tolower(gsub("-", ".", ids)), tolower(colnames(d))))
+    sums <- colSums(d[, cols])
+    data.frame(stage = "filtered", marker = m, sample_type = s,
+               n = length(sums), mean = mean(sums), sd = sd(sums))
+  }))
+}))
+write.csv(out, "summaryfiles//read_counts_summary.csv", row.names = FALSE)
 
+### Now we count up the infal QC data and provide some taxonomic summaries
 
 

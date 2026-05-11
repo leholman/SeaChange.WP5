@@ -25,8 +25,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   1.0157 6.0318 0.000999 ***
-PC1_s     1   0.5285 3.1386 0.000999 ***
-PC2_s     1   0.2693 1.5990 0.086913 .  
+PC1_s     1   0.5285 3.1386 0.001998 ** 
+PC2_s     1   0.2693 1.5990 0.075924 .  
 Residual 79  13.3029                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -52,8 +52,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   1.1509 4.7683 0.000999 ***
-PC1_s     1   0.5487 2.2735 0.001998 ** 
-PC2_s     1   0.3432 1.4219 0.061938 .  
+PC1_s     1   0.5487 2.2735 0.002997 ** 
+PC2_s     1   0.3432 1.4219 0.083916 .  
 Residual 79  19.0673                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -115,33 +115,33 @@ Use function ‘dbrda’ to test significance of fractions of interest
 ---- PERMANOVA: Bray ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
-         Df SumOfSqs      R2      F    Pr(>F)    
-site      4   6.3780 0.28054 9.4690 9.999e-05 ***
-PC1_s     1   0.6790 0.02987 4.0321   0.00030 ***
-PC2_s     1   0.2693 0.01184 1.5990   0.07639 .  
-whale_s   1   0.5066 0.02228 3.0085   0.00220 ** 
-Residual 79  13.3029 0.58514                     
-Total    86  22.7344 1.00000                     
+adonis2(formula = vegdist(comm, method = "bray") ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
+         Df SumOfSqs      R2      F Pr(>F)    
+PC1_s     1   0.8197 0.03605 3.4568 0.0035 ** 
+PC2_s     1   1.0060 0.04425 4.2425 0.4064    
+whale_s   1   0.7741 0.03405 3.2647 0.0002 ***
+Residual 83  19.6809 0.86569                  
+Total    86  22.7344 1.00000                  
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 ---- PERMANOVA: Jaccard ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   6.4663 0.21664 6.0018 9.999e-05 ***
-PC1_s     1   0.4884 0.01636 1.8132    0.0122 *  
-PC2_s     1   0.3141 0.01052 1.1660    0.1704    
-whale_s   1   0.5471 0.01833 2.0312    0.0049 ** 
-Residual 79  21.2788 0.71290                     
+PC1_s     1   0.7418 0.02485 2.2192    0.0004 ***
+PC2_s     1   0.6168 0.02067 1.8453    0.9592    
+whale_s   1   0.6387 0.02140 1.9106 9.999e-05 ***
+Residual 83  27.7451 0.92954                     
 Total    86  29.8482 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -172,8 +172,8 @@ Number of permutations: 1000
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "bray")
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.2107 4.0543 0.000999 ***
-PC1_s     1   0.2396 4.6107 0.002997 ** 
-PC2_s     1   0.0670 1.2886 0.249750    
+PC1_s     1   0.2396 4.6107 0.004995 ** 
+PC2_s     1   0.0670 1.2886 0.236763    
 Residual 79   4.1057                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -197,11 +197,11 @@ Permutation: free
 Number of permutations: 1000
 
 Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = beta, distance = "jacc")
-         Df SumOfSqs      F   Pr(>F)    
-whale_s   1   0.4000 4.0987 0.000999 ***
-PC1_s     1   0.3701 3.7922 0.002997 ** 
-PC2_s     1   0.1496 1.5325 0.108891    
-Residual 79   7.7107                    
+         Df SumOfSqs      F   Pr(>F)   
+whale_s   1   0.4000 4.0987 0.001998 **
+PC1_s     1   0.3701 3.7922 0.001998 **
+PC2_s     1   0.1496 1.5325 0.106893   
+Residual 79   7.7107                   
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
@@ -262,33 +262,33 @@ Use function ‘dbrda’ to test significance of fractions of interest
 ---- PERMANOVA: Bray ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
-         Df SumOfSqs      R2       F    Pr(>F)    
-site      4   4.7365 0.46456 22.7848 9.999e-05 ***
-PC1_s     1   0.2846 0.02792  5.4768    0.0036 ** 
-PC2_s     1   0.0670 0.00657  1.2886    0.2367    
-whale_s   1   0.0968 0.00949  1.8623    0.1197    
-Residual 79   4.1057 0.40268                      
-Total    86  10.1957 1.00000                      
+adonis2(formula = vegdist(comm, method = "bray") ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
+         Df SumOfSqs      R2      F   Pr(>F)   
+PC1_s     1   0.6031 0.05916 5.6615 0.006299 **
+PC2_s     1   0.2319 0.02275 2.1769 0.472753   
+whale_s   1   0.1806 0.01772 1.6956 0.079492 . 
+Residual 83   8.8422 0.86724                   
+Total    86  10.1957 1.00000                   
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 ---- PERMANOVA: Jaccard ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   6.5049 0.24558 7.3041 9.999e-05 ***
-PC1_s     1   0.5465 0.02063 2.4547 0.0039996 ** 
-PC2_s     1   0.2493 0.00941 1.1198 0.2326767    
-whale_s   1   0.6667 0.02517 2.9944 0.0007999 ***
-Residual 79  17.5890 0.66405                     
+PC1_s     1   0.8263 0.03120 2.8465 9.999e-05 ***
+PC2_s     1   0.5562 0.02100 1.9161    0.4494    
+whale_s   1   0.7404 0.02795 2.5505 9.999e-05 ***
+Residual 83  24.0939 0.90964                     
 Total    86  26.4874 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -320,7 +320,7 @@ Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = 
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.4872 4.1097 0.000999 ***
 PC1_s     1   0.6038 5.0933 0.000999 ***
-PC2_s     1   0.1628 1.3735 0.232767    
+PC2_s     1   0.1628 1.3735 0.219780    
 Residual 79   9.3647                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -347,7 +347,7 @@ Model: dbrda(formula = comm ~ whale_s + PC1_s + PC2_s + Condition(site), data = 
          Df SumOfSqs      F   Pr(>F)    
 whale_s   1   0.7501 4.2322 0.000999 ***
 PC1_s     1   0.6831 3.8545 0.000999 ***
-PC2_s     1   0.1998 1.1273 0.370629    
+PC2_s     1   0.1998 1.1273 0.345654    
 Residual 79  14.0010                    
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -409,16 +409,16 @@ Use function ‘dbrda’ to test significance of fractions of interest
 ---- PERMANOVA: Bray ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "bray") ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "bray") ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   3.1040 0.20893 6.5464 9.999e-05 ***
-PC1_s     1   0.6207 0.04178 5.2363 9.999e-05 ***
-PC2_s     1   0.1628 0.01096 1.3735    0.1862    
-whale_s   1   0.3574 0.02405 3.0146    0.0039 ** 
-Residual 79   9.3647 0.63032                     
+PC1_s     1   1.0943 0.07366 7.2846 9.999e-05 ***
+PC2_s     1   0.5673 0.03819 3.7764   0.07259 .  
+whale_s   1   0.4443 0.02991 2.9577   0.00120 ** 
+Residual 83  12.4687 0.83925                     
 Total    86  14.8571 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -426,16 +426,16 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 ---- PERMANOVA: Jaccard ----
 Permutation test for adonis under reduced model
 Marginal effects of terms
+Blocks:  beta$site 
 Permutation: free
 Number of permutations: 10000
 
-adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ site + PC1_s + PC2_s + whale_s, data = beta, permutations = 10000, by = "margin")
+adonis2(formula = vegdist(comm, method = "jacc", binary = TRUE) ~ PC1_s + PC2_s + whale_s, data = beta, permutations = how(blocks = beta$site, nperm = 10000), by = "margin")
          Df SumOfSqs      R2      F    Pr(>F)    
-site      4   5.7846 0.23473 6.9218 9.999e-05 ***
-PC1_s     1   0.6648 0.02697 3.1817 0.0005999 ***
-PC2_s     1   0.3117 0.01265 1.4921 0.0717928 .  
-whale_s   1   0.5571 0.02260 2.6663 0.0014999 ** 
-Residual 79  16.5054 0.66976                     
+PC1_s     1   0.8636 0.03504 3.2156 9.999e-05 ***
+PC2_s     1   0.4903 0.01990 1.8257    0.6171    
+whale_s   1   0.5600 0.02272 2.0851    0.0047 ** 
+Residual 83  22.2900 0.90449                     
 Total    86  24.6439 1.00000                     
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
