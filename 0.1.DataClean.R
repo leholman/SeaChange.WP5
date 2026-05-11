@@ -316,11 +316,21 @@ write.csv(WP5.MAM.main.tax, "cleandata/MAM.WP5.main.clean.tax.csv")
 
 
 ##### Lets do some read counting 
-#let's count up the reads
+# Start fresh — write header once
+header <- data.frame(stage = character(), marker = character(),
+                     sample_type = character(), n = integer(),
+                     mean = numeric(), sd = numeric())
+write.csv(header, "summaryfiles/read_counts_summary.csv", row.names = FALSE)
+
+# helper to keep things tidy
+append_rows <- function(df) {
+  write.table(df, "summaryfiles/read_counts_summary.csv",
+              sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE)
+}
+
+### Stage 1: demultiplexed
 readCounts <- read.csv("rawdata/readcounts/ReadCounts.csv")
-
 cat_map <- c(EXP = "Experimental", NTC = "ControlN", PTC = "ControlP")
-
 out <- do.call(rbind, lapply(unique(readCounts$Marker), function(m) {
   loopDat <- readCounts[readCounts$Marker == m, ]
   do.call(rbind, lapply(names(cat_map), function(cat) {
@@ -330,14 +340,9 @@ out <- do.call(rbind, lapply(unique(readCounts$Marker), function(m) {
                n = length(totals), mean = mean(totals), sd = sd(totals))
   }))
 }))
+append_rows(out)
 
-write.table(out, "summaryfiles/read_counts_summary.csv",
-            sep = ",", row.names = FALSE, col.names = FALSE,
-            append = TRUE)
-
-
-### count up the post bioinformatvics pre control Qc'd data  data 
-
+### Stage 2: post-bioinformatics, pre-control-QC
 markers <- list(EUK = EUK, RIZ = RIZ, MAM = MAM)
 out <- do.call(rbind, lapply(names(markers), function(m) {
   d <- markers[[m]]
@@ -345,12 +350,29 @@ out <- do.call(rbind, lapply(names(markers), function(m) {
     ids <- metadata$UniqueID[metadata$PrimerID == m & metadata$SampleType == s]
     cols <- na.omit(match(tolower(gsub("-", ".", ids)), tolower(colnames(d))))
     sums <- colSums(d[, cols])
-    data.frame(stage = "filtered", marker = m, sample_type = s,
+    data.frame(stage = "post_bioinformatics", marker = m, sample_type = s,
                n = length(sums), mean = mean(sums), sd = sd(sums))
   }))
 }))
-write.csv(out, "summaryfiles//read_counts_summary.csv", row.names = FALSE)
+append_rows(out)
 
-### Now we count up the infal QC data and provide some taxonomic summaries
+### Stage 3: control-subtracted / final QC'd
+final <- list(EUK = read.csv("cleandata/EUK.WP5.main.clean.csv", row.names = 1),
+              RIZ = read.csv("cleandata/RIZ.WP5.main.clean.csv", row.names = 1),
+              MAM = read.csv("cleandata/MAM.WP5.main.clean.csv", row.names = 1))
+out <- do.call(rbind, lapply(names(final), function(m) {
+  sums <- colSums(final[[m]])
+  data.frame(stage = "control_subtracted", marker = m, sample_type = "Experimental",
+             n = length(sums), mean = mean(sums), sd = sd(sums))
+}))
+append_rows(out)
 
+## Count ASVS
+EUK = read.csv("cleandata/EUK.WP5.main.clean.csv", row.names = 1)
+RIZ = read.csv("cleandata/RIZ.WP5.main.clean.csv", row.names = 1)
+MAM = read.csv("cleandata/MAM.WP5.main.clean.csv", row.names = 1)
+
+dim(EUK)
+dim(MAM)
+dim(RIZ)
 
