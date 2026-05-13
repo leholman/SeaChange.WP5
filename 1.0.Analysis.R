@@ -2460,11 +2460,11 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
   # legend("topright", legend = u_sites, col = u_cols,
   #      pch = 16, cex = 0.75, bty = "n")
 }
-pdf("figures/stat.beat.dbRDA.b.pdf",height = 8,width = 8)
-plot_dbrda(mod_bray, "db-RDA – Bray-Curtis",trajectories =TRUE )
+pdf("figures/stat.beta.dbRDA.b.pdf",height = 8,width = 8)
+plot_dbrda(mod_bray, "db-RDA – Bray-Curtis",trajectories =FALSE )
 dev.off()
-pdf("figures/stat.beat.dbRDA.j.pdf",height = 8,width = 8)
-plot_dbrda(mod_jacc, "db-RDA – Jaccard",trajectories =TRUE )
+pdf("figures/stat.beta.dbRDA.j.pdf",height = 8,width = 8)
+plot_dbrda(mod_jacc, "db-RDA – Jaccard",trajectories =FALSE )
 dev.off()
 
 
@@ -2637,7 +2637,7 @@ clr <- function(x) {
 }
 
 zero_pct <- colMeans(comm.sub == 0)
-comm.sub <- comm.sub[, zero_pct < 0.70]
+#comm.sub <- comm.sub[, zero_pct < 0.70]
 comm.sub <- zero_replace(comm.sub)
 Y <- clr(comm.sub)
 cat("Subdivisions retained:", ncol(Y), "\n")
@@ -2649,8 +2649,6 @@ Y <- clr(comm.sub)
 cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
 
 # Predictors
-# whale = Southern Ocean whale biomass: high pre-whaling, crashes ~1900s
-# residual correlation PC1 ~ whale after removing time trend = 0.11 (safe to model together)
 X <- data.frame(
   PC1   = as.numeric(scale(beta$PC1_s)),
   PC2   = as.numeric(scale(beta$PC2_s)),
@@ -2926,7 +2924,88 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
 par(xpd = FALSE)
 
 dev.off()
+## now just the sig taxa
 
+# Keep only taxa with at least one significant predictor
+keep <- apply(sig_full, 2, function(x) any(x != ""))
+
+vp_mat_rev   <- vp_mat_rev[, keep, drop = FALSE]
+beta_full    <- beta_full[, keep, drop = FALSE]
+sig_full     <- sig_full[, keep, drop = FALSE]
+taxon_order  <- taxon_order[keep]
+
+pdf("figures/HMSC/subdivision.combined.sig.pdf", height = 9, width = 7)
+par(mar = c(4, 10, 3, 12),xpd = TRUE)
+
+bp <- barplot(
+  vp_mat_rev,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "", 
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+axis(1, at = seq(0, 1, 0.25),
+     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
+mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+legend(-1,-2,
+       legend = rownames(vp_mat_rev),
+       fill   = cols_vp,
+       border = NA, bty = "n", cex = 0.8)
+
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.30
+gap     <- 0.04
+x_start <- 1.15
+
+par(xpd = TRUE)
+for (k in 1:3) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order)) {
+    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_full[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+
+# Numbers above the bar
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+
+# Beta label below the bar
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+
+dev.off()
 
 
 # -- Metazoa family-level HMSC ------------------------------------------------
@@ -2951,7 +3030,7 @@ comm.fam <- t(rowsum(t(comm.meta), group = tax.meta$family, na.rm = TRUE))
 prev <- colMeans(comm.fam > 0)
 cat("\nPrevalence distribution:\n")
 print(round(sort(prev, decreasing = TRUE), 2))
-comm.fam <- comm.fam[, prev > 0.20]
+comm.fam <- comm.fam[, prev > 0.10]
 cat("Families after prevalence filter:", ncol(comm.fam), "\n")
 
 # Zero replacement and CLR
@@ -3233,17 +3312,27 @@ sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
 cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
 pred_names <- rownames(beta_full)
-pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
+
+# Keep only taxa with ≥1 significant predictor
+
+keep <- colSums(sig_full != "") > 0
+
+vp_mat_sig   <- vp_mat_rev[, keep, drop = FALSE]
+beta_sig     <- beta_full[, keep, drop = FALSE]
+sig_sig      <- sig_full[, keep, drop = FALSE]
+taxon_order_sig <- taxon_order[keep]
+
+pdf("figures/HMSC/metazoa.combined.sig.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
 bp <- barplot(
-  vp_mat_rev,
+  vp_mat_sig,
   horiz     = TRUE,
   col       = cols_vp,
   border    = NA,
   xlab      = "",
   las       = 1,
   xlim      = c(0, 1.8),
-  names.arg = gsub("_X", "", colnames(vp_mat_rev)),
+  names.arg = gsub("_X", "", colnames(vp_mat_sig)),
   cex.names = 0.7,
   axes      = FALSE
 )
@@ -3251,9 +3340,10 @@ axis(1, at = seq(0, 1, 0.25),
      labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
 mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
 legend(-1, -2,
-       legend = rownames(vp_mat_rev),
+       legend = rownames(vp_mat_sig),
        fill   = cols_vp,
        border = NA, bty = "n", cex = 0.8)
+
 # Heatmap strips
 bar_h   <- diff(bp[1:2]) * 0.85
 strip_w <- 0.30
@@ -3263,17 +3353,18 @@ par(xpd = TRUE)
 for (k in 1:3) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
-  for (j in seq_along(taxon_order)) {
-    cell_col <- beta_to_col(beta_full[k, j], zlim, heat_cols)
+  for (j in seq_along(taxon_order_sig)) {
+    cell_col <- beta_to_col(beta_sig[k, j], zlim, heat_cols)
     rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
          col = cell_col, border = NA)
-    if (sig_full[k, j] != "") {
-      text((xl + xr) / 2, bp[j], sig_full[k, j], cex = 0.6)
+    if (sig_sig[k, j] != "") {
+      text((xl + xr) / 2, bp[j], sig_sig[k, j], cex = 0.6)
     }
   }
   text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
        cex = 0.6, srt = 45, adj = c(0, 0.5))
 }
+
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
@@ -3296,7 +3387,6 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
      expression(beta), cex = 0.7, adj = c(0.5, 1))
 par(xpd = FALSE)
 dev.off()
-
 
 
 
@@ -3325,7 +3415,7 @@ cat("\nPrevalence distribution:\n")
 print(round(sort(prev, decreasing = TRUE), 2))
 
 # Remove families at 100% or 0% prevalence (no variation to model)
-comm.fam.pa <- comm.fam.pa[, prev > 0.05 & prev < 1.00]
+comm.fam.pa <- comm.fam.pa[, prev > 0.1 & prev < 1.00]
 cat("Families after filter:", ncol(comm.fam.pa), "\n")
 
 Y.fam.pa <- comm.fam.pa
@@ -3566,7 +3656,221 @@ dev.off()
 
 
 
-### Now do individual SPP
+##### Now we make a composite figure
+
+## First we pull in whales
+mam.whales.man <- read.csv("cleandata/MAM.whales.clean.manual.csv",row.names = 1)
+riz.whales.man <- read.csv("cleandata/RIZ.whales.clean.manual.csv",row.names = 1)
+
+
+# divide by original read number to get proportion 
+mam.whales.man[1:983] <- sweep(mam.whales.man[1:983],2,colSums(mam),FUN="/")
+mam.whales.man[mam.whales.man=="NaN"] <- 0
+mam.whales.man[is.na(mam.whales.man)] <- 0
+
+riz.whales.man[1:813] <- sweep(riz.whales.man[1:813],2,colSums(riz),FUN="/")
+riz.whales.man[riz.whales.man=="NaN"] <- 0
+riz.whales.man[is.na(riz.whales.man)] <- 0
+
+#Aggregate same species
+datain <- cbind(mam.whales.man[,1:983],"manualSpecies"=mam.whales.man$ManualSpecies)
+mam.whales.sum <- aggregate(.~manualSpecies,data=datain,FUN=sum)
+rownames(mam.whales.sum) <- mam.whales.sum$manualSpecies
+mam.whales.sum <- mam.whales.sum[,-1]
+mam.whales.sum <- mam.whales.sum[!rownames(mam.whales.sum)=="",]
+colnames(mam.whales.sum) <- gsub("^MAM[._]", "", colnames(mam.whales.sum))
+
+datain <- cbind(riz.whales.man[,1:813],"manualSpecies"=riz.whales.man$ManualSpecies)
+riz.whales.sum <- aggregate(.~manualSpecies,data=datain,FUN=sum)
+rownames(riz.whales.sum) <- riz.whales.sum$manualSpecies
+riz.whales.sum <- riz.whales.sum[,-1]
+riz.whales.sum <- riz.whales.sum[!rownames(riz.whales.sum)=="",]
+colnames(riz.whales.sum) <- gsub("^RIZ[._]", "", colnames(riz.whales.sum))
+
+
+### summing observations
+
+# Ensure both are matrices
+#riz <- as.matrix(riz.whales.sum)
+#mam <- as.matrix(mam.whales.sum)
+
+riz <- as.matrix(NrepsMaker(riz.whales.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(riz.whales.sum))))
+mam <- as.matrix(NrepsMaker(mam.whales.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(mam.whales.sum))))
+
+
+# Align dimensions via padding with 0s
+all_species <- union(rownames(riz), rownames(mam))
+all_samples <- union(colnames(riz), colnames(mam))
+
+pad_matrix <- function(mat, all_rows, all_cols) {
+  out <- matrix(0, nrow = length(all_rows), ncol = length(all_cols),
+                dimnames = list(all_rows, all_cols))
+  out[rownames(mat), colnames(mat)] <- mat
+  out
+}
+
+riz_pad <- pad_matrix(riz, all_species, all_samples)
+mam_pad <- pad_matrix(mam, all_species, all_samples)
+
+# Final merged result
+whales.sum.nreps <-as.data.frame(riz_pad + mam_pad)
+
+
+df <- tibble(spp = rownames(whales.sum.nreps), whales.sum.nreps)
+
+whales.sum.nreps <- df %>% 
+  pivot_longer(cols = -spp, 
+               names_to = "column", 
+               values_to = "value") 
+
+whales.sum.nreps$site <- expandedDates$Site[match(whales.sum.nreps$column,gsub("^EUK[._]", "",expandedDates$SampleName))]
+whales.sum.nreps$dates <- expandedDates$CalYear[match(whales.sum.nreps$column,gsub("^EUK[._]", "",expandedDates$SampleName))]
+
+###### SALPS KRILL
+## Pull in manually annotated data 
+euk.salkril.man <- read.csv("cleandata/clean.EUK.salkril.byhand.csv",row.names = 1)
+
+# divide by original read number to get proportion 
+euk.salkril.man[,1:992] <- sweep(euk.salkril.man[,1:992],2,colSums(euk),FUN="/")
+euk.salkril.man[euk.salkril.man=="NaN"] <- 0
+euk.salkril.man[is.na(euk.salkril.man)] <- 0
+
+
+#Aggregate same species
+datain <- cbind(euk.salkril.man[,1:992],"manualSpecies"=euk.salkril.man$Assignment)
+euk.salkril.sum <- aggregate(.~manualSpecies,data=datain,FUN=sum)
+rownames(euk.salkril.sum) <- euk.salkril.sum$manualSpecies
+euk.salkril.sum <- euk.salkril.sum[,-1]
+euk.salkril.sum <- euk.salkril.sum[!rownames(euk.salkril.sum)=="",]
+
+## Lets make an nREPs dataset 
+
+euk.salkril.nReps <- NrepsMaker(euk.salkril.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
+euk.salkril.avr <- average_by_reps(euk.salkril.sum,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
+
+
+
+nr_long <- tibble(spp = rownames(euk.salkril.nReps), euk.salkril.nReps) |>
+  pivot_longer(-spp, names_to = "column", values_to = "value")
+
+# long averages
+avr_long <- tibble(spp = rownames(euk.salkril.avr), euk.salkril.avr) |>
+  pivot_longer(-spp, names_to = "column", values_to = "avg")
+
+# add avg as a new column
+euk.salkril.nReps.long <- nr_long |>
+  left_join(avr_long, by = c("spp","column"))
+
+
+euk.salkril.nReps.long$site <- expandedDates$Site[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
+euk.salkril.nReps.long$dates <- expandedDates$CalYear[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
+
+
+
+#####BUILD THE PLOT
+
+margins <- c(2.1, 4.1, 1.1, 2.1)
+
+loopdat <- whales.sum.nreps[whales.sum.nreps$spp == "Balaenoptera musculus", ]
+
+pdf("figures/DraftFigures/Fig.4/whale.pdf", width = 12, height = 3)
+par(xpd = NA,mar=margins)  
+set.seed(1234)
+plot(loopdat$dates, jitter(loopdat$value, 0.8)/16,
+     xlim = c(1750, 2026), ylim = c(0, 1),
+     col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.6),
+     pch = ifelse(loopdat$value > 0, 16, 4),
+     main = "", xlab = "", ylab = "",axes = FALSE)
+axis(2,las=2)
+
+for (s in unique(loopdat$site)) {
+  sub <- loopdat[loopdat$site == s, ]
+  sub <- sub[order(sub$dates), ]
+  if (nrow(sub) > 4) {
+    fit <- loess(value/16 ~ dates, data = sub, span = 0.8)
+    lines(sub$dates, predict(fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  }
+}
+dev.off()
+
+loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp == "Euphausiidae", ]
+
+pdf("figures/DraftFigures/Fig.4/krill.pdf", width = 12, height = 3)
+par(xpd = NA,mar=margins)  
+set.seed(1234)
+plot(loopdat$dates, jitter(loopdat$value, 0.8)/8,
+     xlim = c(1750, 2026), ylim = c(0, 1),
+     col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.6),
+     pch = ifelse(loopdat$value > 0, 16, 4),
+     main = "", xlab = "", ylab = "", bty = "n",axes = FALSE)
+axis(4,las=2)
+
+
+for (s in unique(loopdat$site)) {
+  sub <- loopdat[loopdat$site == s, ]
+  sub <- sub[order(sub$dates), ]
+  if (nrow(sub) > 4) {
+    fit <- loess(value/8 ~ dates, data = sub, span = 0.8)
+    lines(sub$dates, predict(fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  }
+}
+dev.off()
+
+loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp == "Salpa", ]
+
+pdf("figures/DraftFigures/Fig.4/salpa.pdf", width = 12, height = 3)
+par(xpd = NA,mar=margins)  
+set.seed(1234)
+plot(loopdat$dates, jitter(loopdat$value, 0.8)/8,
+     xlim = c(1750, 2026), ylim = c(0, 1),
+     col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.6),
+     pch = ifelse(loopdat$value > 0, 16, 4),
+     main = "", xlab = "", ylab = "", bty = "n",axes = FALSE)
+axis(2,las=2)
+
+for (s in unique(loopdat$site)) {
+  sub <- loopdat[loopdat$site == s, ]
+  sub <- sub[order(sub$dates), ]
+  if (nrow(sub) > 4) {
+    fit <- loess(value/8 ~ dates, data = sub, span = 0.8)
+    lines(sub$dates, predict(fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  }
+}
+dev.off()
+
+
+
+Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
+
+pdf("figures/DraftFigures/Fig.4/EUK.dia.Smol.ratio.pdf", width = 12, height = 3)
+par(xpd = NA, mar = margins)
+
+dates <- expandedDates$CalYear[match(names(Dia.smol.ratio), expandedDates$SampleName)]
+sites <- expandedDates$Site[match(names(Dia.smol.ratio), expandedDates$SampleName)]
+vals  <- log10(Dia.smol.ratio)
+
+plot(dates, vals,
+     col = coredata$col[match(toupper(sites), coredata$Site)],
+     pch = 16,
+     xlim = c(1750, 2026),
+     xlab = "Date", ylab = "", bty = "n")
+
+for (s in unique(sites)) {
+  keep <- sites == s & is.finite(vals) & !is.na(dates)
+  if (sum(keep) > 4) {
+    ord <- order(dates[keep])
+    d <- dates[keep][ord]
+    v <- vals[keep][ord]
+    fit <- loess(v ~ d, span = 0.8)
+    lines(d, predict(fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  }
+}
+dev.off()
+
 
 #### Lets start with some salps and krill
 
@@ -3672,6 +3976,9 @@ for (species in unique(euk.salkril.nReps.long$spp)) {
 }
 
 dev.off()
+
+
+
 
 ####lets plot the salps and krill 
 
