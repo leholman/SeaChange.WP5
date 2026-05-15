@@ -315,57 +315,84 @@ write.csv(WP5.MAM.main.4, "cleandata/MAM.WP5.main.clean.csv")
 write.csv(WP5.MAM.main.tax, "cleandata/MAM.WP5.main.clean.tax.csv")
 
 
-##### Lets do some read counting 
-# Start fresh — write header once
-header <- data.frame(stage = character(), marker = character(),
-                     sample_type = character(), n = integer(),
-                     mean = numeric(), sd = numeric())
-write.csv(header, "summaryfiles/read_counts_summary.csv", row.names = FALSE)
+##### Read counting — unified per-sample dataframe #####
 
-# helper to keep things tidy
-append_rows <- function(df) {
-  write.table(df, "summaryfiles/read_counts_summary.csv",
-              sep = ",", row.names = FALSE, col.names = FALSE, append = TRUE)
+### Backbone: ReadCounts, with terminal .S stripped
+rc <- read.csv("rawdata/readcounts/ReadCounts.csv", row.names = 1)
+
+sum(rc$AntiSenseDemultiplex+rc$SenseDemultiplex)
+rc$sample_id  <- sub("\\.S$", "", rownames(rc))
+rc$demux      <- rc$SenseDemultiplex + rc$AntiSenseDemultiplex
+cat_map       <- c(EXP = "Experimental", NTC = "ControlN", PTC = "ControlP")
+rc$sample_type <- cat_map[rc$Cat]
+
+backbone <- data.frame(
+  sample_id   = rc$sample_id,
+  marker      = rc$Marker,
+  sample_type = rc$sample_type,
+  demux       = rc$demux,
+  stringsAsFactors = FALSE
+)
+
+### Helper: pull a single sample's column-sum from a matrix
+# Returns NA if the sample isn't present, warns if duplicated
+get_col_sum <- function(mat, sample_id) {
+  cols_norm <- tolower(gsub("-", ".", colnames(mat)))
+  key       <- tolower(gsub("-", ".", sample_id))
+  idx <- which(cols_norm == key)
+  if (length(idx) == 0) return(NA_real_)
+  if (length(idx) > 1) {
+    warning("Duplicate column match for ", sample_id, " (", length(idx), ")")
+    return(sum(mat[, idx]))   # or idx[1] if you'd rather take just one
+  }
+  sum(mat[, idx])
 }
 
-### Stage 1: demultiplexed
-readCounts <- read.csv("rawdata/readcounts/ReadCounts.csv")
-cat_map <- c(EXP = "Experimental", NTC = "ControlN", PTC = "ControlP")
-out <- do.call(rbind, lapply(unique(readCounts$Marker), function(m) {
-  loopDat <- readCounts[readCounts$Marker == m, ]
-  do.call(rbind, lapply(names(cat_map), function(cat) {
-    sub <- loopDat[loopDat$Cat == cat, ]
-    totals <- sub$SenseDemultiplex + sub$AntiSenseDemultiplex
-    data.frame(stage = "demultiplexed", marker = m, sample_type = cat_map[[cat]],
-               n = length(totals), mean = mean(totals), sd = sd(totals))
-  }))
-}))
-append_rows(out)
+### Stage 2: post-bioinformatics (pull only sample IDs in the backbone)
+EUK <- read.csv("rawdata/EUK.combined.csv.gz", row.names = 1)
+MAM <- read.csv("rawdata/MAM.combined.csv.gz", row.names = 1)
+RIZ <- read.csv("rawdata/RIZ.combined.csv.gz", row.names = 1)
+bioinfo_mats <- list(EUK = EUK, RIZ = RIZ, MAM = MAM)
+backbone$bioinfo <- mapply(
+  function(m, sid) get_col_sum(bioinfo_mats[[m]], sid),
+  backbone$marker, backbone$sample_id
+)
 
-### Stage 2: post-bioinformatics, pre-control-QC
-markers <- list(EUK = EUK, RIZ = RIZ, MAM = MAM)
-out <- do.call(rbind, lapply(names(markers), function(m) {
-  d <- markers[[m]]
-  do.call(rbind, lapply(c("Experimental", "ControlN", "ControlP"), function(s) {
-    ids <- metadata$UniqueID[metadata$PrimerID == m & metadata$SampleType == s]
-    cols <- na.omit(match(tolower(gsub("-", ".", ids)), tolower(colnames(d))))
-    sums <- colSums(d[, cols])
-    data.frame(stage = "post_bioinformatics", marker = m, sample_type = s,
-               n = length(sums), mean = mean(sums), sd = sd(sums))
-  }))
-}))
-append_rows(out)
+### Stage 3: control-subtracted / cleaned
+clean_mats <- list(
+  EUK = read.csv("cleandata/EUK.WP5.main.clean.csv", row.names = 1),
+  RIZ = read.csv("cleandata/RIZ.WP5.main.clean.csv", row.names = 1),
+  MAM = read.csv("cleandata/MAM.WP5.main.clean.csv", row.names = 1)
+)
+backbone$clean <- mapply(
+  function(m, sid) get_col_sum(clean_mats[[m]], sid),
+  backbone$marker, backbone$sample_id
+)
 
-### Stage 3: control-subtracted / final QC'd
-final <- list(EUK = read.csv("cleandata/EUK.WP5.main.clean.csv", row.names = 1),
-              RIZ = read.csv("cleandata/RIZ.WP5.main.clean.csv", row.names = 1),
-              MAM = read.csv("cleandata/MAM.WP5.main.clean.csv", row.names = 1))
-out <- do.call(rbind, lapply(names(final), function(m) {
-  sums <- colSums(final[[m]])
-  data.frame(stage = "control_subtracted", marker = m, sample_type = "Experimental",
-             n = length(sums), mean = mean(sums), sd = sd(sums))
+### Save the per-sample table for inspection
+write.csv(backbone, "summaryfiles/read_counts_per_sample.csv", row.names = FALSE)
+
+### Summarise at the very end — one mean/sd per stage per group
+stages <- c(demux = "demultiplexed",
+            bioinfo = "post_bioinformatics",
+            clean = "control_subtracted")
+
+summary_df <- do.call(rbind, lapply(names(stages), function(col) {
+  agg <- aggregate(backbone[[col]],
+                   by = list(marker = backbone$marker,
+                             sample_type = backbone$sample_type),
+                   FUN = function(x) c(n = sum(!is.na(x)),
+                                       mean = mean(x, na.rm = TRUE),
+                                       sd = sd(x, na.rm = TRUE)))
+  data.frame(stage = stages[[col]],
+             marker = agg$marker,
+             sample_type = agg$sample_type,
+             n = agg$x[, "n"],
+             mean = agg$x[, "mean"],
+             sd = agg$x[, "sd"])
 }))
-append_rows(out)
+
+write.csv(summary_df, "summaryfiles/read_counts_summary.csv", row.names = FALSE)
 
 ## Count ASVS
 EUK = read.csv("cleandata/EUK.WP5.main.clean.csv", row.names = 1)
@@ -375,4 +402,37 @@ MAM = read.csv("cleandata/MAM.WP5.main.clean.csv", row.names = 1)
 dim(EUK)
 dim(MAM)
 dim(RIZ)
+
+
+mam.riz.fam <- unique(c(unique(mam.tax.h$family),unique(riz.tax.h$family)))
+length(mam.riz.fam <- mam.riz.fam[!is.na(mam.riz.fam) & mam.riz.fam != "Can't find taxa in database"])
+
+#### Count assignments
+mam.tax <- read.csv("cleandata/MAM.WP5.main.clean.tax.csv",row.names = 1)
+mam.tax.h <- mam.tax[mam.tax$assignmentQual=="High" | mam.tax$assignmentQual=="High-MH",]
+
+riz.tax <- read.csv("cleandata/RIZ.WP5.main.clean.tax.csv",row.names = 1)
+riz.tax.h <- riz.tax[riz.tax$assignmentQual=="High" | riz.tax$assignmentQual=="High-MH",]
+
+
+mam.riz.fam <- unique(c(unique(mam.tax.h$family),unique(riz.tax.h$family)))
+length(mam.riz.fam <- mam.riz.fam[!is.na(mam.riz.fam) & mam.riz.fam != "Can't find taxa in database" & mam.riz.fam != ""])
+
+mam.riz.gen <- unique(c(unique(mam.tax.h$genus),unique(riz.tax.h$genus)))
+length(mam.riz.gen <- mam.riz.gen[!is.na(mam.riz.gen) & mam.riz.gen != "Can't find taxa in database"& mam.riz.gen != ""])
+
+
+euk.tax <- read.csv("cleandata/EUK.WP5.main.clean.tax.csv",row.names = 1)
+euk.pr2 <- read.csv("taxonomy/EUK.pr2.csv",row.names = 1)
+
+euk.tax.h <-  euk.tax[euk.tax$assignmentQual=="High" | euk.tax$assignmentQual=="High-MH",]
+
+
+length(unique(euk.tax.h$phylum)[!unique(euk.tax.h$phylum) %in% c(NA, "Can't find taxa in database", "")])
+length(unique(euk.tax.h$class)[!unique(euk.tax.h$class) %in% c(NA, "Can't find taxa in database", "")])
+length(unique(euk.tax.h$order)[!unique(euk.tax.h$order) %in% c(NA, "Can't find taxa in database", "")])
+length(unique(euk.tax.h$family)[!unique(euk.tax.h$family) %in% c(NA, "Can't find taxa in database", "")])
+length(unique(euk.tax.h$genus)[!unique(euk.tax.h$genus) %in% c(NA, "Can't find taxa in database", "")])
+
+
 
