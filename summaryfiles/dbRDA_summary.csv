@@ -1,0 +1,33 @@
+"Group","Distance","Term","Df","SumOfSqs","F_value","p_value","R2_constrained"
+"Global","Bray-Curtis","Overall model",3,0.825,3.3448,0.001,0.1127
+"Global","Bray-Curtis","whale_s",1,0.1506,1.8313,0.017,NA
+"Global","Bray-Curtis","PC1_s",1,0.412,5.011,0.001,NA
+"Global","Bray-Curtis","PC2_s",1,0.135,1.6416,0.0669,NA
+"Global","Jaccard","Overall model",3,1.231,2.9976,0.001,0.1022
+"Global","Jaccard","whale_s",1,0.2338,1.7078,0.032,NA
+"Global","Jaccard","PC1_s",1,0.5791,4.2307,0.001,NA
+"Global","Jaccard","PC2_s",1,0.2361,1.7249,0.035,NA
+"Metazoa","Bray-Curtis","Overall model",3,1.8135,3.5898,0.001,0.12
+"Metazoa","Bray-Curtis","whale_s",1,0.5066,3.0085,0.007,NA
+"Metazoa","Bray-Curtis","PC1_s",1,0.679,4.0321,0.001,NA
+"Metazoa","Bray-Curtis","PC2_s",1,0.2693,1.599,0.0899,NA
+"Metazoa","Jaccard","Overall model",3,2.0428,2.8212,0.001,0.0968
+"Metazoa","Jaccard","whale_s",1,0.7081,2.9336,0.002,NA
+"Metazoa","Jaccard","PC1_s",1,0.6934,2.873,0.001,NA
+"Metazoa","Jaccard","PC2_s",1,0.3432,1.4219,0.0719,NA
+"Protists","Bray-Curtis","Overall model",3,0.5173,3.3179,0.001,0.1119
+"Protists","Bray-Curtis","whale_s",1,0.0968,1.8623,0.021,NA
+"Protists","Bray-Curtis","PC1_s",1,0.2846,5.4768,0.001,NA
+"Protists","Bray-Curtis","PC2_s",1,0.067,1.2886,0.2398,NA
+"Protists","Jaccard","Overall model",3,0.9198,3.1411,0.001,0.1066
+"Protists","Jaccard","whale_s",1,0.1843,1.8882,0.016,NA
+"Protists","Jaccard","PC1_s",1,0.4491,4.6013,0.001,NA
+"Protists","Jaccard","PC2_s",1,0.1496,1.5325,0.0989,NA
+"Bacteria","Bray-Curtis","Overall model",3,1.2537,3.5255,0.001,0.1181
+"Bacteria","Bray-Curtis","whale_s",1,0.3574,3.0146,0.007,NA
+"Bacteria","Bray-Curtis","PC1_s",1,0.6207,5.2363,0.001,NA
+"Bacteria","Bray-Curtis","PC2_s",1,0.1628,1.3735,0.2458,NA
+"Bacteria","Jaccard","Overall model",3,1.633,3.0714,0.001,0.1045
+"Bacteria","Jaccard","whale_s",1,0.5823,3.2855,0.001,NA
+"Bacteria","Jaccard","PC1_s",1,0.6932,3.9115,0.001,NA
+"Bacteria","Jaccard","PC2_s",1,0.1998,1.1273,0.3257,NA

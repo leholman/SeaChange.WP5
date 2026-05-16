@@ -2112,6 +2112,130 @@ legend("topleft",
 
 dev.off()
 
+####====Export LMM results to text file====####
+
+mods <- list(
+  "ASV Q0"   = a2_A0, "ASV Q1"   = a2_A1, "ASV Q2"   = a2_A2,
+  "Genus Q0" = a2_G0, "Genus Q1" = a2_G1, "Genus Q2" = a2_G2
+)
+
+predictors <- c("PC1_s", "PC2_s", "whale_s")
+
+sink("summaryfiles/LMM_alpha_results.txt")
+
+cat("======================================================================\n")
+cat("Linear Mixed Model results: alpha diversity ~ PC1_s + PC2_s + whale_s\n")
+cat("Random effect: (1 | site)\n")
+cat("Fit by REML using lme4 / lmerTest\n")
+cat("Generated:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n")
+cat("======================================================================\n\n")
+
+# Sample sizes
+cat("---- Sample sizes ----\n")
+for (m in names(mods)) {
+  n_obs <- nobs(mods[[m]])
+  n_grp <- ngrps(mods[[m]])
+  cat(sprintf("  %-10s  n obs = %d   n sites = %d\n", m, n_obs, n_grp))
+}
+cat("\n")
+
+# Singular fits
+cat("---- Singular fit check ----\n")
+sing <- sapply(mods, isSingular)
+for (m in names(sing)) cat(sprintf("  %-10s  isSingular = %s\n", m, sing[m]))
+cat("\n")
+
+# Per-model detail
+for (m in names(mods)) {
+  mod <- mods[[m]]
+  cat("======================================================================\n")
+  cat("Model:", m, "\n")
+  cat("Formula:", deparse(formula(mod)), "\n")
+  cat("----------------------------------------------------------------------\n")
+  
+  # Variance components
+  cat("Random effects (variance components):\n")
+  vc <- as.data.frame(VarCorr(mod))
+  print(vc[, c("grp", "var1", "vcov", "sdcor")], row.names = FALSE)
+  cat("\n")
+  
+  # Fixed effects with df + p (lmerTest summary)
+  cat("Fixed effects (Satterthwaite df, lmerTest):\n")
+  sm <- coef(summary(mod))
+  print(round(sm, 4))
+  cat("\n")
+  
+  # Wald 95% CIs for fixed effects
+  ci <- confint(mod, method = "Wald")
+  ci_fx <- ci[rownames(ci) %in% rownames(sm), , drop = FALSE]
+  cat("95% Wald confidence intervals (fixed effects):\n")
+  print(round(ci_fx, 4))
+  cat("\n")
+  
+  # Marginal / conditional R^2 if MuMIn is around
+  if (requireNamespace("MuMIn", quietly = TRUE)) {
+    r2 <- tryCatch(MuMIn::r.squaredGLMM(mod), error = function(e) NULL)
+    if (!is.null(r2)) {
+      cat("R^2 (MuMIn):\n")
+      cat(sprintf("  Marginal R2  = %.4f\n", r2[1, "R2m"]))
+      cat(sprintf("  Conditional R2 = %.4f\n", r2[1, "R2c"]))
+      cat("\n")
+    }
+  }
+  
+  # Response SD (for context)
+  mf <- model.frame(mod)
+  cat(sprintf("Response SD (for scaling coefficients): %.4f\n",
+              sd(model.response(mf), na.rm = TRUE)))
+  cat(sprintf("Residual SD: %.4f\n",
+              sigma(mod)))
+  cat("\n")
+}
+
+# Compact summary table across all models
+cat("======================================================================\n")
+cat("Compact summary table: estimate (SE), 95% CI, p-value\n")
+cat("======================================================================\n\n")
+
+compact <- do.call(rbind, lapply(names(mods), function(m) {
+  mod <- mods[[m]]
+  sm  <- coef(summary(mod))
+  ci  <- confint(mod, method = "Wald")
+  do.call(rbind, lapply(predictors, function(p) {
+    if (!p %in% rownames(sm)) return(NULL)
+    data.frame(
+      model     = m,
+      predictor = p,
+      estimate  = unname(sm[p, "Estimate"]),
+      SE        = unname(sm[p, "Std. Error"]),
+      df        = unname(sm[p, "df"]),
+      t         = unname(sm[p, "t value"]),
+      CI_lo     = unname(ci[p, 1]),
+      CI_hi     = unname(ci[p, 2]),
+      p_value   = unname(sm[p, "Pr(>|t|)"]),
+      sig       = ifelse(sm[p, "Pr(>|t|)"] < 0.001, "***",
+                         ifelse(sm[p, "Pr(>|t|)"] < 0.01,  "**",
+                                ifelse(sm[p, "Pr(>|t|)"] < 0.05,  "*",
+                                       ifelse(sm[p, "Pr(>|t|)"] < 0.1,   ".", "")))),
+      stringsAsFactors = FALSE
+    )
+  }))
+}))
+
+compact[, c("estimate","SE","df","t","CI_lo","CI_hi","p_value")] <-
+  round(compact[, c("estimate","SE","df","t","CI_lo","CI_hi","p_value")], 4)
+
+print(compact, row.names = FALSE)
+cat("\nSignificance codes:  *** < 0.001   ** < 0.01   * < 0.05   . < 0.1\n")
+
+sink()
+
+# Also write the compact table as CSV for convenience
+write.csv(compact, "summaryfiles/LMM_alpha_results_compact.csv", row.names = FALSE)
+
+cat("Wrote: figures/LMM_alpha_results.txt\n")
+cat("Wrote: figures/LMM_alpha_results_compact.csv\n")
+
 
 
 
@@ -2474,10 +2598,10 @@ dev.off()
 perm <- how(blocks = alpha$site,nperm = 1000)
 
 anova(mod_bray, permutations = perm)
-anova(mod_bray, by = "terms", permutations = perm)
+anova(mod_bray, by = "margin", permutations = perm)
 
 anova(mod_jacc, permutations = perm)
-anova(mod_jacc, by = "terms", permutations = perm)
+anova(mod_jacc, by = "margin", permutations = perm)
 
 ## variance partititoning 
 
@@ -2508,7 +2632,46 @@ perm_jacc
 
 
 ## write results to file
-sink("results.txt")
+sink("summaryfiles/Betaresults.txt")
+
+####---- Global analysis (all eukaryotes) ----####
+
+cat("############################################################\n")
+cat("Group: All Taxa (global)\n")
+cat("############################################################\n\n")
+
+comm.raw <- prop.table(as.matrix(euk.reps), 2)
+comm     <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
+
+perm <- how(blocks = beta$site, nperm = 1000)
+
+cat("---- dbRDA: Bray ----\n")
+mod_bray_glob <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+                       data = beta, distance = "bray")
+print(anova(mod_bray_glob, permutations = perm))
+print(anova(mod_bray_glob, by = "margin", permutations = perm))
+
+cat("\n---- dbRDA: Jaccard ----\n")
+mod_jacc_glob <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+                       data = beta, distance = "jacc")
+print(anova(mod_jacc_glob, permutations = perm))
+print(anova(mod_jacc_glob, by = "margin", permutations = perm))
+
+cat("\n---- Variance partitioning: Bray ----\n")
+var_bray_glob <- varpart(vegdist(comm, "bray"),
+                         ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+print(var_bray_glob)
+
+cat("\n---- Variance partitioning: Jaccard ----\n")
+var_jacc_glob <- varpart(vegdist(comm, "jacc", binary = TRUE),
+                         ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+print(var_jacc_glob)
+
+cat("\n\n")
+
+
+
+
 
 cat("=== Distance-based RDA and PERMANOVA results by taxonomic group ===\n\n")
 
@@ -2546,7 +2709,7 @@ for (group_name in names(asv_groups)) {
   perm <- how(blocks = alpha$site, nperm = 1000)
   
   print(anova(mod_bray, permutations = perm))
-  print(anova(mod_bray, by = "terms", permutations = perm))
+  print(anova(mod_bray, by = "margin", permutations = perm))
   
   cat("\n---- dbRDA: Jaccard ----\n")
   mod_jacc <- dbrda(
@@ -2556,7 +2719,7 @@ for (group_name in names(asv_groups)) {
   )
   
   print(anova(mod_jacc, permutations = perm))
-  print(anova(mod_jacc, by = "terms", permutations = perm))
+  print(anova(mod_jacc, by = "margin", permutations = perm))
   
   ## variance partitioning
   cat("\n---- Variance partitioning: Bray ----\n")
@@ -2601,7 +2764,97 @@ for (group_name in names(asv_groups)) {
 
 sink()
 
+####---- Build tidy summary tables ----####
 
+groups <- list(
+  Global   = NULL,                 # NULL means "use everything"
+  Metazoa  = ASVs.met,
+  Protists = ASVs.pro,
+  Bacteria = ASVs.bac
+)
+
+# Tidy a single dbRDA marginal anova into a data frame
+tidy_dbrda <- function(mod, group, distance){
+  ov  <- anova(mod, permutations = perm)
+  mar <- anova(mod, by = "margin", permutations = perm)
+  eig <- eigenvals(mod)
+  R2_constr <- sum(eig[grep("^dbRDA", names(eig))]) / sum(eig)
+  data.frame(
+    Group     = group,
+    Distance  = distance,
+    Term      = c("Overall model", rownames(mar)[rownames(mar) != "Residual"]),
+    Df        = c(ov$Df[1], mar$Df[rownames(mar) != "Residual"]),
+    SumOfSqs  = c(ov$SumOfSqs[1], mar$SumOfSqs[rownames(mar) != "Residual"]),
+    F_value   = c(ov$F[1], mar$F[rownames(mar) != "Residual"]),
+    p_value   = c(ov$`Pr(>F)`[1], mar$`Pr(>F)`[rownames(mar) != "Residual"]),
+    R2_constrained = c(R2_constr, rep(NA, sum(rownames(mar) != "Residual"))),
+    stringsAsFactors = FALSE
+  )
+}
+
+# Tidy a single varpart object into a data frame
+tidy_varpart <- function(vp, group, distance){
+  parts <- vp$part$indfract
+  data.frame(
+    Group    = group,
+    Distance = distance,
+    Fraction = c("Climate (PC1+PC2) | Whale",
+                 "Whale | Climate",
+                 "Shared",
+                 "Residual"),
+    Df       = c(parts$Df[1:2], NA, NA),
+    Adj_R2   = parts$Adj.R.squared,
+    stringsAsFactors = FALSE
+  )
+}
+
+dbrda_rows  <- list()
+varpart_rows <- list()
+
+for (g in names(groups)) {
+  asvs <- groups[[g]]
+  
+  if (is.null(asvs)) {
+    mat <- euk.reps                                    # global = everything
+  } else {
+    mat <- euk.reps[rownames(euk.reps) %in% asvs, , drop = FALSE]
+  }
+  
+  comm.raw <- prop.table(as.matrix(mat), 2)
+  comm     <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
+  
+  perm <- how(blocks = beta$site, nperm = 1000)
+  
+  mb <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+              data = beta, distance = "bray")
+  mj <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+              data = beta, distance = "jacc")
+  
+  dbrda_rows[[paste(g, "bray")]]    <- tidy_dbrda(mb, g, "Bray-Curtis")
+  dbrda_rows[[paste(g, "jaccard")]] <- tidy_dbrda(mj, g, "Jaccard")
+  
+  vb <- varpart(vegdist(comm, "bray"),
+                ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+  vj <- varpart(vegdist(comm, "jacc", binary = TRUE),
+                ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+  
+  varpart_rows[[paste(g, "bray")]]    <- tidy_varpart(vb, g, "Bray-Curtis")
+  varpart_rows[[paste(g, "jaccard")]] <- tidy_varpart(vj, g, "Jaccard")
+}
+
+dbrda_summary  <- do.call(rbind, dbrda_rows)
+varpart_summary <- do.call(rbind, varpart_rows)
+
+# Round for display
+dbrda_summary[c("SumOfSqs","F_value","p_value","R2_constrained")] <-
+  round(dbrda_summary[c("SumOfSqs","F_value","p_value","R2_constrained")], 4)
+varpart_summary$Adj_R2 <- round(varpart_summary$Adj_R2, 4)
+
+write.csv(dbrda_summary,   "summaryfiles/dbRDA_summary.csv",   row.names = FALSE)
+write.csv(varpart_summary, "summaryfiles/varpart_summary.csv", row.names = FALSE)
+
+print(dbrda_summary)
+print(varpart_summary)
 
 #### now lets run a HMSC model with all taxa
 library(Hmsc)
@@ -3589,7 +3842,17 @@ sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
 cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
 pred_names <- rownames(beta_full)
-pdf("figures/HMSC/metazoa.pa.combined.pdf", height = 16, width = 7)
+
+# Keep only taxa with at least one significant predictor
+keep <- apply(sig_full, 2, function(x) any(x != ""))
+
+vp_mat_rev   <- vp_mat_rev[, keep, drop = FALSE]
+beta_full    <- beta_full[, keep, drop = FALSE]
+sig_full     <- sig_full[, keep, drop = FALSE]
+taxon_order  <- taxon_order[keep]
+
+
+pdf("figures/HMSC/metazoa.pa.combined.sig.pdf", height = 10, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
 bp <- barplot(
   vp_mat_rev,
@@ -3606,7 +3869,7 @@ bp <- barplot(
 axis(1, at = seq(0, 1, 0.25),
      labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
 mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
-legend(-1, -2,
+legend(-1, -1,
        legend = rownames(vp_mat_rev),
        fill   = cols_vp,
        border = NA, bty = "n", cex = 0.8)
@@ -3656,7 +3919,7 @@ dev.off()
 
 
 
-##### Now we make a composite figure
+##### Now we make a composite figure for specific taxa
 
 ## First we pull in whales
 mam.whales.man <- read.csv("cleandata/MAM.whales.clean.manual.csv",row.names = 1)
