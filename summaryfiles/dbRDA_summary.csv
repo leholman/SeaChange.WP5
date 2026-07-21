@@ -1,33 +1,41 @@
 "Group","Distance","Term","Df","SumOfSqs","F_value","p_value","R2_constrained"
-"Global","Bray-Curtis","Overall model",3,0.825,3.3448,0.001,0.1127
-"Global","Bray-Curtis","whale_s",1,0.1506,1.8313,0.017,NA
-"Global","Bray-Curtis","PC1_s",1,0.412,5.011,0.001,NA
-"Global","Bray-Curtis","PC2_s",1,0.135,1.6416,0.0669,NA
-"Global","Jaccard","Overall model",3,1.231,2.9976,0.001,0.1022
-"Global","Jaccard","whale_s",1,0.2338,1.7078,0.032,NA
-"Global","Jaccard","PC1_s",1,0.5791,4.2307,0.001,NA
-"Global","Jaccard","PC2_s",1,0.2361,1.7249,0.035,NA
-"Metazoa","Bray-Curtis","Overall model",3,1.8135,3.5898,0.001,0.12
-"Metazoa","Bray-Curtis","whale_s",1,0.5066,3.0085,0.007,NA
-"Metazoa","Bray-Curtis","PC1_s",1,0.679,4.0321,0.001,NA
-"Metazoa","Bray-Curtis","PC2_s",1,0.2693,1.599,0.0899,NA
-"Metazoa","Jaccard","Overall model",3,2.0428,2.8212,0.001,0.0968
-"Metazoa","Jaccard","whale_s",1,0.7081,2.9336,0.002,NA
-"Metazoa","Jaccard","PC1_s",1,0.6934,2.873,0.001,NA
-"Metazoa","Jaccard","PC2_s",1,0.3432,1.4219,0.0719,NA
-"Protists","Bray-Curtis","Overall model",3,0.5173,3.3179,0.001,0.1119
-"Protists","Bray-Curtis","whale_s",1,0.0968,1.8623,0.021,NA
-"Protists","Bray-Curtis","PC1_s",1,0.2846,5.4768,0.001,NA
-"Protists","Bray-Curtis","PC2_s",1,0.067,1.2886,0.2398,NA
-"Protists","Jaccard","Overall model",3,0.9198,3.1411,0.001,0.1066
-"Protists","Jaccard","whale_s",1,0.1843,1.8882,0.016,NA
-"Protists","Jaccard","PC1_s",1,0.4491,4.6013,0.001,NA
-"Protists","Jaccard","PC2_s",1,0.1496,1.5325,0.0989,NA
-"Bacteria","Bray-Curtis","Overall model",3,1.2537,3.5255,0.001,0.1181
-"Bacteria","Bray-Curtis","whale_s",1,0.3574,3.0146,0.007,NA
-"Bacteria","Bray-Curtis","PC1_s",1,0.6207,5.2363,0.001,NA
-"Bacteria","Bray-Curtis","PC2_s",1,0.1628,1.3735,0.2458,NA
-"Bacteria","Jaccard","Overall model",3,1.633,3.0714,0.001,0.1045
-"Bacteria","Jaccard","whale_s",1,0.5823,3.2855,0.001,NA
-"Bacteria","Jaccard","PC1_s",1,0.6932,3.9115,0.001,NA
-"Bacteria","Jaccard","PC2_s",1,0.1998,1.1273,0.3257,NA
+"Global","Bray-Curtis","Overall model",4,0.9349,2.855,0.001,0.1277
+"Global","Bray-Curtis","whale_s",1,0.1344,1.6419,0.03,NA
+"Global","Bray-Curtis","SAM_s",1,0.4409,5.3854,0.001,NA
+"Global","Bray-Curtis","ENSO_s",1,0.0504,0.616,0.8172,NA
+"Global","Bray-Curtis","SeaIce_s",1,0.0592,0.7229,0.8382,NA
+"Global","Jaccard","Overall model",4,1.4433,2.6549,0.001,0.1198
+"Global","Jaccard","whale_s",1,0.2139,1.5738,0.028,NA
+"Global","Jaccard","SAM_s",1,0.6581,4.8417,0.001,NA
+"Global","Jaccard","ENSO_s",1,0.1064,0.7831,0.7542,NA
+"Global","Jaccard","SeaIce_s",1,0.1216,0.8948,0.8022,NA
+"Metazoa","Bray-Curtis","Overall model",4,2.3023,3.5035,0.001,0.1523
+"Metazoa","Bray-Curtis","whale_s",1,0.4492,2.7345,0.007,NA
+"Metazoa","Bray-Curtis","SAM_s",1,0.9392,5.717,0.001,NA
+"Metazoa","Bray-Curtis","ENSO_s",1,0.1809,1.1009,0.2937,NA
+"Metazoa","Bray-Curtis","SeaIce_s",1,0.2437,1.4837,0.0949,NA
+"Metazoa","Jaccard","Overall model",4,2.5341,2.6602,0.001,0.12
+"Metazoa","Jaccard","whale_s",1,0.651,2.7334,0.002,NA
+"Metazoa","Jaccard","SAM_s",1,0.8977,3.7695,0.001,NA
+"Metazoa","Jaccard","ENSO_s",1,0.2458,1.032,0.3277,NA
+"Metazoa","Jaccard","SeaIce_s",1,0.2954,1.2403,0.1898,NA
+"Protists","Bray-Curtis","Overall model",4,0.5706,2.7458,0.001,0.1234
+"Protists","Bray-Curtis","whale_s",1,0.0811,1.5603,0.0629,NA
+"Protists","Bray-Curtis","SAM_s",1,0.2872,5.5288,0.001,NA
+"Protists","Bray-Curtis","ENSO_s",1,0.0307,0.5918,0.7483,NA
+"Protists","Bray-Curtis","SeaIce_s",1,0.0203,0.3908,0.959,NA
+"Protists","Jaccard","Overall model",4,1.0574,2.7226,0.001,0.1225
+"Protists","Jaccard","whale_s",1,0.1621,1.6697,0.034,NA
+"Protists","Jaccard","SAM_s",1,0.5016,5.1662,0.001,NA
+"Protists","Jaccard","ENSO_s",1,0.0815,0.8391,0.5524,NA
+"Protists","Jaccard","SeaIce_s",1,0.0566,0.5827,0.959,NA
+"Bacteria","Bray-Curtis","Overall model",4,1.5822,3.4144,0.001,0.149
+"Bacteria","Bray-Curtis","whale_s",1,0.3861,3.3328,0.003,NA
+"Bacteria","Bray-Curtis","SAM_s",1,0.7621,6.5787,0.001,NA
+"Bacteria","Bray-Curtis","ENSO_s",1,0.1736,1.4983,0.1449,NA
+"Bacteria","Bray-Curtis","SeaIce_s",1,0.1677,1.4474,0.1998,NA
+"Bacteria","Jaccard","Overall model",4,2.0666,2.9703,0.001,0.1322
+"Bacteria","Jaccard","whale_s",1,0.5965,3.4296,0.001,NA
+"Bacteria","Jaccard","SAM_s",1,0.8436,4.8497,0.001,NA
+"Bacteria","Jaccard","ENSO_s",1,0.2179,1.2526,0.1908,NA
+"Bacteria","Jaccard","SeaIce_s",1,0.2735,1.5725,0.0969,NA

@@ -2923,13 +2923,15 @@ m <- Hmsc(
 )
 
 m <- sampleMcmc(m,
-                thin      = 10,
+                thin      = 100,
                 samples   = 1000,
-                transient = 5000,
+                transient = 10000,
                 nChains   = 4,
                 nParallel = 4,
                 verbose   = 500
 )
+
+
 
 # -- Convergence --------------------------------------------------------------
 
@@ -3915,6 +3917,253 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
      expression(beta), cex = 0.7, adj = c(0.5, 1))
 par(xpd = FALSE)
 dev.off()
+
+
+####====Export HMSC results to text file====####
+## Writes a single summary file for all three HMSC models:
+##   1. Subdivision-level CLR model        (m,        VP,        postBeta,        Y)
+##   2. Metazoa family-level CLR model     (m.fam,    VP.fam,    postBeta.fam,    Y.fam)
+##   3. Metazoa family P/A probit model    (m.fam.pa, VP.fam.pa, postBeta.fam.pa, Y.fam.pa)
+##
+## Assumes the HMSC section of the main script has been run so all of the
+## objects above exist in the workspace, along with: beta, clim, studyDesign, X,
+## mpost*, *_ess, *_gel for Beta/Omega/Sigma of each model.
+
+if (!dir.exists("summaryfiles")) dir.create("summaryfiles", recursive = TRUE)
+
+## ---- helpers ---------------------------------------------------------------
+
+# Per-model summariser. mod = Hmsc object; Y = response matrix; VP = varpart;
+# postBeta = posterior estimates; mpost = coda object; ess/gel lists for the
+# three parameter blocks.
+hmsc_summary_block <- function(name,
+                               mod, Y, X, VP, postBeta, mpost,
+                               beta_ess,  beta_gel,
+                               omega_ess, omega_gel,
+                               sigma_ess, sigma_gel,
+                               predictor_labels = c("Climate_PC1",
+                                                    "Climate_PC2",
+                                                    "Whaling"),
+                               support_threshold = 0.95) {
+  
+  cat("######################################################################\n")
+  cat("Model:", name, "\n")
+  cat("######################################################################\n\n")
+  
+  ## ---- Input data summary --------------------------------------------------
+  cat("---- Input data ----\n")
+  cat(sprintf("  Samples (rows of Y):        %d\n", nrow(Y)))
+  cat(sprintf("  Response groups (cols of Y): %d\n", ncol(Y)))
+  cat(sprintf("  Distribution:               %s\n",
+              paste(mod$distr[, "family"], collapse = ", ")))
+  cat(sprintf("  Fixed-effect formula:       %s\n",
+              deparse(mod$XFormula)))
+  cat(sprintf("  Random levels:              %s\n",
+              paste(names(mod$ranLevels), collapse = ", ")))
+  cat(sprintf("  Predictors in XData:        %s\n",
+              paste(colnames(X), collapse = ", ")))
+  cat("\n")
+  
+  cat("  Response groups included:\n")
+  resp_names <- colnames(Y)
+  print(resp_names)
+  cat("\n")
+  
+  ## Response moments — useful sanity check for CLR vs PA
+  cat("  Y column summary (mean, sd, min, max):\n")
+  y_summary <- data.frame(
+    mean = round(colMeans(Y, na.rm = TRUE), 4),
+    sd   = round(apply(Y, 2, sd, na.rm = TRUE), 4),
+    min  = round(apply(Y, 2, min, na.rm = TRUE), 4),
+    max  = round(apply(Y, 2, max, na.rm = TRUE), 4)
+  )
+  print(y_summary)
+  cat("\n")
+  
+  ## ---- MCMC settings -------------------------------------------------------
+  cat("---- MCMC settings ----\n")
+  cat(sprintf("  Chains:    %d\n", length(mod$postList)))
+  cat(sprintf("  Samples per chain: %d\n", mod$samples))
+  cat(sprintf("  Thinning:  %d\n", mod$thin))
+  cat(sprintf("  Transient: %d\n", mod$transient))
+  cat(sprintf("  Total post-burn-in iterations per chain: %d\n",
+              mod$samples * mod$thin))
+  cat("\n")
+  
+  ## ---- Convergence ---------------------------------------------------------
+  cat("---- Convergence diagnostics ----\n")
+  
+  diag_block <- function(label, ess, gel) {
+    cat(sprintf("  %s:\n", label))
+    cat(sprintf("    ESS  — min = %s, median = %s, mean = %s, %% > 200 = %.1f%%\n",
+                round(min(ess, na.rm = TRUE)),
+                round(median(ess, na.rm = TRUE)),
+                round(mean(ess, na.rm = TRUE)),
+                mean(ess > 200, na.rm = TRUE) * 100))
+    cat(sprintf("    PSRF — max = %.3f, median = %.3f, %% > 1.05 = %.1f%%\n",
+                max(gel[, 1], na.rm = TRUE),
+                median(gel[, 1], na.rm = TRUE),
+                mean(gel[, 1] > 1.05, na.rm = TRUE) * 100))
+  }
+  
+  diag_block("Beta (fixed effects)", beta_ess,  beta_gel)
+  if (!is.null(omega_ess) && !is.null(omega_gel))
+    diag_block("Omega (residual associations)", omega_ess, omega_gel)
+  if (!is.null(sigma_ess) && !is.null(sigma_gel))
+    diag_block("Sigma (residual variance)",     sigma_ess, sigma_gel)
+  cat("\n")
+  
+  ## ---- Variance partitioning ----------------------------------------------
+  cat("---- Variance partitioning ----\n")
+  cat("Group means across response groups (proportion of variance):\n")
+  print(round(rowMeans(VP$vals), 4))
+  cat("\n")
+  
+  cat("Variance partitioning per response group:\n")
+  vp_tab <- t(VP$vals)
+  vp_tab <- round(vp_tab, 4)
+  print(vp_tab)
+  cat("\n")
+  
+  ## ---- Fixed-effect posterior summaries -----------------------------------
+  cat(sprintf("---- Fixed-effect posterior summaries (support threshold = %.2f) ----\n",
+              support_threshold))
+  
+  # Rows 2:4 = the three environmental predictors (row 1 = intercept).
+  pred_rows  <- 2:(1 + length(predictor_labels))
+  beta_mean  <- postBeta$mean[pred_rows, , drop = FALSE]
+  P_pos      <- postBeta$support[pred_rows, , drop = FALSE]
+  P_neg      <- postBeta$supportNeg[pred_rows, , drop = FALSE]
+  rownames(beta_mean) <- rownames(P_pos) <- rownames(P_neg) <- predictor_labels
+  
+  support_df <- data.frame(
+    response  = rep(colnames(Y), each = length(predictor_labels)),
+    predictor = rep(predictor_labels, times = ncol(Y)),
+    mean_beta = as.vector(beta_mean),
+    P_pos     = as.vector(P_pos),
+    P_neg     = as.vector(P_neg),
+    stringsAsFactors = FALSE
+  )
+  support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
+  support_df$strong    <- support_df$P_pos > support_threshold |
+    support_df$P_neg > support_threshold
+  support_df[, c("mean_beta", "P_pos", "P_neg")] <-
+    round(support_df[, c("mean_beta", "P_pos", "P_neg")], 4)
+  
+  cat("Full table of posterior support for fixed effects:\n")
+  print(support_df[, c("response", "predictor", "mean_beta",
+                       "P_pos", "P_neg", "direction", "strong")],
+        row.names = FALSE)
+  cat("\n")
+  
+  strong_df <- support_df[support_df$strong, ]
+  if (nrow(strong_df) > 0) {
+    cat(sprintf("Strongly supported responses (P_pos or P_neg > %.2f):\n",
+                support_threshold))
+    print(strong_df[, c("response", "predictor", "mean_beta",
+                        "P_pos", "P_neg", "direction")],
+          row.names = FALSE)
+  } else {
+    cat(sprintf("No responses with posterior support > %.2f.\n",
+                support_threshold))
+  }
+  cat("\n")
+  
+  invisible(support_df)
+}
+
+
+## ---- Write the file --------------------------------------------------------
+
+out_file <- "summaryfiles/HMSC_results.txt"
+sink(out_file)
+
+cat("======================================================================\n")
+cat("Hmsc model results: community ~ PC1 + PC2 + whale + (1 | site)\n")
+cat("Generated:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n")
+cat("======================================================================\n\n")
+
+cat("Sites used as random effect:\n")
+print(table(beta$site))
+cat("\n")
+
+cat("Predictor summary (XData):\n")
+print(round(sapply(X, function(z)
+  c(mean = mean(z, na.rm = TRUE),
+    sd   = sd(z,   na.rm = TRUE),
+    min  = min(z,  na.rm = TRUE),
+    max  = max(z,  na.rm = TRUE))), 4))
+cat("\n")
+
+
+## One support threshold for all models
+support_threshold <- 0.95
+
+## 1. Subdivision-level CLR model
+support_sub <- hmsc_summary_block(
+  name      = "Subdivision-level CLR (m)",
+  mod       = m,
+  Y         = Y,
+  X         = X,
+  VP        = VP,
+  postBeta  = postBeta,
+  mpost     = mpost,
+  beta_ess  = beta_ess,                   beta_gel  = beta_gel,
+  omega_ess = effectiveSize(mpost$Omega[[1]]),
+  omega_gel = gelman.diag(mpost$Omega[[1]], multivariate = FALSE)$psrf,
+  sigma_ess = effectiveSize(mpost$Sigma),
+  sigma_gel = gelman.diag(mpost$Sigma, multivariate = FALSE)$psrf,
+  support_threshold = support_threshold
+)
+
+## 2. Metazoa family-level CLR model
+support_met <- hmsc_summary_block(
+  name      = "Metazoa family CLR (m.fam)",
+  mod       = m.fam,
+  Y         = Y.fam,
+  X         = X,
+  VP        = VP.fam,
+  postBeta  = postBeta.fam,
+  mpost     = mpost.fam,
+  beta_ess  = beta_ess.fam,  beta_gel  = beta_gel.fam,
+  omega_ess = omega_ess.fam, omega_gel = omega_gel.fam,
+  sigma_ess = sigma_ess.fam, sigma_gel = sigma_gel.fam,
+  support_threshold = support_threshold
+)
+
+## 3. Metazoa family-level presence/absence probit model
+support_met_pa <- hmsc_summary_block(
+  name      = "Metazoa family P/A probit (m.fam.pa)",
+  mod       = m.fam.pa,
+  Y         = Y.fam.pa,
+  X         = X,
+  VP        = VP.fam.pa,
+  postBeta  = postBeta.fam.pa,
+  mpost     = mpost.fam.pa,
+  beta_ess  = beta_ess.fam.pa,  beta_gel  = beta_gel.fam.pa,
+  omega_ess = omega_ess.fam.pa, omega_gel = omega_gel.fam.pa,
+  sigma_ess = sigma_ess.fam.pa, sigma_gel = sigma_gel.fam.pa,
+  support_threshold = support_threshold
+)
+
+sink()
+
+
+## ---- Also dump compact CSVs of fixed-effect support ------------------------
+
+support_sub$model    <- "Subdivision_CLR"
+support_met$model    <- "Metazoa_family_CLR"
+support_met_pa$model <- "Metazoa_family_PA"
+
+compact <- rbind(support_sub, support_met, support_met_pa)
+compact <- compact[, c("model", "response", "predictor",
+                       "mean_beta", "P_pos", "P_neg",
+                       "direction", "strong")]
+write.csv(compact, "summaryfiles/HMSC_fixedeffects_compact.csv",
+          row.names = FALSE)
+
+cat("Wrote: ", out_file, "\n",
+    "Wrote:  summaryfiles/HMSC_fixedeffects_compact.csv\n", sep = "")
 
 
 

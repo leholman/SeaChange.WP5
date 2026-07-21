@@ -68,19 +68,24 @@ shared <- data.frame("year"=intersect(model$age_CE,obs$year),
 cor(shared$modelObs,shared$Obs)
 
 shift <- mean(shared$modelObs) - mean(shared$Obs)
+shift2 <- mean(shared$Obs) - mean(shared$modelObs)
+
 
 obs$adjusted <- obs$ANN+shift
+
+
 
 
 ## Now we make a combined dataset to use - this uses observations adjusted to the normalisation used in Abrams from 1957 -> 2025
 
 combinedSAM <- data.frame("year"=sort(unique(c(obs$year,model$age_CE)),decreasing = TRUE),
-                          "SAM_Index"=c(rev(obs$adjusted),model$SAM_Index[match(1956:1000,model$age_CE)]))
+                          #"SAM_Index_OLD"=c(rev(obs$adjusted),model$SAM_Index[match(1956:1000,model$age_CE)]),
+                          "SAM_Index"=c(rev(obs$ANN),model$SAM_Index[match(1956:1000,model$age_CE)]+shift2))
 
 ## now we make some rolling means & loess for plotting 
-combinedSAM$SAM_Index_3yr <- filter(combinedSAM$SAM_Index, rep(1/3, 3), sides = 2)
-combinedSAM$SAM_Index_5yr <- filter(combinedSAM$SAM_Index, rep(1/5, 5), sides = 2)
-combinedSAM$SAM_Index_7yr <- filter(combinedSAM$SAM_Index, rep(1/7, 7), sides = 2)
+combinedSAM$SAM_Index_3yr <- stats::filter(combinedSAM$SAM_Index, rep(1/3, 3), sides = 2)
+combinedSAM$SAM_Index_5yr <- stats::filter(combinedSAM$SAM_Index, rep(1/5, 5), sides = 2)
+combinedSAM$SAM_Index_7yr <- stats::filter(combinedSAM$SAM_Index, rep(1/7, 7), sides = 2)
 fit <- loess(SAM_Index ~ year, data = combinedSAM, span = 0.2)
 combinedSAM$SAM_loess <- predict(fit)
 
@@ -143,9 +148,9 @@ nino34_NDJ <- aggregate(value ~ enso_year, data = ndj, FUN = mean, na.rm = TRUE)
 names(nino34_NDJ) <- c("year", "Nino34_NDJ")
 
 ## now we make some rolling means & loess for plotting 
-nino34_NDJ$value_3yr <- filter(nino34_NDJ$Nino34_NDJ, rep(1/3, 3), sides = 2)
-nino34_NDJ$value_5yr <- filter(nino34_NDJ$Nino34_NDJ, rep(1/5, 5), sides = 2)
-nino34_NDJ$value_7yr <- filter(nino34_NDJ$Nino34_NDJ, rep(1/7, 7), sides = 2)
+nino34_NDJ$value_3yr <- stats::filter(nino34_NDJ$Nino34_NDJ, rep(1/3, 3), sides = 2)
+nino34_NDJ$value_5yr <- stats::filter(nino34_NDJ$Nino34_NDJ, rep(1/5, 5), sides = 2)
+nino34_NDJ$value_7yr <- stats::filter(nino34_NDJ$Nino34_NDJ, rep(1/7, 7), sides = 2)
 fit <- loess(Nino34_NDJ ~ year, data = nino34_NDJ, span = 0.2)
 nino34_NDJ$ENSO_loess <- predict(fit)
 
