@@ -146,7 +146,45 @@ abline(v=1986,lty=2,lwd=2,col="darkred")
 axis(1,lwd=1,lwd.ticks = 1,at = seq(2025,1775,-25),labels = seq(2025,1775,-25) )  
 dev.off()
 
+pdf("figures/whales.fig1v2.pdf", width = 12, height = 2.8)
+par(mfrow = c(1, 1), mar = c(4, 4, 1, 3), xaxs = "i", yaxs = "i", bty = "n")
+upper <- blue$`0.975` + fin$`0.975` + hump$`0.975` + sei$`0.975`
+lower <- blue$`0.025` + fin$`0.025` + hump$`0.025` + sei$`0.025`
+mid   <- blue$`0.5`   + fin$`0.5`   + hump$`0.5`   + sei$`0.5`
+upper <- upper[blue$year > 1775] / 1000000
+lower <- lower[blue$year > 1775] / 1000000
+mid   <- mid[blue$year > 1775] / 1000000
+year  <- blue$year[blue$year > 1775]
+plot(year, mid, type = "n", xlim = c(1770, 2026), bty = "n", ylab = "", xlab = "",
+     ylim = c(0, max(upper)), axes = FALSE)
 
+# lighten a colour by mixing it toward white; amount 0 = unchanged, 1 = white
+lighten <- function(col, amount = 0.5) {
+  rgb(t((1 - amount) * col2rgb(col) + amount * 255), maxColorValue = 255)
+}
+
+fill      <- "#7ba0a0"
+line      <- "#2f4f4f"
+fill_pre  <- lighten(fill, 0.5)   # lighter fill before 1900
+line_pre  <- lighten(line, 0.5)   # lighter line before 1900
+
+pre  <- year <= 1900
+post <- year >= 1900   # both include 1900 so the polygons/lines share a vertex (no gap)
+
+polygon(c(year[pre], rev(year[pre])),
+        c(upper[pre], rev(lower[pre])),
+        col = fill_pre, border = NA)
+polygon(c(year[post], rev(year[post])),
+        c(upper[post], rev(lower[post])),
+        col = fill, border = NA)
+
+lines(year[pre],  mid[pre],  col = line_pre, lwd = 3,lty = 2)
+lines(year[post], mid[post], col = line, lwd = 3)
+
+axis(2)
+abline(v = 1986, lty = 2, lwd = 2, col = "darkred")
+axis(1, lwd = 1, lwd.ticks = 1, at = seq(2025, 1775, -25), labels = seq(2025, 1775, -25))
+dev.off()
 
 ### what about a comparison to metabarcoding data?
 

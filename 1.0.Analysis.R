@@ -1971,17 +1971,19 @@ alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
                     "genus_Q2" = alpha_genus_avg_reps$q2_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
                     "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
                     "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
-                    "PC1" = clim$PC1,
-                    "PC2" = clim$PC2,
-                    "PC1_s" = scale(clim$PC1),
-                    "PC2_s" = scale(clim$PC2)
+                    "SAM" = clim$SAM_Index_3yr,
+                    "ENSO" = clim$ENSO_3yr,
+                    "SeaIce" = clim$SIC_mean,
+                    "SAM_s" = scale(clim$SAM_Index_3yr),
+                    "ENSO_s" = scale(clim$ENSO_3yr),
+                    "SeaIce_s" = scale(clim$SIC_mean)
                     
 )
 
 ## Lets make a little plot of analysed values 
 
 site_cols <- coredata$col[match(toupper(alpha$site), toupper(coredata$Site))]
-ylim <- range(c(alpha$whale_s, alpha$PC1_s), na.rm = TRUE)
+ylim <- range(c(alpha$whale_s, alpha$SAM_s), na.rm = TRUE)
 
 
 pdf("figures/climate/ScaledWahles&Clim.pdf",width = 11,height = 5.5)
@@ -1991,7 +1993,7 @@ plot(alpha$year, alpha$whale_s,
      xlab = "", ylab = "Scaled value",
      main = "",
      bty = "n", xaxt = "n")
-points(alpha$year, alpha$PC1_s,
+points(alpha$year, alpha$SAM_s,
        bg = site_cols, col = "black", pch = 25, cex = 1.2)
 axis(3, at = axTicks(1), labels = axTicks(1))
 dev.off()
@@ -2001,20 +2003,20 @@ library(lme4)
 library(lmerTest)
 
 # Fit models
-a2_A0 <- lmer(ASV_Q0   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
-a2_A1 <- lmer(ASV_Q1   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
-a2_A2 <- lmer(ASV_Q2   ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_A0 <- lmer(ASV_Q0   ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_A1 <- lmer(ASV_Q1   ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_A2 <- lmer(ASV_Q2   ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
 
-a2_G0 <- lmer(genus_Q0 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
-a2_G1 <- lmer(genus_Q1 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
-a2_G2 <- lmer(genus_Q2 ~ PC1_s + PC2_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_G0 <- lmer(genus_Q0 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_G1 <- lmer(genus_Q1 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
+a2_G2 <- lmer(genus_Q2 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1|site), data = alpha, REML = TRUE)
 
 mods <- list(
   "ASV Q0"   = a2_A0, "ASV Q1"   = a2_A1, "ASV Q2"   = a2_A2,
   "Genus Q0" = a2_G0, "Genus Q1" = a2_G1, "Genus Q2" = a2_G2
 )
 
-predictors <- c("PC1_s", "PC2_s", "whale_s")
+predictors <- c("SAM_s", "ENSO_s", "SeaIce_s", "whale_s")
 
 # Check singular fits
 singular_status <- sapply(mods, isSingular)
@@ -2074,13 +2076,15 @@ coef_df$hi_std  <- coef_df$hi / resp_sd[coef_df$model]
 xpos <- c("ASV Q0" = 1, "ASV Q1" = 2, "ASV Q2" = 3,
           "Genus Q0" = 5, "Genus Q1" = 6, "Genus Q2" = 7)
 
-pred_cols <- c("PC1_s" = "steelblue", "PC2_s" = "darkorange", "whale_s" = "firebrick")
-offsets   <- c("PC1_s" = -0.15, "PC2_s" = 0, "whale_s" = 0.15)
+pred_cols <- c("SAM_s" = "#2F5D3A", "ENSO_s" = "#7A9B76", "SeaIce_s" = "#C2D9B7", "whale_s" = "#C9A66B")
+
+
+offsets   <- c("SAM_s" = -0.18, "ENSO_s" = -0.06, "SeaIce_s" = 0.06, "whale_s" = 0.18)
 
 ylim <- range(c(coef_df$lo_std, coef_df$hi_std), na.rm = TRUE)
 
 
-pdf("figures/stat.alpha.coeff.pdf",width = 5,height = 9)
+pdf("figures/stat.alpha.coeff.pdf",width = 5.5,height = 9)
 par(mar = c(5, 5, 3, 1))
 
 plot(NULL, xlim = c(0.4, 7.6), ylim = ylim,
@@ -2105,7 +2109,7 @@ mtext("ASV", side = 1, at = 2, line = 2.5, cex = 1.1, font = 2)
 mtext("Genus", side = 1, at = 6, line = 2.5, cex = 1.1, font = 2)
 
 legend("topleft",
-       legend = c("Climate PC1", "Climate PC2", "Whale biomass"),
+       legend = c("SAM", "ENSO", "Sea ice", "Whale biomass"),
        col = pred_cols, pch = 16, lwd = 2,
        cex = 0.8, bty = "n")
 
@@ -2119,12 +2123,12 @@ mods <- list(
   "Genus Q0" = a2_G0, "Genus Q1" = a2_G1, "Genus Q2" = a2_G2
 )
 
-predictors <- c("PC1_s", "PC2_s", "whale_s")
+predictors <- c("SAM_s", "ENSO_s", "SeaIce_s", "whale_s")
 
 sink("summaryfiles/LMM_alpha_results.txt")
 
 cat("======================================================================\n")
-cat("Linear Mixed Model results: alpha diversity ~ PC1_s + PC2_s + whale_s\n")
+cat("Linear Mixed Model results: alpha diversity ~ SAM_s + ENSO_s + SeaIce_s + whale_s\n")
 cat("Random effect: (1 | site)\n")
 cat("Fit by REML using lme4 / lmerTest\n")
 cat("Generated:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n")
@@ -2484,10 +2488,12 @@ beta <- data.frame("sample" = paste(clim$Site,clim$SampleID),
                     "year" =clim$CalYear,
                     "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
                     "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
-                    "PC1" = clim$PC1,
-                    "PC2" = clim$PC2,
-                    "PC1_s" = scale(clim$PC1),
-                    "PC2_s" = scale(clim$PC2))
+                    "SAM" = clim$SAM_Index_3yr,
+                    "ENSO" = clim$ENSO_3yr,
+                    "SeaIce" = clim$SIC_mean,
+                    "SAM_s" = scale(clim$SAM_Index_3yr),
+                    "ENSO_s" = scale(clim$ENSO_3yr),
+                    "SeaIce_s" = scale(clim$SIC_mean))
 
 
 
@@ -2502,13 +2508,13 @@ comm <- t(comm.raw[,match(clim$longname,colnames(comm.raw))])
 
 ## distance basd redundnacy analysis 
 mod_bray <- dbrda(
-  comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+  comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
   data = beta,
   distance = "bray"
 )
 
 mod_jacc <- dbrda(
-  comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+  comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
   data = beta,
   distance = "jacc"
 )
@@ -2572,12 +2578,16 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
     }
   }
   
-  arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
-         col = "black", lwd = 2, length = 0.1)
+  # match arrow colours to predictor names via the biplot rownames
+  arrow_cols <- pred_cols[rownames(sc_bp_scaled)]
   
-  text(sc_bp_scaled[,1] * 1.12, sc_bp_scaled[,2] * 1.12,
-       labels = rownames(sc_bp_scaled),
-       cex = 0.85, font = 2)
+  arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
+         col = arrow_cols, lwd = 2, length = 0.1)
+  
+  legend("topleft",
+         legend = gsub("whale","WhaleBiomass",gsub("_s", "", names(arrow_cols))),
+         col    = arrow_cols,
+         lwd    = 2, cex = 0.85, bty = "n")
   
   u_sites <- unique(sample_sites)
   u_cols <- coredata$col[match(toupper(u_sites), toupper(coredata$Site))]
@@ -2605,8 +2615,16 @@ anova(mod_jacc, by = "margin", permutations = perm)
 
 ## variance partititoning 
 
-var_bray <- varpart(vegdist(comm, "bray"), ~ PC1_s + PC2_s, ~ whale_s, data = beta)
-var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE), ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+var_bray <- varpart(vegdist(comm, "bray"),
+                     ~ SAM_s + ENSO_s + SeaIce_s,
+                     ~ whale_s,
+                     ~ site,
+                     data = beta)
+var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE),
+                    ~ SAM_s + ENSO_s + SeaIce_s,
+                    ~ whale_s,
+                    ~ site,
+                    data = beta)
 
 var_bray
 plot(var_bray)
@@ -2614,14 +2632,15 @@ var_jacc
 plot(var_jacc)
 
 
+
 ## PERMANOVA
-perm_bray <- adonis2(vegdist(comm, method = "bray") ~ PC1_s + PC2_s + whale_s,
+perm_bray <- adonis2(vegdist(comm, method = "bray") ~ SAM_s + ENSO_s + SeaIce_s + whale_s,
                      data = beta,
                      permutations = how(blocks = beta$site, nperm = 10000),
                      by = "margin")
 perm_bray
 
-perm_jacc <- adonis2(vegdist(comm, method = "jacc",binary = TRUE) ~ PC1_s + PC2_s + whale_s,
+perm_jacc <- adonis2(vegdist(comm, method = "jacc",binary = TRUE) ~ SAM_s + ENSO_s + SeaIce_s + whale_s,
                      data = beta,
                      permutations = how(blocks = beta$site, nperm = 10000),
                      by = "margin")
@@ -2646,25 +2665,31 @@ comm     <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
 perm <- how(blocks = beta$site, nperm = 1000)
 
 cat("---- dbRDA: Bray ----\n")
-mod_bray_glob <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+mod_bray_glob <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
                        data = beta, distance = "bray")
 print(anova(mod_bray_glob, permutations = perm))
 print(anova(mod_bray_glob, by = "margin", permutations = perm))
 
 cat("\n---- dbRDA: Jaccard ----\n")
-mod_jacc_glob <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+mod_jacc_glob <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
                        data = beta, distance = "jacc")
 print(anova(mod_jacc_glob, permutations = perm))
 print(anova(mod_jacc_glob, by = "margin", permutations = perm))
 
 cat("\n---- Variance partitioning: Bray ----\n")
 var_bray_glob <- varpart(vegdist(comm, "bray"),
-                         ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+                         ~ SAM_s + ENSO_s + SeaIce_s,
+                         ~ whale_s,
+                         ~ site,
+                         data = beta)
 print(var_bray_glob)
 
 cat("\n---- Variance partitioning: Jaccard ----\n")
-var_jacc_glob <- varpart(vegdist(comm, "jacc", binary = TRUE),
-                         ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+var_jacc_glob <- varpart(vegdist(comm, "jacc",binary = TRUE),
+                         ~ SAM_s + ENSO_s + SeaIce_s,
+                         ~ whale_s,
+                         ~ site,
+                         data = beta)
 print(var_jacc_glob)
 
 cat("\n\n")
@@ -2701,7 +2726,7 @@ for (group_name in names(asv_groups)) {
   ## dbRDA
   cat("---- dbRDA: Bray ----\n")
   mod_bray <- dbrda(
-    comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+    comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
     data = beta,
     distance = "bray"
   )
@@ -2713,7 +2738,7 @@ for (group_name in names(asv_groups)) {
   
   cat("\n---- dbRDA: Jaccard ----\n")
   mod_jacc <- dbrda(
-    comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+    comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
     data = beta,
     distance = "jacc"
   )
@@ -2725,7 +2750,7 @@ for (group_name in names(asv_groups)) {
   cat("\n---- Variance partitioning: Bray ----\n")
   var_bray <- varpart(
     vegdist(comm, "bray"),
-    ~ PC1_s + PC2_s,
+    ~ SAM_s + ENSO_s + SeaIce_s,
     ~ whale_s,
     data = beta
   )
@@ -2734,7 +2759,7 @@ for (group_name in names(asv_groups)) {
   cat("\n---- Variance partitioning: Jaccard ----\n")
   var_jacc <- varpart(
     vegdist(comm, "jacc", binary = TRUE),
-    ~ PC1_s + PC2_s,
+    ~ SAM_s + ENSO_s + SeaIce_s,
     ~ whale_s,
     data = beta
   )
@@ -2743,7 +2768,7 @@ for (group_name in names(asv_groups)) {
   ## PERMANOVA
   cat("\n---- PERMANOVA: Bray ----\n")
   perm_bray <- adonis2(
-    vegdist(comm, method = "bray") ~  PC1_s + PC2_s + whale_s,
+    vegdist(comm, method = "bray") ~  SAM_s + ENSO_s + SeaIce_s + whale_s,
     data = beta,
     permutations = how(blocks = beta$site, nperm = 10000),
     by = "margin"
@@ -2752,7 +2777,7 @@ for (group_name in names(asv_groups)) {
   
   cat("\n---- PERMANOVA: Jaccard ----\n")
   perm_jacc <- adonis2(
-    vegdist(comm, method = "jacc", binary = TRUE) ~  PC1_s + PC2_s + whale_s,
+    vegdist(comm, method = "jacc", binary = TRUE) ~  SAM_s + ENSO_s + SeaIce_s + whale_s,
     data = beta,
     permutations = how(blocks = beta$site, nperm = 10000),
     by = "margin"
@@ -2798,7 +2823,7 @@ tidy_varpart <- function(vp, group, distance){
   data.frame(
     Group    = group,
     Distance = distance,
-    Fraction = c("Climate (PC1+PC2) | Whale",
+    Fraction = c("Climate (SAM+ENSO+SeaIce) | Whale",
                  "Whale | Climate",
                  "Shared",
                  "Residual"),
@@ -2825,18 +2850,18 @@ for (g in names(groups)) {
   
   perm <- how(blocks = beta$site, nperm = 1000)
   
-  mb <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+  mb <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
               data = beta, distance = "bray")
-  mj <- dbrda(comm ~ whale_s + PC1_s + PC2_s + Condition(site),
+  mj <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
               data = beta, distance = "jacc")
   
   dbrda_rows[[paste(g, "bray")]]    <- tidy_dbrda(mb, g, "Bray-Curtis")
   dbrda_rows[[paste(g, "jaccard")]] <- tidy_dbrda(mj, g, "Jaccard")
   
   vb <- varpart(vegdist(comm, "bray"),
-                ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
   vj <- varpart(vegdist(comm, "jacc", binary = TRUE),
-                ~ PC1_s + PC2_s, ~ whale_s, data = beta)
+                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
   
   varpart_rows[[paste(g, "bray")]]    <- tidy_varpart(vb, g, "Bray-Curtis")
   varpart_rows[[paste(g, "jaccard")]] <- tidy_varpart(vj, g, "Jaccard")
@@ -2903,8 +2928,9 @@ cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
 
 # Predictors
 X <- data.frame(
-  PC1   = as.numeric(scale(beta$PC1_s)),
-  PC2   = as.numeric(scale(beta$PC2_s)),
+  SAM    = as.numeric(scale(beta$SAM_s)),
+  ENSO   = as.numeric(scale(beta$ENSO_s)),
+  SeaIce = as.numeric(scale(beta$SeaIce_s)),
   whale = as.numeric(scale(beta$whale_s))
 )
 
@@ -2916,22 +2942,22 @@ rL.site     <- HmscRandomLevel(units = levels(studyDesign$site))
 m <- Hmsc(
   Y           = Y,
   XData       = X,
-  XFormula    = ~ PC1 + PC2 + whale,
+  XFormula    = ~ SAM + ENSO + SeaIce + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
 
-m <- sampleMcmc(m,
-                thin      = 100,
-                samples   = 1000,
-                transient = 10000,
-                nChains   = 4,
-                nParallel = 4,
-                verbose   = 500
-)
-
-
+#m <- sampleMcmc(  m,
+#                  thin      = 100,
+#                  samples   = 4000,
+#                  transient = 100000,
+#                  nChains   = 6,
+#                  nParallel = 6,
+#                  verbose   = 5000
+#)
+#saveRDS(m, file = "cleandata/MCMCchains/SubDiv.rds")
+m <- readRDS(file = "cleandata/MCMCchains/SubDiv.rds")
 
 # -- Convergence --------------------------------------------------------------
 
@@ -2947,9 +2973,9 @@ cat("G-R — Max:", round(max(beta_gel[, 1]), 3),
 
 # -- Results ------------------------------------------------------------------
 
-# Variance partitioning — design matrix cols: 1=Intercept, 2=PC1, 3=whale
+# Variance partitioning — design matrix cols: 1=Intercept, 2:4=Climate, 5=whale
 VP <- computeVariancePartitioning(m,
-                                  group = c(1, 2, 2, 3), 
+                                  group = c(1, 2, 2, 2, 3), 
                                   groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP$vals), 3))
 plotVariancePartitioning(m, VP = VP,col=c("darkred","darkgreen","dodgerblue"))
@@ -2957,11 +2983,11 @@ plotVariancePartitioning(m, VP = VP,col=c("darkred","darkgreen","dodgerblue"))
 # Posterior support for fixed effects
 postBeta   <- getPostEstimate(m, parName = "Beta")
 support_df <- data.frame(
-  Subdivision = rep(colnames(Y), each = 3),
-  predictor   = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y)),
-  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ])),
-  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ])),
-  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ]))
+  Subdivision = rep(colnames(Y), each = 4),
+  predictor   = rep(c("SAM", "ENSO", "SeaIce", "Whaling"), times = ncol(Y)),
+  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ], postBeta$mean[5, ])),
+  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ], postBeta$support[5, ])),
+  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ], postBeta$supportNeg[5, ]))
 )
 support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
 support_df$strong    <- support_df$P_pos > 0.90 | support_df$P_neg > 0.90
@@ -3022,17 +3048,17 @@ dev.off()
 #Now we plot what subdivisions respond to what 
 
 # Identify subdivisions with at least one significant response
-sup_pos <- postBeta$support[2:4, ]
-sup_neg <- postBeta$supportNeg[2:4, ]
+sup_pos <- postBeta$support[2:5, ]
+sup_neg <- postBeta$supportNeg[2:5, ]
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
 
-beta_mat <- postBeta$mean[2:4, keep]
+beta_mat <- postBeta$mean[2:5, keep]
 sup_pos  <- sup_pos[, keep]
 sup_neg  <- sup_neg[, keep]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
 
 # Mark significance at 0.95 threshold
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -3084,18 +3110,18 @@ vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 
 # Order by whaling beta 
-whale_beta <- postBeta$mean[4, ]  # row 4 = whale
+whale_beta <- postBeta$mean[5, ]  # row 5 = whale
 whale_order <- names(sort(whale_beta))  # ascending = most positive at top in horiz barplot
 vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 
 # Beta and significance in same order
-beta_mat <- postBeta$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
-sup_pos <- postBeta$support[2:4, ]
-sup_neg <- postBeta$supportNeg[2:4, ]
+beta_mat <- postBeta$mean[2:5, , drop = FALSE]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
+sup_pos <- postBeta$support[2:5, ]
+sup_neg <- postBeta$supportNeg[2:5, ]
 
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -3137,7 +3163,7 @@ gap     <- 0.04
 x_start <- 1.15
 
 par(xpd = TRUE)
-for (k in 1:3) {
+for (k in 1:4) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
   for (j in seq_along(taxon_order)) {
@@ -3154,7 +3180,7 @@ for (k in 1:3) {
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
-leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_xr <- x_start + 4 * strip_w + 3 * gap
 leg_w  <- (leg_xr - leg_xl) / n_leg
 leg_yb <- min(bp) - bar_h * 2.7
 leg_yt <- leg_yb + bar_h * 0.5
@@ -3219,7 +3245,7 @@ gap     <- 0.04
 x_start <- 1.15
 
 par(xpd = TRUE)
-for (k in 1:3) {
+for (k in 1:4) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
   for (j in seq_along(taxon_order)) {
@@ -3236,7 +3262,7 @@ for (k in 1:3) {
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
-leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_xr <- x_start + 4 * strip_w + 3 * gap
 leg_w  <- (leg_xr - leg_xl) / n_leg
 leg_yb <- min(bp) - bar_h * 2.7
 leg_yt <- leg_yb + bar_h * 0.5
@@ -3299,19 +3325,21 @@ cat("Any NA:", anyNA(Y.fam), "\n")
 m.fam <- Hmsc(
   Y           = Y.fam,
   XData       = X,
-  XFormula    = ~ PC1 + PC2 + whale,
+  XFormula    = ~ SAM + ENSO + SeaIce + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
-m.fam <- sampleMcmc(m.fam,
-                    thin      = 100,
-                    samples   = 1000,
-                    transient = 10000,
-                    nChains   = 4,
-                    nParallel = 4,
-                    verbose   = 500
-)
+#m.fam <- sampleMcmc(m.fam,
+#                    thin      = 100,
+#                    samples   = 4000,
+#                    transient = 100000,
+#                    nChains   = 6,
+#                    nParallel = 6,
+#                    verbose   = 5000
+#)
+#saveRDS(m.fam, file = "cleandata/MCMCchains/Meta.rds")
+m.fam <- readRDS(file = "cleandata/MCMCchains/Meta.rds")
 
 # -- Convergence --------------------------------------------------------------
 mpost.fam    <- convertToCodaObject(m.fam)
@@ -3341,18 +3369,18 @@ cat("Sigma G-R — Max:", round(max(sigma_gel.fam[, 1]), 3),
 
 # -- Results ------------------------------------------------------------------
 VP.fam <- computeVariancePartitioning(m.fam,
-                                      group = c(1, 2, 2, 3),
+                                      group = c(1, 2, 2, 2, 3),
                                       groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP.fam$vals), 3))
 plotVariancePartitioning(m.fam, VP = VP.fam)
 
 postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 support.fam <- data.frame(
-  family    = rep(colnames(Y.fam), each = 3),
-  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam)),
-  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ])),
-  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ])),
-  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ]))
+  family    = rep(colnames(Y.fam), each = 4),
+  predictor = rep(c("SAM", "ENSO", "SeaIce", "Whaling"), times = ncol(Y.fam)),
+  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ], postBeta.fam$mean[5, ])),
+  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ], postBeta.fam$support[5, ])),
+  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ], postBeta.fam$supportNeg[5, ]))
 )
 support.fam$direction <- ifelse(support.fam$mean_beta > 0, "positive", "negative")
 support.fam$strong    <- support.fam$P_pos > 0.95 | support.fam$P_neg > 0.95
@@ -3412,11 +3440,11 @@ dev.off()
 # Extract posterior means and support
 postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 
-beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+beta_mat <- postBeta.fam$mean[2:5, ]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
 
-sup_pos <- postBeta.fam$support[2:4, ]
-sup_neg <- postBeta.fam$supportNeg[2:4, ]
+sup_pos <- postBeta.fam$support[2:5, ]
+sup_neg <- postBeta.fam$supportNeg[2:5, ]
 
 # Filter to families with at least one significant response
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
@@ -3427,7 +3455,7 @@ sup_neg  <- sup_neg[, keep]
 cat("Retained:", sum(keep), "of", length(keep), "families\n")
 
 # Significance markers
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -3464,16 +3492,16 @@ vp_mat <- VP.fam$vals
 vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 # Order by whaling beta
-whale_beta <- postBeta.fam$mean[4, ]
+whale_beta <- postBeta.fam$mean[5, ]
 whale_order <- names(sort(whale_beta))
 vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
-beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
-sup_pos <- postBeta.fam$support[2:4, ]
-sup_neg <- postBeta.fam$supportNeg[2:4, ]
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+beta_mat <- postBeta.fam$mean[2:5, , drop = FALSE]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
+sup_pos <- postBeta.fam$support[2:5, ]
+sup_neg <- postBeta.fam$supportNeg[2:5, ]
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
@@ -3508,7 +3536,7 @@ strip_w <- 0.30
 gap     <- 0.04
 x_start <- 1.15
 par(xpd = TRUE)
-for (k in 1:3) {
+for (k in 1:4) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
   for (j in seq_along(taxon_order)) {
@@ -3525,7 +3553,7 @@ for (k in 1:3) {
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
-leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_xr <- x_start + 4 * strip_w + 3 * gap
 leg_w  <- (leg_xr - leg_xl) / n_leg
 leg_yb <- min(bp) - bar_h * 2.7
 leg_yt <- leg_yb + bar_h * 0.5
@@ -3550,16 +3578,16 @@ vp_mat <- VP.fam$vals
 vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 # Order by whaling beta
-whale_beta <- postBeta.fam$mean[4, ]
+whale_beta <- postBeta.fam$mean[5, ]
 whale_order <- names(sort(whale_beta))
 vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
-beta_mat <- postBeta.fam$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
-sup_pos <- postBeta.fam$support[2:4, ]
-sup_neg <- postBeta.fam$supportNeg[2:4, ]
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+beta_mat <- postBeta.fam$mean[2:5, , drop = FALSE]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
+sup_pos <- postBeta.fam$support[2:5, ]
+sup_neg <- postBeta.fam$supportNeg[2:5, ]
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
@@ -3605,7 +3633,7 @@ strip_w <- 0.30
 gap     <- 0.04
 x_start <- 1.15
 par(xpd = TRUE)
-for (k in 1:3) {
+for (k in 1:4) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
   for (j in seq_along(taxon_order_sig)) {
@@ -3623,7 +3651,7 @@ for (k in 1:3) {
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
-leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_xr <- x_start + 4 * strip_w + 3 * gap
 leg_w  <- (leg_xr - leg_xl) / n_leg
 leg_yb <- min(bp) - bar_h * 2.7
 leg_yt <- leg_yb + bar_h * 0.5
@@ -3681,19 +3709,22 @@ cat("Samples:", nrow(Y.fam.pa), "| Families:", ncol(Y.fam.pa), "\n")
 m.fam.pa <- Hmsc(
   Y           = Y.fam.pa,
   XData       = X,
-  XFormula    = ~ PC1 + PC2 + whale,
+  XFormula    = ~ SAM + ENSO + SeaIce + whale,
   distr       = "probit",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
-m.fam.pa <- sampleMcmc(m.fam.pa,
-                       thin      = 100,
-                       samples   = 1000,
-                       transient = 10000,
-                       nChains   = 4,
-                       nParallel = 4,
-                       verbose   = 500
-)
+#m.fam.pa <- sampleMcmc(m.fam.pa,
+#                       thin      = 100,
+#                       samples   = 4000,
+#                       transient = 100000,
+#                       nChains   = 6,
+#                       nParallel = 6,
+#                       verbose   = 5000
+#)
+#saveRDS(m.fam.pa, file = "cleandata/MCMCchains/Meta.PA.rds")
+m.fam.pa <- readRDS(file = "cleandata/MCMCchains/Meta.PA.rds")
+
 
 # -- Convergence --------------------------------------------------------------
 mpost.fam.pa    <- convertToCodaObject(m.fam.pa)
@@ -3723,18 +3754,18 @@ cat("Sigma G-R — Max:", round(max(sigma_gel.fam.pa[, 1]), 3),
 
 # -- Results ------------------------------------------------------------------
 VP.fam.pa <- computeVariancePartitioning(m.fam.pa,
-                                         group = c(1, 2, 2, 3),
+                                         group = c(1, 2, 2, 2, 3),
                                          groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP.fam.pa$vals), 3))
 plotVariancePartitioning(m.fam.pa, VP = VP.fam.pa)
 
 postBeta.fam.pa <- getPostEstimate(m.fam.pa, parName = "Beta")
 support.fam.pa <- data.frame(
-  family    = rep(colnames(Y.fam.pa), each = 3),
-  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam.pa)),
-  mean_beta = c(rbind(postBeta.fam.pa$mean[2, ],       postBeta.fam.pa$mean[3, ],       postBeta.fam.pa$mean[4, ])),
-  P_pos     = c(rbind(postBeta.fam.pa$support[2, ],    postBeta.fam.pa$support[3, ],    postBeta.fam.pa$support[4, ])),
-  P_neg     = c(rbind(postBeta.fam.pa$supportNeg[2, ], postBeta.fam.pa$supportNeg[3, ], postBeta.fam.pa$supportNeg[4, ]))
+  family    = rep(colnames(Y.fam.pa), each = 4),
+  predictor = rep(c("SAM", "ENSO", "SeaIce", "Whaling"), times = ncol(Y.fam.pa)),
+  mean_beta = c(rbind(postBeta.fam.pa$mean[2, ],       postBeta.fam.pa$mean[3, ],       postBeta.fam.pa$mean[4, ], postBeta.fam.pa$mean[5, ])),
+  P_pos     = c(rbind(postBeta.fam.pa$support[2, ],    postBeta.fam.pa$support[3, ],    postBeta.fam.pa$support[4, ], postBeta.fam.pa$support[5, ])),
+  P_neg     = c(rbind(postBeta.fam.pa$supportNeg[2, ], postBeta.fam.pa$supportNeg[3, ], postBeta.fam.pa$supportNeg[4, ], postBeta.fam.pa$supportNeg[5, ]))
 )
 support.fam.pa$direction <- ifelse(support.fam.pa$mean_beta > 0, "positive", "negative")
 support.fam.pa$strong    <- support.fam.pa$P_pos > 0.95 | support.fam.pa$P_neg > 0.95
@@ -3779,11 +3810,11 @@ legend(1.01, 36,
 dev.off()
 
 # -- Heatmap ------------------------------------------------------------------
-beta_mat <- postBeta.fam.pa$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+beta_mat <- postBeta.fam.pa$mean[2:5, ]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
 
-sup_pos <- postBeta.fam.pa$support[2:4, ]
-sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
+sup_pos <- postBeta.fam.pa$support[2:5, ]
+sup_neg <- postBeta.fam.pa$supportNeg[2:5, ]
 
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
 beta_mat <- beta_mat[, keep]
@@ -3792,7 +3823,7 @@ sup_neg  <- sup_neg[, keep]
 
 cat("Retained:", sum(keep), "of", length(keep), "families\n")
 
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -3827,16 +3858,16 @@ vp_mat <- VP.fam.pa$vals
 vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 # Order by whaling beta
-whale_beta <- postBeta.fam.pa$mean[4, ]
+whale_beta <- postBeta.fam.pa$mean[5, ]
 whale_order <- names(sort(whale_beta))
 vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 # Beta and significance in same order
-beta_mat <- postBeta.fam.pa$mean[2:4, , drop = FALSE]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
-sup_pos <- postBeta.fam.pa$support[2:4, ]
-sup_neg <- postBeta.fam.pa$supportNeg[2:4, ]
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+beta_mat <- postBeta.fam.pa$mean[2:5, , drop = FALSE]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
+sup_pos <- postBeta.fam.pa$support[2:5, ]
+sup_neg <- postBeta.fam.pa$supportNeg[2:5, ]
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
@@ -3881,7 +3912,7 @@ strip_w <- 0.30
 gap     <- 0.04
 x_start <- 1.15
 par(xpd = TRUE)
-for (k in 1:3) {
+for (k in 1:4) {
   xl <- x_start + (k - 1) * (strip_w + gap)
   xr <- xl + strip_w
   for (j in seq_along(taxon_order)) {
@@ -3898,7 +3929,7 @@ for (k in 1:3) {
 # Colour bar legend for beta
 n_leg <- 100
 leg_xl <- x_start
-leg_xr <- x_start + 3 * strip_w + 2 * gap
+leg_xr <- x_start + 4 * strip_w + 3 * gap
 leg_w  <- (leg_xr - leg_xl) / n_leg
 leg_yb <- min(bp) - bar_h * 2.7
 leg_yt <- leg_yb + bar_h * 0.5
@@ -3941,9 +3972,7 @@ hmsc_summary_block <- function(name,
                                beta_ess,  beta_gel,
                                omega_ess, omega_gel,
                                sigma_ess, sigma_gel,
-                               predictor_labels = c("Climate_PC1",
-                                                    "Climate_PC2",
-                                                    "Whaling"),
+                               predictor_labels = c("SAM", "ENSO", "SeaIce", "Whaling"),
                                support_threshold = 0.95) {
   
   cat("######################################################################\n")
@@ -4079,7 +4108,7 @@ out_file <- "summaryfiles/HMSC_results.txt"
 sink(out_file)
 
 cat("======================================================================\n")
-cat("Hmsc model results: community ~ PC1 + PC2 + whale + (1 | site)\n")
+cat("Hmsc model results: community ~ SAM + ENSO + SeaIce + whale + (1 | site)\n")
 cat("Generated:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n")
 cat("======================================================================\n\n")
 
@@ -4587,7 +4616,7 @@ dev.off()
 
 
 
-fit <- glm(cbind(value, 8 - value) ~ PC1_s + PC2_s + whale_s + site,
+fit <- glm(cbind(value, 8 - value) ~ SAM_s + ENSO_s + SeaIce_s + whale_s + site,
            family = binomial, data = d2)
 plot(fit)
 
@@ -5888,32 +5917,34 @@ alpha <- data.frame("sample" = paste(clim$Site,clim$SampleID),
                     "genus_Q2" = alpha_genus_avg_reps$q2_mean[match(clim$longname,alpha_genus_avg_reps$replicate)],
                     "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
                     "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
-                    "PC1" = clim$PC1,
-                    "PC2" = clim$PC2,
-                    "PC1_s" = scale(clim$PC1),
-                    "PC2_s" = scale(clim$PC2)
+                    "SAM" = clim$SAM_Index_3yr,
+                    "ENSO" = clim$ENSO_3yr,
+                    "SeaIce" = clim$SIC_mean,
+                    "SAM_s" = scale(clim$SAM_Index_3yr),
+                    "ENSO_s" = scale(clim$ENSO_3yr),
+                    "SeaIce_s" = scale(clim$SIC_mean)
                     
 )
 
 # ASV models (with year)
-a1_A0 <- gam(ASV_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_A1 <- gam(ASV_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_A2 <- gam(ASV_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_A0 <- gam(ASV_Q0 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a1_A1 <- gam(ASV_Q1 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a1_A2 <- gam(ASV_Q2 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
 
 # ASV models (no year)
-a2_A0 <- gam(ASV_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_A1 <- gam(ASV_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_A2 <- gam(ASV_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_A0 <- gam(ASV_Q0 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a2_A1 <- gam(ASV_Q1 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a2_A2 <- gam(ASV_Q2 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
 
 # Genus models (with year)
-a1_G0 <- gam(genus_Q0 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_G1 <- gam(genus_Q1 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a1_G2 <- gam(genus_Q2 ~ s(year, k = 10) + s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a1_G0 <- gam(genus_Q0 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a1_G1 <- gam(genus_Q1 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a1_G2 <- gam(genus_Q2 ~ s(year, k = 10) + s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
 
 # Genus models (no year)
-a2_G0 <- gam(genus_Q0 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_G1 <- gam(genus_Q1 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
-a2_G2 <- gam(genus_Q2 ~ s(site, bs = "re") + PC1_s + PC2_s + whale_s, data = alpha, method = "REML")
+a2_G0 <- gam(genus_Q0 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a2_G1 <- gam(genus_Q1 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
+a2_G2 <- gam(genus_Q2 ~ s(site, bs = "re") + SAM_s + ENSO_s + SeaIce_s + whale_s, data = alpha, method = "REML")
 
 summary(a1_A0)
 summary(a1_A1)
@@ -5962,8 +5993,9 @@ cat("Samples:", nrow(Y), "| Subdivisions:", ncol(Y), "\n")
 
 # Predictors
 X <- data.frame(
-  PC1   = as.numeric(scale(beta$PC1_s)),
-  PC2   = as.numeric(scale(beta$PC2_s)),
+  SAM    = as.numeric(scale(beta$SAM_s)),
+  ENSO   = as.numeric(scale(beta$ENSO_s)),
+  SeaIce = as.numeric(scale(beta$SeaIce_s)),
   whale = as.numeric(scale(beta$whale_s))
 )
 
@@ -5974,7 +6006,7 @@ rL.site     <- HmscRandomLevel(units = levels(studyDesign$site))
 m <- Hmsc(
   Y           = Y,
   XData       = X,
-  XFormula    = ~ PC1 + PC2 + whale,
+  XFormula    = ~ SAM + ENSO + SeaIce + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
@@ -6018,18 +6050,18 @@ cat("Sigma G-R — Max:", round(max(sigma_gel[, 1]), 3),
 
 # -- Subdivision results ------------------------------------------------------
 VP <- computeVariancePartitioning(m,
-                                  group = c(1, 2, 2, 3),
+                                  group = c(1, 2, 2, 2, 3),
                                   groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP$vals), 3))
 plotVariancePartitioning(m, VP = VP)
 
 postBeta <- getPostEstimate(m, parName = "Beta")
 support_df <- data.frame(
-  Subdivision = rep(colnames(Y), each = 3),
-  predictor   = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y)),
-  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ])),
-  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ])),
-  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ]))
+  Subdivision = rep(colnames(Y), each = 4),
+  predictor   = rep(c("SAM", "ENSO", "SeaIce", "Whaling"), times = ncol(Y)),
+  mean_beta   = c(rbind(postBeta$mean[2, ],       postBeta$mean[3, ],       postBeta$mean[4, ], postBeta$mean[5, ])),
+  P_pos       = c(rbind(postBeta$support[2, ],    postBeta$support[3, ],    postBeta$support[4, ], postBeta$support[5, ])),
+  P_neg       = c(rbind(postBeta$supportNeg[2, ], postBeta$supportNeg[3, ], postBeta$supportNeg[4, ], postBeta$supportNeg[5, ]))
 )
 support_df$direction <- ifelse(support_df$mean_beta > 0, "positive", "negative")
 support_df$strong    <- support_df$P_pos > 0.95 | support_df$P_neg > 0.95
@@ -6037,16 +6069,16 @@ print(support_df[support_df$strong, c("Subdivision", "predictor", "mean_beta",
                                       "P_pos", "P_neg", "direction")])
 
 # -- Subdivision heatmap ------------------------------------------------------
-sup_pos <- postBeta$support[2:4, ]
-sup_neg <- postBeta$supportNeg[2:4, ]
+sup_pos <- postBeta$support[2:5, ]
+sup_neg <- postBeta$supportNeg[2:5, ]
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
 
-beta_mat <- postBeta$mean[2:4, keep]
+beta_mat <- postBeta$mean[2:5, keep]
 sup_pos  <- sup_pos[, keep]
 sup_neg  <- sup_neg[, keep]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
 
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -6111,7 +6143,7 @@ cat("Any NA:", anyNA(Y.fam), "\n")
 m.fam <- Hmsc(
   Y           = Y.fam,
   XData       = X,
-  XFormula    = ~ PC1 + PC2 + whale,
+  XFormula    = ~ SAM + ENSO + SeaIce + whale,
   distr       = "normal",
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
@@ -6153,18 +6185,18 @@ cat("Sigma G-R — Max:", round(max(sigma_gel.fam[, 1]), 3),
 
 # -- Family results -----------------------------------------------------------
 VP.fam <- computeVariancePartitioning(m.fam,
-                                      group = c(1, 2, 2, 3),
+                                      group = c(1, 2, 2, 2, 3),
                                       groupnames = c("Intercept", "Climate", "Whaling"))
 print(round(rowMeans(VP.fam$vals), 3))
 plotVariancePartitioning(m.fam, VP = VP.fam)
 
 postBeta.fam <- getPostEstimate(m.fam, parName = "Beta")
 support.fam <- data.frame(
-  family    = rep(colnames(Y.fam), each = 3),
-  predictor = rep(c("Climate_PC1", "Climate_PC2", "Whaling"), times = ncol(Y.fam)),
-  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ])),
-  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ])),
-  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ]))
+  family    = rep(colnames(Y.fam), each = 4),
+  predictor = rep(c("SAM", "ENSO", "SeaIce", "Whaling"), times = ncol(Y.fam)),
+  mean_beta = c(rbind(postBeta.fam$mean[2, ],       postBeta.fam$mean[3, ],       postBeta.fam$mean[4, ], postBeta.fam$mean[5, ])),
+  P_pos     = c(rbind(postBeta.fam$support[2, ],    postBeta.fam$support[3, ],    postBeta.fam$support[4, ], postBeta.fam$support[5, ])),
+  P_neg     = c(rbind(postBeta.fam$supportNeg[2, ], postBeta.fam$supportNeg[3, ], postBeta.fam$supportNeg[4, ], postBeta.fam$supportNeg[5, ]))
 )
 support.fam$direction <- ifelse(support.fam$mean_beta > 0, "positive", "negative")
 support.fam$strong    <- support.fam$P_pos > 0.95 | support.fam$P_neg > 0.95
@@ -6175,11 +6207,11 @@ plotBeta(m.fam, post = postBeta.fam, param = "Support", supportLevel = 0.95,
          split = 0.4, spNamesNumbers = c(TRUE, FALSE))
 
 # -- Family heatmap -----------------------------------------------------------
-beta_mat <- postBeta.fam$mean[2:4, ]
-rownames(beta_mat) <- c("PC1", "PC2", "WhaleBiomass")
+beta_mat <- postBeta.fam$mean[2:5, ]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
 
-sup_pos <- postBeta.fam$support[2:4, ]
-sup_neg <- postBeta.fam$supportNeg[2:4, ]
+sup_pos <- postBeta.fam$support[2:5, ]
+sup_neg <- postBeta.fam$supportNeg[2:5, ]
 
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
 beta_mat <- beta_mat[, keep]
@@ -6188,7 +6220,7 @@ sup_neg  <- sup_neg[, keep]
 
 cat("Retained:", sum(keep), "of", length(keep), "families\n")
 
-sig_mat <- matrix("", nrow = 3, ncol = ncol(beta_mat))
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
 sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
 sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 
@@ -6282,8 +6314,3 @@ for (s in unique(nmds_sites_b)) {
        labels = nmds_years_b[thin], pos = 3, cex = 0.6)
 }
 dev.off()
-
-
-
-
-

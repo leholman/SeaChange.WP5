@@ -1,33 +1,65 @@
 "Group","Distance","Fraction","Df","Adj_R2"
-"Global","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale",3,0.0911
-"Global","Bray-Curtis","Whale | Climate",1,-0.0023
-"Global","Bray-Curtis","Shared",NA,0.0362
-"Global","Bray-Curtis","Residual",NA,0.875
-"Global","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale",3,0.0435
-"Global","Jaccard","Whale | Climate",1,0.0113
-"Global","Jaccard","Shared",NA,0.0133
-"Global","Jaccard","Residual",NA,0.9318
-"Metazoa","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale",3,0.1127
-"Metazoa","Bray-Curtis","Whale | Climate",1,0.0108
-"Metazoa","Bray-Curtis","Shared",NA,0.0342
-"Metazoa","Bray-Curtis","Residual",NA,0.8422
-"Metazoa","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale",3,0.0347
-"Metazoa","Jaccard","Whale | Climate",1,0.0078
-"Metazoa","Jaccard","Shared",NA,0.0064
-"Metazoa","Jaccard","Residual",NA,0.951
-"Protists","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale",3,0.0904
-"Protists","Bray-Curtis","Whale | Climate",1,-0.0031
-"Protists","Bray-Curtis","Shared",NA,0.0436
-"Protists","Bray-Curtis","Residual",NA,0.8691
-"Protists","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale",3,0.045
-"Protists","Jaccard","Whale | Climate",1,0.0132
-"Protists","Jaccard","Shared",NA,0.0144
-"Protists","Jaccard","Residual",NA,0.9274
-"Bacteria","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale",3,0.128
-"Bacteria","Bray-Curtis","Whale | Climate",1,0.0164
-"Bacteria","Bray-Curtis","Shared",NA,0.0223
-"Bacteria","Bray-Curtis","Residual",NA,0.8332
-"Bacteria","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale",3,0.0572
-"Bacteria","Jaccard","Whale | Climate",1,0.0088
-"Bacteria","Jaccard","Shared",NA,0.0214
-"Bacteria","Jaccard","Residual",NA,0.9125
+"Global","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0248
+"Global","Bray-Curtis","Whale | Climate + Site",1,0.004
+"Global","Bray-Curtis","Site | Climate + Whale",4,0.3777
+"Global","Bray-Curtis","Shared: Climate & Whale",NA,0.0162
+"Global","Bray-Curtis","Shared: Whale & Site",NA,-0.0064
+"Global","Bray-Curtis","Shared: Climate & Site",NA,0.0664
+"Global","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.02
+"Global","Bray-Curtis","Residual",NA,0.4973
+"Global","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.013
+"Global","Jaccard","Whale | Climate + Site",1,0.0148
+"Global","Jaccard","Site | Climate + Whale",4,0.1709
+"Global","Jaccard","Shared: Climate & Whale",NA,0.0062
+"Global","Jaccard","Shared: Whale & Site",NA,-0.0034
+"Global","Jaccard","Shared: Climate & Site",NA,0.0305
+"Global","Jaccard","Shared: Climate & Whale & Site",NA,0.0071
+"Global","Jaccard","Residual",NA,0.7609
+"Metazoa","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0371
+"Metazoa","Bray-Curtis","Whale | Climate + Site",1,0.0136
+"Metazoa","Bray-Curtis","Site | Climate + Whale",4,0.2208
+"Metazoa","Bray-Curtis","Shared: Climate & Whale",NA,0.0252
+"Metazoa","Bray-Curtis","Shared: Whale & Site",NA,-0.0028
+"Metazoa","Bray-Curtis","Shared: Climate & Site",NA,0.0756
+"Metazoa","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.0091
+"Metazoa","Bray-Curtis","Residual",NA,0.6215
+"Metazoa","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0092
+"Metazoa","Jaccard","Whale | Climate + Site",1,0.01
+"Metazoa","Jaccard","Site | Climate + Whale",4,0.176
+"Metazoa","Jaccard","Shared: Climate & Whale",NA,-3e-04
+"Metazoa","Jaccard","Shared: Whale & Site",NA,-0.0022
+"Metazoa","Jaccard","Shared: Climate & Site",NA,0.0255
+"Metazoa","Jaccard","Shared: Climate & Whale & Site",NA,0.0067
+"Metazoa","Jaccard","Residual",NA,0.775
+"Protists","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0212
+"Protists","Bray-Curtis","Whale | Climate + Site",1,0.0031
+"Protists","Bray-Curtis","Site | Climate + Whale",4,0.4309
+"Protists","Bray-Curtis","Shared: Climate & Whale",NA,0.013
+"Protists","Bray-Curtis","Shared: Whale & Site",NA,-0.0062
+"Protists","Bray-Curtis","Shared: Climate & Site",NA,0.0691
+"Protists","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.0307
+"Protists","Bray-Curtis","Residual",NA,0.4382
+"Protists","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0138
+"Protists","Jaccard","Whale | Climate + Site",1,0.0173
+"Protists","Jaccard","Site | Climate + Whale",4,0.2063
+"Protists","Jaccard","Shared: Climate & Whale",NA,0.0054
+"Protists","Jaccard","Shared: Whale & Site",NA,-0.0042
+"Protists","Jaccard","Shared: Climate & Site",NA,0.0312
+"Protists","Jaccard","Shared: Climate & Whale & Site",NA,0.009
+"Protists","Jaccard","Residual",NA,0.7211
+"Bacteria","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0534
+"Bacteria","Bray-Curtis","Whale | Climate + Site",1,0.0198
+"Bacteria","Bray-Curtis","Site | Climate + Whale",4,0.1626
+"Bacteria","Bray-Curtis","Shared: Climate & Whale",NA,0.0058
+"Bacteria","Bray-Curtis","Shared: Whale & Site",NA,-0.0034
+"Bacteria","Bray-Curtis","Shared: Climate & Site",NA,0.0746
+"Bacteria","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.0166
+"Bacteria","Bray-Curtis","Residual",NA,0.6706
+"Bacteria","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0219
+"Bacteria","Jaccard","Whale | Climate + Site",1,0.014
+"Bacteria","Jaccard","Site | Climate + Whale",4,0.1873
+"Bacteria","Jaccard","Shared: Climate & Whale",NA,0.0122
+"Bacteria","Jaccard","Shared: Whale & Site",NA,-0.0051
+"Bacteria","Jaccard","Shared: Climate & Site",NA,0.0353
+"Bacteria","Jaccard","Shared: Climate & Whale & Site",NA,0.0093
+"Bacteria","Jaccard","Residual",NA,0.7252

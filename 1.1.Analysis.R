@@ -2578,12 +2578,16 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
     }
   }
   
-  arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
-         col = "black", lwd = 2, length = 0.1)
+  # match arrow colours to predictor names via the biplot rownames
+  arrow_cols <- pred_cols[rownames(sc_bp_scaled)]
   
-  text(sc_bp_scaled[,1] * 1.12, sc_bp_scaled[,2] * 1.12,
-       labels = rownames(sc_bp_scaled),
-       cex = 0.85, font = 2)
+  arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
+         col = arrow_cols, lwd = 2, length = 0.1)
+  
+  legend("topleft",
+         legend = gsub("whale","WhaleBiomass",gsub("_s", "", names(arrow_cols))),
+         col    = arrow_cols,
+         lwd    = 2, cex = 0.85, bty = "n")
   
   u_sites <- unique(sample_sites)
   u_cols <- coredata$col[match(toupper(u_sites), toupper(coredata$Site))]
@@ -2611,13 +2615,22 @@ anova(mod_jacc, by = "margin", permutations = perm)
 
 ## variance partititoning 
 
-var_bray <- varpart(vegdist(comm, "bray"), ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
-var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE), ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
+var_bray <- varpart(vegdist(comm, "bray"),
+                     ~ SAM_s + ENSO_s + SeaIce_s,
+                     ~ whale_s,
+                     ~ site,
+                     data = beta)
+var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE),
+                    ~ SAM_s + ENSO_s + SeaIce_s,
+                    ~ whale_s,
+                    ~ site,
+                    data = beta)
 
 var_bray
 plot(var_bray)
 var_jacc
 plot(var_jacc)
+
 
 
 ## PERMANOVA
@@ -2665,12 +2678,18 @@ print(anova(mod_jacc_glob, by = "margin", permutations = perm))
 
 cat("\n---- Variance partitioning: Bray ----\n")
 var_bray_glob <- varpart(vegdist(comm, "bray"),
-                         ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
+                         ~ SAM_s + ENSO_s + SeaIce_s,
+                         ~ whale_s,
+                         ~ site,
+                         data = beta)
 print(var_bray_glob)
 
 cat("\n---- Variance partitioning: Jaccard ----\n")
-var_jacc_glob <- varpart(vegdist(comm, "jacc", binary = TRUE),
-                         ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
+var_jacc_glob <- varpart(vegdist(comm, "jacc",binary = TRUE),
+                         ~ SAM_s + ENSO_s + SeaIce_s,
+                         ~ whale_s,
+                         ~ site,
+                         data = beta)
 print(var_jacc_glob)
 
 cat("\n\n")
@@ -2733,6 +2752,7 @@ for (group_name in names(asv_groups)) {
     vegdist(comm, "bray"),
     ~ SAM_s + ENSO_s + SeaIce_s,
     ~ whale_s,
+    ~ site,
     data = beta
   )
   print(var_bray)
@@ -2742,6 +2762,7 @@ for (group_name in names(asv_groups)) {
     vegdist(comm, "jacc", binary = TRUE),
     ~ SAM_s + ENSO_s + SeaIce_s,
     ~ whale_s,
+    ~ site,
     data = beta
   )
   print(var_jacc)
@@ -2799,17 +2820,26 @@ tidy_dbrda <- function(mod, group, distance){
 }
 
 # Tidy a single varpart object into a data frame
+# X1 = Climate (SAM+ENSO+SeaIce), X2 = Whale, X3 = Site
+# vegan returns 8 fractions for 3 explanatory tables:
+#   [a] X1|X2+X3  [b] X2|X1+X3  [c] X3|X1+X2
+#   [d] X1nX2     [e] X2nX3     [f] X1nX3     [g] X1nX2nX3   [h] Residual
 tidy_varpart <- function(vp, group, distance){
   parts <- vp$part$indfract
+  stopifnot(nrow(parts) == 8)   # guard: fails loudly if a call reverts to 2 tables
   data.frame(
     Group    = group,
     Distance = distance,
-    Fraction = c("Climate (SAM+ENSO+SeaIce) | Whale",
-                 "Whale | Climate",
-                 "Shared",
+    Fraction = c("Climate (SAM+ENSO+SeaIce) | Whale + Site",
+                 "Whale | Climate + Site",
+                 "Site | Climate + Whale",
+                 "Shared: Climate & Whale",
+                 "Shared: Whale & Site",
+                 "Shared: Climate & Site",
+                 "Shared: Climate & Whale & Site",
                  "Residual"),
-    Df       = c(parts$Df[1:2], NA, NA),
-    Adj_R2   = parts$Adj.R.squared,
+    Df       = c(parts$Df[1:3], rep(NA, 5)),
+    Adj_R2 = parts[["Adj.R.square"]],
     stringsAsFactors = FALSE
   )
 }
@@ -2840,9 +2870,9 @@ for (g in names(groups)) {
   dbrda_rows[[paste(g, "jaccard")]] <- tidy_dbrda(mj, g, "Jaccard")
   
   vb <- varpart(vegdist(comm, "bray"),
-                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
+                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, ~ site, data = beta)
   vj <- varpart(vegdist(comm, "jacc", binary = TRUE),
-                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, data = beta)
+                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, ~ site, data = beta)
   
   varpart_rows[[paste(g, "bray")]]    <- tidy_varpart(vb, g, "Bray-Curtis")
   varpart_rows[[paste(g, "jaccard")]] <- tidy_varpart(vj, g, "Jaccard")
@@ -2929,16 +2959,16 @@ m <- Hmsc(
   ranLevels   = list(site = rL.site)
 )
 
-m <- sampleMcmc(  m,
-                  thin      = 100,
-                  samples   = 4000,
-                  transient = 100000,
-                  nChains   = 6,
-                  nParallel = 6,
-                  verbose   = 5000
-)
-
-
+#m <- sampleMcmc(  m,
+#                  thin      = 100,
+#                  samples   = 4000,
+#                  transient = 100000,
+#                  nChains   = 6,
+#                  nParallel = 6,
+#                  verbose   = 5000
+#)
+#saveRDS(m, file = "cleandata/MCMCchains/SubDiv.rds")
+m <- readRDS(file = "cleandata/MCMCchains/SubDiv.rds")
 
 # -- Convergence --------------------------------------------------------------
 
@@ -3311,14 +3341,16 @@ m.fam <- Hmsc(
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
-m.fam <- sampleMcmc(m.fam,
-                    thin      = 100,
-                    samples   = 1000,
-                    transient = 10000,
-                    nChains   = 4,
-                    nParallel = 4,
-                    verbose   = 500
-)
+#m.fam <- sampleMcmc(m.fam,
+#                    thin      = 100,
+#                    samples   = 4000,
+#                    transient = 100000,
+#                    nChains   = 6,
+#                    nParallel = 6,
+#                    verbose   = 5000
+#)
+#saveRDS(m.fam, file = "cleandata/MCMCchains/Meta.rds")
+m.fam <- readRDS(file = "cleandata/MCMCchains/Meta.rds")
 
 # -- Convergence --------------------------------------------------------------
 mpost.fam    <- convertToCodaObject(m.fam)
@@ -3693,14 +3725,17 @@ m.fam.pa <- Hmsc(
   studyDesign = studyDesign,
   ranLevels   = list(site = rL.site)
 )
-m.fam.pa <- sampleMcmc(m.fam.pa,
-                       thin      = 100,
-                       samples   = 1000,
-                       transient = 10000,
-                       nChains   = 4,
-                       nParallel = 4,
-                       verbose   = 500
-)
+#m.fam.pa <- sampleMcmc(m.fam.pa,
+#                       thin      = 100,
+#                       samples   = 4000,
+#                       transient = 100000,
+#                       nChains   = 6,
+#                       nParallel = 6,
+#                       verbose   = 5000
+#)
+#saveRDS(m.fam.pa, file = "cleandata/MCMCchains/Meta.PA.rds")
+m.fam.pa <- readRDS(file = "cleandata/MCMCchains/Meta.PA.rds")
+
 
 # -- Convergence --------------------------------------------------------------
 mpost.fam.pa    <- convertToCodaObject(m.fam.pa)
