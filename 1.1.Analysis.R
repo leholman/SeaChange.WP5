@@ -178,14 +178,30 @@ ASVs.pro <- euk.pr2.2$X.1[
     "Alveolata_X"
   ) & euk.pr2.2$Subdivision.1 > 80
 ]
+## Prokaryotic (bacterial + archaeal) subdivisions recovered as 18S off-target
+## amplification. Defined once here and reused wherever prokaryotes are grouped.
+prok.subdiv <- c(
+  "Proteobacteria_X", "Firmicutes_X", "Verrucomicrobia_X", "Planctomycetes_X",
+  "Acidobacteria_X", "Nitrospirae_X", "Dadabacteria_X", "Thaumarchaeota_X",
+  "Kiritimatiellaeota_X", "Nitrospinae_X", "Actinobacteria_X", "Bacteroidetes_X",
+  "Hydrogenedentes_X", "Euryarchaeota_X", "Epsilonbacteraeota_X"
+)
+
 ASVs.bac <- euk.pr2.2$X.1[
-  euk.pr2.2$Subdivision %in% c(
-    "Proteobacteria_X", "Firmicutes_X", "Verrucomicrobia_X", "Planctomycetes_X", 
-    "Acidobacteria_X", "Nitrospirae_X", "Dadabacteria_X", "Thaumarchaeota_X", 
-    "Kiritimatiellaeota_X", "Nitrospinae_X", "Actinobacteria_X", "Bacteroidetes_X", 
-    "Hydrogenedentes_X"
-  ) & euk.pr2.2$Subdivision.1 > 80
+  euk.pr2.2$Subdivision %in% prok.subdiv & euk.pr2.2$Subdivision.1 > 80
 ]
+
+## Coverage check: which subdivisions fall into none of the three subsets?
+local({
+  present  <- unique(na.omit(euk.pr2.2$Subdivision[
+    match(rownames(euk.reps), euk.pr2.2$X.1)]))
+  assigned <- unique(na.omit(euk.pr2.2$Subdivision[
+    euk.pr2.2$X.1 %in% c(ASVs.met, ASVs.pro, ASVs.bac)]))
+  miss <- setdiff(present, assigned)
+  if (length(miss)) cat("Subdivisions in no subset:", paste(miss, collapse = ", "), "\n")
+  ghost <- setdiff(c(prok.subdiv), present)
+  if (length(ghost)) cat("Named but absent from data:", paste(ghost, collapse = ", "), "\n")
+})
 
 ##pull in this little class classifier - note check this if it becomes important 
 classes <- read.csv("taxonomy/class_category.csv")
@@ -2243,8 +2259,6 @@ cat("Wrote: figures/LMM_alpha_results_compact.csv\n")
 
 
 
-
-
 ## beta diversity 
 
 
@@ -2508,15 +2522,13 @@ comm <- t(comm.raw[,match(clim$longname,colnames(comm.raw))])
 
 ## distance basd redundnacy analysis 
 mod_bray <- dbrda(
-  comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-  data = beta,
-  distance = "bray"
+  vegdist(comm, "bray") ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+  data = beta
 )
 
 mod_jacc <- dbrda(
-  comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-  data = beta,
-  distance = "jacc"
+  vegdist(comm, "jacc",binary = TRUE) ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+  data = beta
 )
 
 
@@ -2605,7 +2617,7 @@ dev.off()
 
 
 ##  anova with perms within cores
-perm <- how(blocks = alpha$site,nperm = 1000)
+perm <- how(blocks = alpha$site,nperm = 100000)
 
 anova(mod_bray, permutations = perm)
 anova(mod_bray, by = "margin", permutations = perm)
@@ -2636,13 +2648,13 @@ plot(var_jacc)
 ## PERMANOVA
 perm_bray <- adonis2(vegdist(comm, method = "bray") ~ SAM_s + ENSO_s + SeaIce_s + whale_s,
                      data = beta,
-                     permutations = how(blocks = beta$site, nperm = 10000),
+                     permutations = how(blocks = beta$site, nperm = 100000),
                      by = "margin")
 perm_bray
 
 perm_jacc <- adonis2(vegdist(comm, method = "jacc",binary = TRUE) ~ SAM_s + ENSO_s + SeaIce_s + whale_s,
                      data = beta,
-                     permutations = how(blocks = beta$site, nperm = 10000),
+                     permutations = how(blocks = beta$site, nperm = 100000),
                      by = "margin")
 
 perm_jacc
@@ -2662,17 +2674,17 @@ cat("############################################################\n\n")
 comm.raw <- prop.table(as.matrix(euk.reps), 2)
 comm     <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
 
-perm <- how(blocks = beta$site, nperm = 1000)
+perm <- how(blocks = beta$site, nperm = 100000)
 
 cat("---- dbRDA: Bray ----\n")
-mod_bray_glob <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-                       data = beta, distance = "bray")
+mod_bray_glob <- dbrda(vegdist(comm, "bray") ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+                       data = beta)
 print(anova(mod_bray_glob, permutations = perm))
 print(anova(mod_bray_glob, by = "margin", permutations = perm))
 
 cat("\n---- dbRDA: Jaccard ----\n")
-mod_jacc_glob <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-                       data = beta, distance = "jacc")
+mod_jacc_glob <- dbrda(vegdist(comm, "jacc",binary = TRUE) ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+                       data = beta)
 print(anova(mod_jacc_glob, permutations = perm))
 print(anova(mod_jacc_glob, by = "margin", permutations = perm))
 
@@ -2726,21 +2738,20 @@ for (group_name in names(asv_groups)) {
   ## dbRDA
   cat("---- dbRDA: Bray ----\n")
   mod_bray <- dbrda(
-    comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-    data = beta,
-    distance = "bray"
+    vegdist(comm, "bray") ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+    data = beta
+    
   )
   
-  perm <- how(blocks = alpha$site, nperm = 1000)
+  perm <- how(blocks = alpha$site, nperm = 100000)
   
   print(anova(mod_bray, permutations = perm))
   print(anova(mod_bray, by = "margin", permutations = perm))
   
   cat("\n---- dbRDA: Jaccard ----\n")
   mod_jacc <- dbrda(
-    comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-    data = beta,
-    distance = "jacc"
+    vegdist(comm, "jacc",binary = TRUE) ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+    data = beta
   )
   
   print(anova(mod_jacc, permutations = perm))
@@ -2772,7 +2783,7 @@ for (group_name in names(asv_groups)) {
   perm_bray <- adonis2(
     vegdist(comm, method = "bray") ~  SAM_s + ENSO_s + SeaIce_s + whale_s,
     data = beta,
-    permutations = how(blocks = beta$site, nperm = 10000),
+    permutations = how(blocks = beta$site, nperm = 100000),
     by = "margin"
   )
   print(perm_bray)
@@ -2781,7 +2792,7 @@ for (group_name in names(asv_groups)) {
   perm_jacc <- adonis2(
     vegdist(comm, method = "jacc", binary = TRUE) ~  SAM_s + ENSO_s + SeaIce_s + whale_s,
     data = beta,
-    permutations = how(blocks = beta$site, nperm = 10000),
+    permutations = how(blocks = beta$site, nperm = 100000),
     by = "margin"
   )
   print(perm_jacc)
@@ -2859,20 +2870,43 @@ for (g in names(groups)) {
   comm.raw <- prop.table(as.matrix(mat), 2)
   comm     <- t(comm.raw[, match(clim$longname, colnames(comm.raw))])
   
-  perm <- how(blocks = beta$site, nperm = 1000)
+  perm <- how(blocks = beta$site, nperm = 100000)
+  bray_dist <- vegan::vegdist(comm, method = "bray")
   
-  mb <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-              data = beta, distance = "bray")
-  mj <- dbrda(comm ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
-              data = beta, distance = "jacc")
+  jacc_dist <- vegan::vegdist(
+    comm,
+    method = "jaccard",
+    binary = TRUE
+  )
   
+  mb <- vegan::dbrda(
+    bray_dist ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+    data = beta
+  )
+  
+  mj <- vegan::dbrda(
+    jacc_dist ~ whale_s + SAM_s + ENSO_s + SeaIce_s + Condition(site),
+    data = beta
+  )
+  
+  vb <- vegan::varpart(
+    bray_dist,
+    ~ SAM_s + ENSO_s + SeaIce_s,
+    ~ whale_s,
+    ~ site,
+    data = beta
+  )
+  
+  vj <- vegan::varpart(
+    jacc_dist,
+    ~ SAM_s + ENSO_s + SeaIce_s,
+    ~ whale_s,
+    ~ site,
+    data = beta
+  )
   dbrda_rows[[paste(g, "bray")]]    <- tidy_dbrda(mb, g, "Bray-Curtis")
   dbrda_rows[[paste(g, "jaccard")]] <- tidy_dbrda(mj, g, "Jaccard")
   
-  vb <- varpart(vegdist(comm, "bray"),
-                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, ~ site, data = beta)
-  vj <- varpart(vegdist(comm, "jacc", binary = TRUE),
-                ~ SAM_s + ENSO_s + SeaIce_s, ~ whale_s, ~ site, data = beta)
   
   varpart_rows[[paste(g, "bray")]]    <- tidy_varpart(vb, g, "Bray-Curtis")
   varpart_rows[[paste(g, "jaccard")]] <- tidy_varpart(vj, g, "Jaccard")
@@ -2882,8 +2916,10 @@ dbrda_summary  <- do.call(rbind, dbrda_rows)
 varpart_summary <- do.call(rbind, varpart_rows)
 
 # Round for display
-dbrda_summary[c("SumOfSqs","F_value","p_value","R2_constrained")] <-
-  round(dbrda_summary[c("SumOfSqs","F_value","p_value","R2_constrained")], 4)
+# was: round(...4 columns including p_value...)
+dbrda_summary[c("SumOfSqs","F_value","R2_constrained")] <-
+  round(dbrda_summary[c("SumOfSqs","F_value","R2_constrained")], 4)
+dbrda_summary$p_value <- signif(dbrda_summary$p_value, 3)
 varpart_summary$Adj_R2 <- round(varpart_summary$Adj_R2, 4)
 
 write.csv(dbrda_summary,   "summaryfiles/dbRDA_summary.csv",   row.names = FALSE)
@@ -3006,12 +3042,22 @@ print(support_df[support_df$strong, c("Subdivision", "predictor", "mean_beta",
                                       "P_pos", "P_neg", "direction")])
 
 
+## -- Prokaryotic subdivisions: retained in the fitted model (they form part of
+## -- the compositional denominator) but dropped from all reporting figures,
+## -- since 18S gives no quantitative measure of prokaryotic abundance.
+## -- prok.subdiv is defined once near the top, alongside ASVs.bac.
+euk.keep <- setdiff(colnames(Y), prok.subdiv)
+cat("Subdivisions plotted:", length(euk.keep), "of", ncol(Y),
+    "(", ncol(Y) - length(euk.keep), "prokaryotic dropped from figures )\n")
+
+
 ## Nice plot
 
 # Extract and reshape VP values
-vp_mat <- VP$vals  # rows = subdivisions, cols = components
+vp_mat <- VP$vals  # rows = components, cols = subdivisions
 vp_mat_rev <- vp_mat[,dim(vp_mat)[2]:1] 
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+vp_mat_rev <- vp_mat_rev[, colnames(vp_mat_rev) %in% euk.keep, drop = FALSE]
 site_var <- vp_mat_rev["Random: site", ]
 vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
 
@@ -3062,6 +3108,7 @@ dev.off()
 sup_pos <- postBeta$support[2:5, ]
 sup_neg <- postBeta$supportNeg[2:5, ]
 keep <- apply(sup_pos > 0.95 | sup_neg > 0.95, 2, any)
+keep <- keep & (colnames(Y) %in% euk.keep)
 
 beta_mat <- postBeta$mean[2:5, keep]
 sup_pos  <- sup_pos[, keep]
@@ -3123,6 +3170,7 @@ vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 # Order by whaling beta 
 whale_beta <- postBeta$mean[5, ]  # row 5 = whale
 whale_order <- names(sort(whale_beta))  # ascending = most positive at top in horiz barplot
+whale_order <- whale_order[whale_order %in% euk.keep]
 vp_mat_rev <- vp_mat_rev[, whale_order]
 taxon_order <- whale_order
 

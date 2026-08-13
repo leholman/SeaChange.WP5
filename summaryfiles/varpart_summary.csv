@@ -47,19 +47,19 @@
 "Protists","Jaccard","Shared: Climate & Site",NA,0.0312
 "Protists","Jaccard","Shared: Climate & Whale & Site",NA,0.009
 "Protists","Jaccard","Residual",NA,0.7211
-"Bacteria","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0534
-"Bacteria","Bray-Curtis","Whale | Climate + Site",1,0.0198
-"Bacteria","Bray-Curtis","Site | Climate + Whale",4,0.1626
-"Bacteria","Bray-Curtis","Shared: Climate & Whale",NA,0.0058
-"Bacteria","Bray-Curtis","Shared: Whale & Site",NA,-0.0034
-"Bacteria","Bray-Curtis","Shared: Climate & Site",NA,0.0746
-"Bacteria","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.0166
-"Bacteria","Bray-Curtis","Residual",NA,0.6706
-"Bacteria","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0219
-"Bacteria","Jaccard","Whale | Climate + Site",1,0.014
-"Bacteria","Jaccard","Site | Climate + Whale",4,0.1873
-"Bacteria","Jaccard","Shared: Climate & Whale",NA,0.0122
+"Bacteria","Bray-Curtis","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0526
+"Bacteria","Bray-Curtis","Whale | Climate + Site",1,0.0196
+"Bacteria","Bray-Curtis","Site | Climate + Whale",4,0.1654
+"Bacteria","Bray-Curtis","Shared: Climate & Whale",NA,0.0054
+"Bacteria","Bray-Curtis","Shared: Whale & Site",NA,-0.0032
+"Bacteria","Bray-Curtis","Shared: Climate & Site",NA,0.0723
+"Bacteria","Bray-Curtis","Shared: Climate & Whale & Site",NA,0.0172
+"Bacteria","Bray-Curtis","Residual",NA,0.6708
+"Bacteria","Jaccard","Climate (SAM+ENSO+SeaIce) | Whale + Site",3,0.0236
+"Bacteria","Jaccard","Whale | Climate + Site",1,0.0141
+"Bacteria","Jaccard","Site | Climate + Whale",4,0.19
+"Bacteria","Jaccard","Shared: Climate & Whale",NA,0.0119
 "Bacteria","Jaccard","Shared: Whale & Site",NA,-0.0051
-"Bacteria","Jaccard","Shared: Climate & Site",NA,0.0353
-"Bacteria","Jaccard","Shared: Climate & Whale & Site",NA,0.0093
-"Bacteria","Jaccard","Residual",NA,0.7252
+"Bacteria","Jaccard","Shared: Climate & Site",NA,0.0323
+"Bacteria","Jaccard","Shared: Climate & Whale & Site",NA,0.0087
+"Bacteria","Jaccard","Residual",NA,0.7246
