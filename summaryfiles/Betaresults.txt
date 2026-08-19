@@ -62,7 +62,8 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s,
+~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -105,7 +106,8 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s +
+SeaIce_s, ~whale_s, ~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -211,7 +213,8 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s,
+~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -254,7 +257,8 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s +
+SeaIce_s, ~whale_s, ~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -394,7 +398,8 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s,
+~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -437,7 +442,8 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s +
+SeaIce_s, ~whale_s, ~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -577,7 +583,8 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Partition of squared Bray distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "bray"), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s,
+~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
@@ -620,7 +627,8 @@ Use function ‘dbrda’ to test significance of fractions of interest
 
 Partition of squared Binary jaccard distance in dbRDA 
 
-Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s + SeaIce_s, ~whale_s, ~site, data = beta)
+Call: varpart(Y = vegdist(comm, "jacc", binary = TRUE), X = ~SAM_s + ENSO_s +
+SeaIce_s, ~whale_s, ~site, data = beta)
 
 Explanatory tables:
 X1:  ~SAM_s + ENSO_s + SeaIce_s
