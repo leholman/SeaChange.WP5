@@ -364,8 +364,8 @@ for (i in c(2,4,3,1,5)) {
   
   # Add a site label on the left
   mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
- 
-
+  
+  
   
   # Only the bottom panel gets the shared x-axis
   if (i == length(sites)) {
@@ -641,7 +641,7 @@ for (i in c(2,4,3,1,5)) {
                 col    = pal,
                 space  = 0,
                 width = 30,
-   #             ylim   = ylim,
+                #             ylim   = ylim,
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
@@ -926,7 +926,7 @@ for (i in c(2,4,3,1,5)) {
                 col    = pal,
                 space  = 0,
                 width = 30,
-    #            ylim   = ylim,
+                #            ylim   = ylim,
                 border = NA,
                 xaxt   = "n",
                 yaxt   = "t")
@@ -1125,18 +1125,18 @@ dev.off()
 unique(expandedDates$Site)
 
 for (dataset in c("met","dia","din","smolphy"))
-
   
-coniss.helper <- function(site,data){
-  data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
-  data.sub <- data[,grepl(site,data.sites)]
-  data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
-  data.sub.sort <- data.sub[,order(data.sub.years)]
-  data.dist <- vegdist(t(data.sub.sort), method = "bray")
-  data.coniss <- chclust(data.dist, method = "coniss")
-  bs <- bstick(data.coniss)                                           # expected SS decrease under null
-  return(data.coniss)
-}
+  
+  coniss.helper <- function(site,data){
+    data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
+    data.sub <- data[,grepl(site,data.sites)]
+    data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
+    data.sub.sort <- data.sub[,order(data.sub.years)]
+    data.dist <- vegdist(t(data.sub.sort), method = "bray")
+    data.coniss <- chclust(data.dist, method = "coniss")
+    bs <- bstick(data.coniss)                                           # expected SS decrease under null
+    return(data.coniss)
+  }
 
 BB.met.con <- coniss.helper("BB",euk.met.only) # 2
 cutree(BB.met.con, k = 2)
@@ -1912,9 +1912,9 @@ for (group_name in names(asv_groups)) {
   alpha_avg <- alpha_all %>%
     group_by(sample) %>%
     summarise(across(q0:q2,
-                    list(mean = \(x) mean(x, na.rm = TRUE),
-                         sd   = \(x) sd(x,   na.rm = TRUE)),
-                    .names = "{.col}_{.fn}"))
+                     list(mean = \(x) mean(x, na.rm = TRUE),
+                          sd   = \(x) sd(x,   na.rm = TRUE)),
+                     .names = "{.col}_{.fn}"))
   
   alpha_avg_reps <- alpha_avg %>%
     mutate(replicate = sub("(.*)\\.[0-9]+$", "\\1", sample)) %>%
@@ -1922,7 +1922,7 @@ for (group_name in names(asv_groups)) {
     summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
               across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
   
-
+  
   
   ## Plot Q0
   pdf(paste0("figures/", group_name, ".genus.Q0.pdf"),  height = 4.5, width = 12)
@@ -2092,8 +2092,7 @@ coef_df$hi_std  <- coef_df$hi / resp_sd[coef_df$model]
 xpos <- c("ASV Q0" = 1, "ASV Q1" = 2, "ASV Q2" = 3,
           "Genus Q0" = 5, "Genus Q1" = 6, "Genus Q2" = 7)
 
-pred_cols <- c("SAM_s" = "#2F5D3A", "ENSO_s" = "#7A9B76", "SeaIce_s" = "#C2D9B7", "whale_s" = "#C9A66B")
-
+pred_cols <- c("SAM_s" = "#141d23", "ENSO_s" = "#31424e", "SeaIce_s" = "#5a6c76", "whale_s" = "#7d9bb0")
 
 offsets   <- c("SAM_s" = -0.18, "ENSO_s" = -0.06, "SeaIce_s" = 0.06, "whale_s" = 0.18)
 
@@ -2274,9 +2273,9 @@ EUK.nMDS.b <- metaMDS(vegdist(t(prop.table(as.matrix(euk.reps),2)),method = "bra
 
 pdf(paste0("figures/NMDS_ALL_jaccard.pdf"), height = 7, width = 7.5)
 plot(EUK.nMDS.j$points[,1], 
-EUK.nMDS.j$points[,2],
-col=coredata$col[match(toupper(expandedDates$Site[match(row.names(EUK.nMDS.j$points), expandedDates$SampleName)]),toupper(coredata$Site))],
-pch=16,ylab="",xlab="")
+     EUK.nMDS.j$points[,2],
+     col=coredata$col[match(toupper(expandedDates$Site[match(row.names(EUK.nMDS.j$points), expandedDates$SampleName)]),toupper(coredata$Site))],
+     pch=16,ylab="",xlab="")
 
 text(EUK.nMDS.j$points[,1],
      EUK.nMDS.j$points[,2],
@@ -2498,16 +2497,16 @@ for (group_name in names(asv_groups)) {
 
 #### now let's run some tests 
 beta <- data.frame("sample" = paste(clim$Site,clim$SampleID),
-                    "site" = as.factor(clim$Site),
-                    "year" =clim$CalYear,
-                    "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
-                    "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
-                    "SAM" = clim$SAM_Index_3yr,
-                    "ENSO" = clim$ENSO_3yr,
-                    "SeaIce" = clim$SIC_mean,
-                    "SAM_s" = scale(clim$SAM_Index_3yr),
-                    "ENSO_s" = scale(clim$ENSO_3yr),
-                    "SeaIce_s" = scale(clim$SIC_mean))
+                   "site" = as.factor(clim$Site),
+                   "year" =clim$CalYear,
+                   "whale" = whales$biomass[match(round(clim$CalYear),whales$year)],
+                   "whale_s" = scale(whales$biomass[match(round(clim$CalYear),whales$year)]),
+                   "SAM" = clim$SAM_Index_3yr,
+                   "ENSO" = clim$ENSO_3yr,
+                   "SeaIce" = clim$SIC_mean,
+                   "SAM_s" = scale(clim$SAM_Index_3yr),
+                   "ENSO_s" = scale(clim$ENSO_3yr),
+                   "SeaIce_s" = scale(clim$SIC_mean))
 
 
 
@@ -2576,8 +2575,8 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
       }
     }
     
-   points(sc_sites[,1], sc_sites[,2],
-         col = site_cols, pch = 16, cex = 1.2)
+    points(sc_sites[,1], sc_sites[,2],
+           col = site_cols, pch = 16, cex = 1.2)
     
     # year labels (unchanged)
     for (s in unique(sample_sites)) {
@@ -2628,10 +2627,10 @@ anova(mod_jacc, by = "margin", permutations = perm)
 ## variance partititoning 
 
 var_bray <- varpart(vegdist(comm, "bray"),
-                     ~ SAM_s + ENSO_s + SeaIce_s,
-                     ~ whale_s,
-                     ~ site,
-                     data = beta)
+                    ~ SAM_s + ENSO_s + SeaIce_s,
+                    ~ whale_s,
+                    ~ site,
+                    data = beta)
 var_jacc <- varpart(vegdist(comm, "jacc",binary = TRUE),
                     ~ SAM_s + ENSO_s + SeaIce_s,
                     ~ whale_s,
@@ -2931,6 +2930,9 @@ print(varpart_summary)
 #### now lets run a HMSC model with all taxa
 library(Hmsc)
 
+## Beta coefficient gradient: red = negative, green = positive
+beta.grad <- colorRampPalette(c("#c13d2a","#db964d","#FFFFFF","#6ab79f","#244e51"))(100)
+
 
 # -- Data prep ----------------------------------------------------------------
 comm.raw.t <- t(as.matrix(euk.reps))
@@ -3062,7 +3064,7 @@ site_var <- vp_mat_rev["Random: site", ]
 vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
 
 # Colours matching your original call
-cols <- c("#7A9B76", "#C9A66B", "#8A7090") 
+cols <- c("#31424e","#7d9bb0","#d6d2c9") 
 
 
 # Margins: bottom, left, top, right — left margin wide for taxon names
@@ -3073,14 +3075,14 @@ par(mar = c(4, 10, 2, 8))
 bp <- barplot(
   vp_mat_rev,
   horiz    = TRUE,
- col      = cols,
+  col      = cols,
   border   = NA,
   las      = 1,
   xlim     = c(0, 1),
   xlab     = "Variance explained",
   names.arg = gsub("_X","",colnames(vp_mat_rev)),
   cex.names = 0.75,
- axes = FALSE)
+  axes = FALSE)
 
 # x-axis as percentages
 axis(1, at = seq(0, 1, 0.25),
@@ -3134,7 +3136,7 @@ n_sub <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_sub, t(beta_plot),
-      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
+      col = beta.grad,
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -3159,7 +3161,7 @@ beta_to_col <- function(x, zlim, cols) {
   idx <- max(1, min(length(cols), idx))
   cols[idx]
 }
-heat_cols <- colorRampPalette(c( "#B2182B","white","#2166AC"))(100)
+heat_cols <- beta.grad
 
 
 # -- Combined: Subdivision -----------------------------------------------------
@@ -3188,7 +3190,7 @@ beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090") 
+cols_vp <- c("#31424e","#7d9bb0","#d6d2c9") 
 pred_names <- rownames(beta_full)
 
 
@@ -3456,7 +3458,7 @@ site_var <- vp_mat_rev["Random: site", ]
 vp_mat_rev <- vp_mat_rev[, order(site_var, decreasing = TRUE)]
 
 # Colours matching your original call
-cols <- c("#7A9B76", "#C9A66B", "#8A7090") 
+cols <- c("#31424e","#7d9bb0","#d6d2c9") 
 
 # Margins: bottom, left, top, right — left margin wide for taxon names
 
@@ -3530,7 +3532,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
+      col = beta.grad,
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -3566,7 +3568,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
+cols_vp <- c("#31424e","#7d9bb0","#d6d2c9")
 pred_names <- rownames(beta_full)
 pdf("figures/HMSC/metazoa.combined.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
@@ -3652,7 +3654,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
+cols_vp <- c("#31424e","#7d9bb0","#d6d2c9")
 pred_names <- rownames(beta_full)
 
 # Keep only taxa with ≥1 significant predictor
@@ -3836,7 +3838,7 @@ vp_mat <- VP.fam.pa$vals
 vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
 vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
 
-cols <- c("#7A9B76", "#C9A66B", "#8A7090")
+cols <- c("#31424e","#7d9bb0","#d6d2c9")
 
 pdf("figures/HMSC/metazoa.pa.var.pdf", height = 9, width = 5)
 par(mar = c(4, 10, 2, 8))
@@ -3896,7 +3898,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
+      col = beta.grad,
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -3932,7 +3934,7 @@ sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
 beta_full <- beta_mat[, taxon_order]
 sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
 zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
-cols_vp <- c("#7A9B76", "#C9A66B", "#8A7090")
+cols_vp <- c("#31424e","#7d9bb0","#d6d2c9")
 pred_names <- rownames(beta_full)
 
 # Keep only taxa with at least one significant predictor
@@ -4539,7 +4541,7 @@ for (species in unique(euk.salkril.nReps.long$spp)){
        ylab="nPCR reps",
        ylim=c(0,8),
        pch=ifelse(loopdat$value>0,16,4))
-
+  
   
 }
 
@@ -4629,48 +4631,48 @@ for (sp in sp_list) {
 ### Let's make some GAMS
 
 for (sp in unique(euk.salkril.nReps.long$spp)){
-
-
-# --- data per species
-d1 <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==sp, ]
-d1 <- d1[!is.na(d1$dates), ]
-
-d2 <- cbind(d1,beta[match(paste(d1$site,d1$dates,sep=" "),paste(beta$site,round(beta$year),sep=" ")),])
-
-pdf(paste0("figures/test/EUK.big.",sp,".pdf"), width=9, height=6)
-par(mfrow=c(2,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i",xpd = TRUE)
-
-
-# site-color map
-sites <- sort(unique(toupper(d2$site)))
-cols  <- coredata$col[match(sites, coredata$Site)]
-colv1 <- cols[match(toupper(d2$site), sites)]
-
-# --- TOP: nREps
-set.seed(1234)
-plot(d2$dates, jitter(d2$value, 0.8),
-     xlim=c(1760,2024),
-     xlab="", ylab="nPCR reps", main=sp,
-     pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
-#for (si in sites) {
-#  d2s <- d2[toupper(d2$site)==si, ]
-#  if (nrow(d2s) > 2) {
-#    fit <- loess(value ~ dates, data=d2s, span=0.6, degree=1)
-#    xx  <- seq(min(d2s$dates), max(d2s$dates), length.out=300)
-#    yy  <- predict(fit, data.frame(dates=xx))
-#    lines(xx, yy, col=cols[sites==si], lwd=2)
- # }
-#}
-legend(1750,-0.5, legend=sites, col=cols, pch=16, cex=0.6, bty="n")
-
-# --- MID: average proportion of reads
-plot(d2$dates, d2$avg,
-     xlim=c(1760,2024), 
-     xlab="", ylab="Avg proportion",
-     pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
-dev.off()
-
-
+  
+  
+  # --- data per species
+  d1 <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==sp, ]
+  d1 <- d1[!is.na(d1$dates), ]
+  
+  d2 <- cbind(d1,beta[match(paste(d1$site,d1$dates,sep=" "),paste(beta$site,round(beta$year),sep=" ")),])
+  
+  pdf(paste0("figures/test/EUK.big.",sp,".pdf"), width=9, height=6)
+  par(mfrow=c(2,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i",xpd = TRUE)
+  
+  
+  # site-color map
+  sites <- sort(unique(toupper(d2$site)))
+  cols  <- coredata$col[match(sites, coredata$Site)]
+  colv1 <- cols[match(toupper(d2$site), sites)]
+  
+  # --- TOP: nREps
+  set.seed(1234)
+  plot(d2$dates, jitter(d2$value, 0.8),
+       xlim=c(1760,2024),
+       xlab="", ylab="nPCR reps", main=sp,
+       pch=ifelse(d1$value>0,16,4), col=colv1, bty="n")
+  #for (si in sites) {
+  #  d2s <- d2[toupper(d2$site)==si, ]
+  #  if (nrow(d2s) > 2) {
+  #    fit <- loess(value ~ dates, data=d2s, span=0.6, degree=1)
+  #    xx  <- seq(min(d2s$dates), max(d2s$dates), length.out=300)
+  #    yy  <- predict(fit, data.frame(dates=xx))
+  #    lines(xx, yy, col=cols[sites==si], lwd=2)
+  # }
+  #}
+  legend(1750,-0.5, legend=sites, col=cols, pch=16, cex=0.6, bty="n")
+  
+  # --- MID: average proportion of reads
+  plot(d2$dates, d2$avg,
+       xlim=c(1760,2024), 
+       xlab="", ylab="Avg proportion",
+       pch=ifelse(d1$avg>0,16,4), col=colv1, bty="n")
+  dev.off()
+  
+  
 }
 
 
@@ -4747,7 +4749,7 @@ plotall <- function(tax_filter,
                       beta_data = beta,
                       out_prefix = NULL,
                       n_cols_data = 992) {
-  
+    
     tax_filter='family=="Euphausiidae"'
     euk_data = euk
     euk_taxonomy = euk.tax
@@ -4755,9 +4757,9 @@ plotall <- function(tax_filter,
     core_data = coredata
     beta_data = beta
     
-  # --- 1. Subset by the taxonomy filter ---------------------------------
-  # tax_filter should be a logical vector matching rows of euk_taxonomy
-  sub <- euk_taxonomy[family=="Euphausiidae", ]
+    # --- 1. Subset by the taxonomy filter ---------------------------------
+    # tax_filter should be a logical vector matching rows of euk_taxonomy
+    sub <- euk_taxonomy[family=="Euphausiidae", ]
     euk_taxonomy[euk_taxonomy$family=="Euphausiidae",]
     
     
@@ -4771,19 +4773,19 @@ plotall <- function(tax_filter,
     sub_tax <- euk_taxonomy[match(rownames(sub), euk_taxonomy$X.1), ]
     
     if (nrow(sub) == 0) stop("No rows match the taxonomy filter.")
-  sub <- sub[!is.na(sub[, 1]), ]
-  sub_tax <- euk_taxonomy[match(rownames(sub), euk_taxonomy$X.1), ]
-  
-  if (nrow(sub) == 0) {
-    stop("No rows match the taxonomy filter.")
-  }
-  
-  # --- 2. Either load manual annotation, or use raw taxonomy ------------
+    sub <- sub[!is.na(sub[, 1]), ]
+    sub_tax <- euk_taxonomy[match(rownames(sub), euk_taxonomy$X.1), ]
+    
+    if (nrow(sub) == 0) {
+      stop("No rows match the taxonomy filter.")
+    }
+    
+    # --- 2. Either load manual annotation, or use raw taxonomy ------------
     # normalize by original library size
-  
-  ###################### WE ARE HERE!!!!!
-  
-  
+    
+    ###################### WE ARE HERE!!!!!
+    
+    
     dat[, 1:n_cols_data] <- sweep(dat[, 1:n_cols_data], 2,
                                   colSums(euk_data), FUN = "/")
     dat[is.na(dat) | dat == "NaN"] <- 0
@@ -5034,7 +5036,7 @@ for (species in unique(euk.ice.sum.avr.long$spp)) {
        xlab = "Date",
        xlim=c(2020,1780),
        pch = ifelse(loopdat$value > 0, 16, 4),bty="n")
-
+  
 }
 
 ## now lets combine them into one
@@ -5083,13 +5085,13 @@ for (sp in sp_list) {
        xlim=c(2024,1760), 
        xlab="", ylab="Avg proportion",
        pch=ifelse(d2$value>0,16,4), col=colv2, bty="n")
-
-
-plot(d3$dates, d3$value,
-     xlim=c(2024,1760), 
-     xlab="Calibrated year", ylab="Avg proportion in Dinos",
-     pch=ifelse(d3$value>0,16,4), col=colv3, bty="n")
-dev.off()
+  
+  
+  plot(d3$dates, d3$value,
+       xlim=c(2024,1760), 
+       xlab="Calibrated year", ylab="Avg proportion in Dinos",
+       pch=ifelse(d3$value>0,16,4), col=colv3, bty="n")
+  dev.off()
 }
 
 ## now the phaeocystis
@@ -5120,48 +5122,48 @@ euk.pha.sum.nreps.long <- data.frame("Site1"=names(euk.pha.sum.nreps),
 euk.pha.sum.avr <- tapply(euk.pha.sum, gsub("(.*).[0-9]$","\\1",names(euk.pha.sum)), mean, na.rm=TRUE)
 
 euk.pha.sum.avr.long <- data.frame("Site1"=names(euk.pha.sum.avr),
-                                     "value"=unlist(unname(euk.pha.sum.avr)),
-                                     "site"=expandedDates$Site[match(names(euk.pha.sum.avr),expandedDates$SampleName)],
-                                     "dates"=expandedDates$CalYear[match(names(euk.pha.sum.avr),expandedDates$SampleName)])
+                                   "value"=unlist(unname(euk.pha.sum.avr)),
+                                   "site"=expandedDates$Site[match(names(euk.pha.sum.avr),expandedDates$SampleName)],
+                                   "dates"=expandedDates$CalYear[match(names(euk.pha.sum.avr),expandedDates$SampleName)])
 
 
-  # --- data per species
-  d1 <- euk.pha.sum.nreps.long
-  d2 <- euk.pha.sum.avr.long  
+# --- data per species
+d1 <- euk.pha.sum.nreps.long
+d2 <- euk.pha.sum.avr.long  
 
- 
-  
-  # site-color map
-  sites <- sort(unique(toupper(c(d1$site, d2$site))))
-  cols  <- coredata$col[match(sites, coredata$Site)]
-  colv1 <- cols[match(toupper(d1$site), sites)]
-  colv2 <- cols[match(toupper(d2$site), sites)]
-  
-  # --- TOP: nREps
-  pdf("figures/EUK.p.antarctica.pdf",, width=9, height=6)
-  par(mfrow=c(3,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
-  set.seed(1234)
-  par(mfrow=c(2,1))
-  plot(d1$dates, jitter(d1$nREPs, 0.8),
-       xlim=c(2024,1760),
-       xlab="", ylab="nPCR reps", main="P antarctica",
-       pch=ifelse(d1$nREPs>0,16,4), col=colv1, bty="n")
-  for (si in sites) {
-    d1s <- d1[toupper(d1$site)==si, ]
-    if (nrow(d1s) > 2) {
-      fit <- loess(nREPs ~ dates, data=d1s, span=0.6, degree=1)
-      xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
-      yy  <- predict(fit, data.frame(dates=xx))
-      lines(xx, yy, col=cols[sites==si], lwd=2)
-    }
+
+
+# site-color map
+sites <- sort(unique(toupper(c(d1$site, d2$site))))
+cols  <- coredata$col[match(sites, coredata$Site)]
+colv1 <- cols[match(toupper(d1$site), sites)]
+colv2 <- cols[match(toupper(d2$site), sites)]
+
+# --- TOP: nREps
+pdf("figures/EUK.p.antarctica.pdf",, width=9, height=6)
+par(mfrow=c(3,1), mar=c(3.5,4,2.5,1), oma=c(0,0,0,0), xaxs="i")
+set.seed(1234)
+par(mfrow=c(2,1))
+plot(d1$dates, jitter(d1$nREPs, 0.8),
+     xlim=c(2024,1760),
+     xlab="", ylab="nPCR reps", main="P antarctica",
+     pch=ifelse(d1$nREPs>0,16,4), col=colv1, bty="n")
+for (si in sites) {
+  d1s <- d1[toupper(d1$site)==si, ]
+  if (nrow(d1s) > 2) {
+    fit <- loess(nREPs ~ dates, data=d1s, span=0.6, degree=1)
+    xx  <- seq(min(d1s$dates), max(d1s$dates), length.out=300)
+    yy  <- predict(fit, data.frame(dates=xx))
+    lines(xx, yy, col=cols[sites==si], lwd=2)
   }
-  # --- MID: average proportion of reads
-  plot(d2$dates, d2$value,
-       xlim=c(2024,1760), 
-       xlab="", ylab="Avg proportion",
-       pch=ifelse(d2$value>0,16,4), col=colv2, bty="n")
-  legend(1780,0.007, legend=sites, col=cols, pch=16, cex=0.8, bty="n")
-  dev.off()
+}
+# --- MID: average proportion of reads
+plot(d2$dates, d2$value,
+     xlim=c(2024,1760), 
+     xlab="", ylab="Avg proportion",
+     pch=ifelse(d2$value>0,16,4), col=colv2, bty="n")
+legend(1780,0.007, legend=sites, col=cols, pch=16, cex=0.8, bty="n")
+dev.off()
 
 
 
@@ -5319,8 +5321,8 @@ dev.off()
 mam <- read.csv("cleandata/MAM.WP5.main.clean.csv",row.names = 1)
 mam.tax <- read.csv("cleandata/MAM.WP5.main.clean.tax.csv",row.names = 1)
 mam.tax.whales.asvs <- na.omit(mam.tax$ASV[mam.tax$family=="Balaenopteridae"|
-                    mam.tax$family=="Balaenidae"|
-                    mam.tax$family=="Delphinidae"])
+                                             mam.tax$family=="Balaenidae"|
+                                             mam.tax$family=="Delphinidae"])
 
 mam.whales <- cbind(mam[match(mam.tax.whales.asvs,rownames(mam)),],mam.tax[match(mam.tax.whales.asvs,mam.tax$ASV),])
 
@@ -5440,7 +5442,7 @@ for (species in unique(whales.sum.nreps$spp)) {
        main = species,
        xlab = "Date",
        ylab = "nPCR reps",
-  ylim = c(0, 12),
+       ylim = c(0, 12),
        pch = ifelse(loopdat$value > 0, 16, 4))
   
   # Add LOESS smooth per site
@@ -5464,13 +5466,13 @@ dev.off()
 mam <- read.csv("cleandata/MAM.WP5.main.clean.csv",row.names = 1)
 mam.tax <- read.csv("cleandata/MAM.WP5.main.clean.tax.csv",row.names = 1)
 mam.tax.seals.asvs <- na.omit(mam.tax$ASV[mam.tax$family=="Otariidae"|
-                                             mam.tax$family=="Phocidae"])
+                                            mam.tax$family=="Phocidae"])
 mam.seals <- cbind(mam[match(mam.tax.seals.asvs,rownames(mam)),],mam.tax[match(mam.tax.seals.asvs,mam.tax$ASV),])
 
 riz <- read.csv("cleandata/riz.WP5.main.clean.csv",row.names = 1)
 riz.tax <- read.csv("cleandata/riz.WP5.main.clean.tax.csv",row.names = 1)
 riz.tax.seals.asvs <- na.omit(riz.tax$ASV[riz.tax$family=="Otariidae"|
-                                             riz.tax$family=="Phocidae"])
+                                            riz.tax$family=="Phocidae"])
 
 riz.seals <- cbind(riz[match(riz.tax.seals.asvs,rownames(riz)),],riz.tax[match(riz.tax.seals.asvs,riz.tax$ASV),])
 
@@ -5724,16 +5726,16 @@ euk.polarella.dat <- data.frame("raw.reads"=euk.polarella.clean,
                                 "depth"=as.numeric(sapply(strsplit(names(euk.polarella.clean), "\\."), function(x) x[4])))
 euk.polarella.dat$depth[euk.polarella.dat$depth=="0"] <- 0.5
 euk.polarella.dat$dates <- dates$CalYear[match(paste(euk.polarella.dat$site,euk.polarella.dat$depth),
-                    paste(dates$Site,dates$Depth))]
+                                               paste(dates$Site,dates$Depth))]
 
 pdf("figures/p.glacialis.pdf",height = 8,width = 7)
 par(mfrow=c(3,1))
 palette(c("#009e73","#D55E00","#0072B2"))
 count <- 1
 for (site in unique(euk.polarella.dat$site)){
-plot(euk.polarella.dat$dates[euk.polarella.dat$site==site],
-     euk.polarella.dat$prop.reads[euk.polarella.dat$site==site],
-     col=count,pch=16,ylab="Proportion P.glacialis",xlab="Date (CE)",main=site)
+  plot(euk.polarella.dat$dates[euk.polarella.dat$site==site],
+       euk.polarella.dat$prop.reads[euk.polarella.dat$site==site],
+       col=count,pch=16,ylab="Proportion P.glacialis",xlab="Date (CE)",main=site)
   count <- count+1
 }
 dev.off()
@@ -5766,14 +5768,14 @@ dev.off()
 euk.fish <- euk["ASV_433",]
 
 euk.fish.dat <- data.frame("raw.reads"=unlist(euk.fish[1,1:358]),
-                                "prop.reads"=unlist(euk.fish[1,1:358]/colSums(euk[,1:358])),
-                                "site"=toupper(substr(names(euk.fish[,1:358]),8,9)),
-                                "depth"=as.numeric(sapply(strsplit(names(euk.fish[,1:358]), "\\."), function(x) x[4])))
+                           "prop.reads"=unlist(euk.fish[1,1:358]/colSums(euk[,1:358])),
+                           "site"=toupper(substr(names(euk.fish[,1:358]),8,9)),
+                           "depth"=as.numeric(sapply(strsplit(names(euk.fish[,1:358]), "\\."), function(x) x[4])))
 euk.fish.dat$binary <- ifelse(euk.fish.dat$raw.reads>0,1,0)
 
 euk.fish.dat$depth[euk.fish.dat$depth=="0"] <- 0.5
 euk.fish.dat$dates <- dates$CalYear[match(paste(euk.fish.dat$site,euk.fish.dat$depth),
-                                               paste(dates$Site,dates$Depth))]
+                                          paste(dates$Site,dates$Depth))]
 
 pdf("figures/fish.pdf",height = 8,width = 7)
 par(mfrow=c(3,1))
@@ -5792,7 +5794,7 @@ summed_binary <-euk.fish.dat %>%
   summarise(sum_binary = sum(binary))
 
 plot(dates$CalYear[match(paste(summed_binary$site,summed_binary$depth),
-                    paste(dates$Site,dates$Depth))],
+                         paste(dates$Site,dates$Depth))],
      summed_binary$sum_binary,
      col=as.numeric(as.factor(summed_binary$site)),pch=16)
 
@@ -5802,7 +5804,7 @@ plot(dates$CalYear[match(paste(summed_binary$site,summed_binary$depth),
 euk <- read.csv("cleanedData/clean.EUK.raw.csv.dada2.csv",row.names = 1)
 
 euk.salkril <- euk[euk$family=="Euphausiidae"|
-                   euk$family=="Salpidae",]
+                     euk$family=="Salpidae",]
 
 euk.salkril <- euk.salkril[!is.na(euk.salkril$assignmentQual),]
 write.csv(euk.salkril,"cleanedData/clean.EUK.salkril.csv")
@@ -5834,7 +5836,7 @@ euk.salkril.sum <- euk.salkril.sum[!rownames(euk.salkril.sum)=="",]
 
 ## Lets make an nREPs dataset 
 euk.salkril.nReps <- data.frame(matrix(ncol=length(unique(gsub("(.*).[0-9]$","\\1",gsub("EUK.AQ.","",colnames(euk.salkril.sum))))),
-                                     nrow=length(euk.salkril.sum[,1])))
+                                       nrow=length(euk.salkril.sum[,1])))
 colnames(euk.salkril.nReps) <- unique(gsub("(.*).[0-9]$","\\1",gsub("EUK.AQ.","",colnames(euk.salkril.sum))))
 row.names(euk.salkril.nReps) <- row.names(euk.salkril.sum)
 euk.salkril.allReads <- euk.salkril.nReps
@@ -5881,7 +5883,7 @@ euk.salkril.long$site <- toupper(substr(euk.salkril.long$site,1,2))
 
 #add in cal dates 
 euk.salkril.long$calYear <- dates$CalYear[match(paste(euk.salkril.long$site,euk.salkril.long$depth),
-                                              paste(dates$Site,dates$Depth))]
+                                                paste(dates$Site,dates$Depth))]
 
 pdf("figures/euk.salkril.v1.pdf",width = 9,height =3.5)
 par(mfrow=c(1,3))
@@ -5893,7 +5895,7 @@ for (species in unique(euk.salkril.long$spp)){
        col=as.factor(euk.salkril.long$site[euk.salkril.long$spp==species]),
        cex=if(species=="Ihlea racovitzai"){1+(euk.salkril.long$value[euk.salkril.long$spp==species]/euk.salkril.long$nReps[euk.salkril.long$spp==species])*30}else 
          if(species=="Salpa thompsoni"){1+(euk.salkril.long$value[euk.salkril.long$spp==species]/euk.salkril.long$nReps[euk.salkril.long$spp==species])*300}else 
-           {1+(euk.salkril.long$value[euk.salkril.long$spp==species]/euk.salkril.long$nReps[euk.salkril.long$spp==species])*3000},
+         {1+(euk.salkril.long$value[euk.salkril.long$spp==species]/euk.salkril.long$nReps[euk.salkril.long$spp==species])*3000},
        main=species,
        xlab="Date",
        ylab="nPCR reps",
@@ -5904,9 +5906,9 @@ for (species in unique(euk.salkril.long$spp)){
          rep(0,length(euk.salkril.long$calYear[euk.salkril.long$spp==species&euk.salkril.long$nReps==0])),
          pch=4,
          col=factor(euk.salkril.long$site[euk.salkril.long$spp==species&euk.salkril.long$nReps==0],levels=c("BB","MC","SC")))
-
   
-  }
+  
+}
 
 dev.off()
 
@@ -6029,6 +6031,9 @@ summary(a2_G2)
 
 library(Hmsc)
 
+## Beta coefficient gradient: red = negative, green = positive
+beta.grad <- colorRampPalette(c("#c13d2a","#db964d","#e1dcb3","#6ab79f","#244e51"))(100)
+
 # -- Data prep ----------------------------------------------------------------
 comm.raw.t <- t(as.matrix(euk.reps))
 comm.raw.t <- comm.raw.t[match(clim$longname, rownames(comm.raw.t)), ]
@@ -6150,7 +6155,7 @@ n_sub  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_sub, t(beta_plot),
-      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
+      col = beta.grad,
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)
@@ -6292,7 +6297,7 @@ n_fam  <- nrow(beta_plot)
 n_pred <- ncol(beta_plot)
 
 image(1:n_pred, 1:n_fam, t(beta_plot),
-      col = colorRampPalette(c( "#B2182B","white","#2166AC"))(100),
+      col = beta.grad,
       zlim = c(-max(abs(beta_plot)), max(abs(beta_plot))),
       axes = FALSE, xlab = "", ylab = "")
 axis(1, at = 1:n_pred, labels = colnames(beta_plot), las = 1)

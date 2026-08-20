@@ -1,6 +1,6 @@
 ======================================================================
 Hmsc model results: community ~ SAM + ENSO + SeaIce + whale + (1 | site)
-Generated: 2026-07-31 13:15:39 
+Generated: 2026-08-20 16:39:19 
 ======================================================================
 
 Sites used as random effect:
@@ -28,24 +28,17 @@ Model: Subdivision-level CLR (m)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Acidobacteria_X"       "Alveolata_X"           "Ancyromonadida_X"     
- [4] "Apicomplexa"           "Apusomonada_X"         "Bigyra"               
- [7] "Breviatea_X"           "Centroplasthelida_X"   "Cercozoa"             
-[10] "Chlorophyta_X"         "Choanoflagellata"      "Chrompodellids"       
-[13] "Ciliophora"            "Cryptophyta_X"         "Cryptophyta_X:nucl"   
-[16] "Dadabacteria_X"        "Dinoflagellata"        "Discoba_X"            
-[19] "Discosea_X"            "Epsilonbacteraeota_X"  "Euglenozoa"           
-[22] "Eurhodophytina"        "Euryarchaeota_X"       "Evosea_X"             
-[25] "Firmicutes_X"          "Foraminifera"          "Fornicata"            
-[28] "Fungi"                 "Gyrista"               "Haptophyta_X"         
-[31] "Hemimastigophora_X"    "Hydrogenedentes_X"     "Ichthyosporea"        
-[34] "Kiritimatiellaeota_X"  "Metamonada_X"          "Metazoa"              
-[37] "Nebulidia_X"           "Nitrospinae_X"         "Nitrospirae_X"        
-[40] "Opisthokonta_X"        "Perkinsea"             "Picozoa_subdivision_1"
-[43] "Picozoa_subdivision_2" "Planctomycetes_X"      "Prasinodermophyta_X"  
-[46] "Proteobacteria_X"      "Radiolaria"            "Rhodophyta_X"         
-[49] "Streptophyta_X"        "Telonemia_X"           "Thaumarchaeota_X"     
-[52] "Tubulinea_X"           "Verrucomicrobia_X"    
+ [1] "Acidobacteria_X"       "Alveolata_X"           "Ancyromonadida_X"      "Apicomplexa"           "Apusomonada_X"        
+ [6] "Bigyra"                "Breviatea_X"           "Centroplasthelida_X"   "Cercozoa"              "Chlorophyta_X"        
+[11] "Choanoflagellata"      "Chrompodellids"        "Ciliophora"            "Cryptophyta_X"         "Cryptophyta_X:nucl"   
+[16] "Dadabacteria_X"        "Dinoflagellata"        "Discoba_X"             "Discosea_X"            "Epsilonbacteraeota_X" 
+[21] "Euglenozoa"            "Eurhodophytina"        "Euryarchaeota_X"       "Evosea_X"              "Firmicutes_X"         
+[26] "Foraminifera"          "Fornicata"             "Fungi"                 "Gyrista"               "Haptophyta_X"         
+[31] "Hemimastigophora_X"    "Hydrogenedentes_X"     "Ichthyosporea"         "Kiritimatiellaeota_X"  "Metamonada_X"         
+[36] "Metazoa"               "Nebulidia_X"           "Nitrospinae_X"         "Nitrospirae_X"         "Opisthokonta_X"       
+[41] "Perkinsea"             "Picozoa_subdivision_1" "Picozoa_subdivision_2" "Planctomycetes_X"      "Prasinodermophyta_X"  
+[46] "Proteobacteria_X"      "Radiolaria"            "Rhodophyta_X"          "Streptophyta_X"        "Telonemia_X"          
+[51] "Thaumarchaeota_X"      "Tubulinea_X"           "Verrucomicrobia_X"    
 
   Y column summary (mean, sd, min, max):
                          mean     sd     min     max
@@ -413,20 +406,16 @@ Model: Metazoa family CLR (m.fam)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"      
- [5] "Bugulidae"          "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"      
- [9] "Clavelinidae"       "Comesomatidae"      "Convolutidae"       "Cyamiidae"         
-[13] "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"   
-[17] "Edwardsiidae"       "Euphausiidae"       "Foveolariidae"      "Golfingiidae"      
-[21] "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"     
-[25] "Lineidae"           "Lumbrineridae"      "Lysianassidae"      "Maldanidae"        
-[29] "Miraciidae"         "Monhysteridae"      "Mopaliidae"         "Nacellidae"        
-[33] "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
-[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"     
-[41] "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"  
-[45] "Salpidae"           "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"         
-[49] "Sternaspidae"       "Syllidae"           "Terebellidae"       "Thyasiridae"       
-[53] "Tisbidae"           "Ulmaridae"          "Yoldiidae"         
+ [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"          "Callochitonidae"   
+ [7] "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"       "Comesomatidae"      "Convolutidae"       "Cyamiidae"         
+[13] "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"      
+[19] "Foveolariidae"      "Golfingiidae"       "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"     
+[25] "Lineidae"           "Lumbrineridae"      "Lysianassidae"      "Maldanidae"         "Miraciidae"         "Monhysteridae"     
+[31] "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
+[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"      "Pleustidae"         "Pontogeneiidae"    
+[43] "Prayidae"           "Rhopalonematidae"   "Salpidae"           "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"         
+[49] "Sternaspidae"       "Syllidae"           "Terebellidae"       "Thyasiridae"        "Tisbidae"           "Ulmaridae"         
+[55] "Yoldiidae"         
 
   Y column summary (mean, sd, min, max):
                       mean     sd     min    max
@@ -799,20 +788,15 @@ Model: Metazoa family P/A probit (m.fam.pa)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"      
- [5] "Bugulidae"          "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"      
- [9] "Clavelinidae"       "Comesomatidae"      "Convolutidae"       "Cyamiidae"         
-[13] "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"   
-[17] "Edwardsiidae"       "Euphausiidae"       "Foveolariidae"      "Golfingiidae"      
-[21] "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"     
-[25] "Lineidae"           "Lumbrineridae"      "Lysianassidae"      "Maldanidae"        
-[29] "Miraciidae"         "Monhysteridae"      "Mopaliidae"         "Nacellidae"        
-[33] "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
-[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"     
-[41] "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"  
-[45] "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"          "Sternaspidae"      
-[49] "Syllidae"           "Terebellidae"       "Thyasiridae"        "Tisbidae"          
-[53] "Ulmaridae"          "Yoldiidae"         
+ [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"          "Callochitonidae"   
+ [7] "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"       "Comesomatidae"      "Convolutidae"       "Cyamiidae"         
+[13] "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"      
+[19] "Foveolariidae"      "Golfingiidae"       "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"     
+[25] "Lineidae"           "Lumbrineridae"      "Lysianassidae"      "Maldanidae"         "Miraciidae"         "Monhysteridae"     
+[31] "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
+[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"      "Pleustidae"         "Pontogeneiidae"    
+[43] "Prayidae"           "Rhopalonematidae"   "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"          "Sternaspidae"      
+[49] "Syllidae"           "Terebellidae"       "Thyasiridae"        "Tisbidae"           "Ulmaridae"          "Yoldiidae"         
 
   Y column summary (mean, sd, min, max):
                      mean     sd min max

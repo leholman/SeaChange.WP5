@@ -2,7 +2,7 @@
 Linear Mixed Model results: alpha diversity ~ SAM_s + ENSO_s + SeaIce_s + whale_s
 Random effect: (1 | site)
 Fit by REML using lme4 / lmerTest
-Generated: 2026-08-18 10:08:58 
+Generated: 2026-08-20 15:17:27 
 ======================================================================
 
 ---- Sample sizes ----
@@ -27,27 +27,27 @@ Formula: ASV_Q0 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1     vcov    sdcor
-     site (Intercept) 67600.47 260.0009
- Residual        <NA> 13264.40 115.1712
+     site (Intercept) 67572.40 259.9469
+ Residual        <NA> 13252.32 115.1187
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept) 473.9142   117.1770  3.8120  4.0444   0.0171
-SAM_s        43.5178    15.9996 78.5401  2.7199   0.0080
-ENSO_s       -3.0509    13.1217 78.5141 -0.2325   0.8167
-SeaIce_s      2.2772    29.1882 79.6184  0.0780   0.9380
-whale_s       1.5756    15.2099 77.9889  0.1036   0.9178
+(Intercept) 473.8878   117.1523  3.8126  4.0451   0.0171
+SAM_s        43.5433    15.9923 78.5404  2.7228   0.0080
+ENSO_s       -3.0948    13.1157 78.5144 -0.2360   0.8141
+SeaIce_s      2.3261    29.1756 79.6236  0.0797   0.9367
+whale_s       1.5371    15.2030 77.9895  0.1011   0.9197
 
 95% Wald confidence intervals (fixed effects):
                2.5 %   97.5 %
-(Intercept) 244.2515 703.5770
-SAM_s        12.1591  74.8765
-ENSO_s      -28.7689  22.6671
-SeaIce_s    -54.9307  59.4851
-whale_s     -28.2353  31.3866
+(Intercept) 244.2736 703.5021
+SAM_s        12.1989  74.8878
+ENSO_s      -28.8011  22.6116
+SeaIce_s    -54.8569  59.5092
+whale_s     -28.2603  31.3344
 
-Response SD (for scaling coefficients): 252.2458
-Residual SD: 115.1712
+Response SD (for scaling coefficients): 252.2463
+Residual SD: 115.1187
 
 ======================================================================
 Model: ASV Q1 
@@ -55,27 +55,27 @@ Formula: ASV_Q1 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1     vcov    sdcor
-     site (Intercept) 686.9529 26.20979
- Residual        <NA> 204.7180 14.30797
+     site (Intercept) 687.0056 26.21079
+ Residual        <NA> 204.8017 14.31090
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept)  26.5746    11.8576  3.5983  2.2412   0.0960
-SAM_s         0.9316     1.9859 78.6396  0.4691   0.6403
-ENSO_s       -0.9104     1.6287 78.5985 -0.5590   0.5778
-SeaIce_s      0.0062     3.5513 72.5360  0.0017   0.9986
-whale_s       2.9330     1.8895 77.8412  1.5523   0.1247
+(Intercept)  26.5748    11.8581  3.5983  2.2411   0.0960
+SAM_s         0.9329     1.9863 78.6399  0.4697   0.6399
+ENSO_s       -0.9111     1.6291 78.5987 -0.5593   0.5776
+SeaIce_s      0.0020     3.5519 72.5282  0.0006   0.9995
+whale_s       2.9346     1.8899 77.8412  1.5528   0.1245
 
 95% Wald confidence intervals (fixed effects):
               2.5 %  97.5 %
-(Intercept)  3.3342 49.8151
-SAM_s       -2.9606  4.8239
-ENSO_s      -4.1027  2.2818
-SeaIce_s    -6.9542  6.9666
-whale_s     -0.7704  6.6363
+(Intercept)  3.3333 49.8162
+SAM_s       -2.9601  4.8259
+ENSO_s      -4.1040  2.2818
+SeaIce_s    -6.9596  6.9637
+whale_s     -0.7695  6.6387
 
-Response SD (for scaling coefficients): 24.9275
-Residual SD: 14.3080
+Response SD (for scaling coefficients): 24.9288
+Residual SD: 14.3109
 
 ======================================================================
 Model: ASV Q2 
@@ -83,27 +83,27 @@ Formula: ASV_Q2 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1     vcov    sdcor
-     site (Intercept) 32.04820 5.661113
- Residual        <NA> 16.14632 4.018248
+     site (Intercept) 32.04649 5.660962
+ Residual        <NA> 16.14669 4.018294
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept)   7.2329     2.5803  3.5664  2.8031   0.0555
-SAM_s         0.3717     0.5568 79.0945  0.6676   0.5063
-ENSO_s       -0.1222     0.4567 79.0268 -0.2676   0.7897
-SeaIce_s      0.3831     0.9596 56.0991  0.3992   0.6913
-whale_s       0.8156     0.5306 77.9648  1.5371   0.1283
+(Intercept)   7.2325     2.5803  3.5665  2.8030   0.0555
+SAM_s         0.3721     0.5568 79.0947  0.6682   0.5059
+ENSO_s       -0.1221     0.4567 79.0269 -0.2673   0.7899
+SeaIce_s      0.3815     0.9596 56.0968  0.3976   0.6924
+whale_s       0.8155     0.5306 77.9650  1.5370   0.1283
 
 95% Wald confidence intervals (fixed effects):
               2.5 %  97.5 %
-(Intercept)  2.1755 12.2903
-SAM_s       -0.7196  1.4630
-ENSO_s      -1.0174  0.7729
-SeaIce_s    -1.4977  2.2639
-whale_s     -0.2244  1.8556
+(Intercept)  2.1753 12.2898
+SAM_s       -0.7193  1.4634
+ENSO_s      -1.0172  0.7730
+SeaIce_s    -1.4993  2.2623
+whale_s     -0.2244  1.8555
 
-Response SD (for scaling coefficients): 6.1608
-Residual SD: 4.0182
+Response SD (for scaling coefficients): 6.1603
+Residual SD: 4.0183
 
 ======================================================================
 Model: Genus Q0 
@@ -111,27 +111,27 @@ Formula: genus_Q0 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1      vcov    sdcor
-     site (Intercept) 1655.1266 40.68325
- Residual        <NA>  476.5143 21.82921
+     site (Intercept) 1654.2558 40.67254
+ Residual        <NA>  477.7649 21.85783
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept)  90.9605    18.3986  3.9044  4.9439   0.0083
-SAM_s         6.9328     3.0300 78.8789  2.2880   0.0248
-ENSO_s       -2.2409     2.4851 78.8421 -0.9017   0.3699
-SeaIce_s      3.8295     5.4290 73.9678  0.7054   0.4828
-whale_s       1.4735     2.8827 78.1583  0.5111   0.6107
+(Intercept)  90.9578    18.3944  3.9037  4.9449   0.0083
+SAM_s         6.9130     3.0340 78.8808  2.2785   0.0254
+ENSO_s       -2.2530     2.4883 78.8438 -0.9054   0.3680
+SeaIce_s      3.7897     5.4351 73.9008  0.6973   0.4878
+whale_s       1.4645     2.8865 78.1584  0.5074   0.6133
 
 95% Wald confidence intervals (fixed effects):
               2.5 %   97.5 %
-(Intercept) 54.8999 127.0212
-SAM_s        0.9941  12.8716
-ENSO_s      -7.1117   2.6298
-SeaIce_s    -6.8111  14.4702
-whale_s     -4.1766   7.1236
+(Intercept) 54.9054 127.0101
+SAM_s        0.9665  12.8595
+ENSO_s      -7.1301   2.6240
+SeaIce_s    -6.8629  14.4423
+whale_s     -4.1929   7.1220
 
-Response SD (for scaling coefficients): 43.3533
-Residual SD: 21.8292
+Response SD (for scaling coefficients): 43.3448
+Residual SD: 21.8578
 
 ======================================================================
 Model: Genus Q1 
@@ -139,27 +139,27 @@ Formula: genus_Q1 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1      vcov    sdcor
-     site (Intercept) 14.065425 3.750390
- Residual        <NA>  4.771098 2.184284
+     site (Intercept) 14.068321 3.750776
+ Residual        <NA>  4.776114 2.185432
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept)   5.3044     1.6993  3.7457  3.1215   0.0388
-SAM_s         0.4103     0.3031 78.8777  1.3538   0.1797
-ENSO_s       -0.1197     0.2486 78.8329 -0.4816   0.6314
-SeaIce_s     -0.0406     0.5378 69.6632 -0.0755   0.9401
-whale_s       0.5874     0.2884 78.0367  2.0365   0.0451
+(Intercept)   5.3046     1.6995  3.7455  3.1213   0.0388
+SAM_s         0.4102     0.3032 78.8782  1.3527   0.1800
+ENSO_s       -0.1198     0.2487 78.8334 -0.4817   0.6313
+SeaIce_s     -0.0409     0.5380 69.6399 -0.0761   0.9396
+whale_s       0.5879     0.2886 78.0368  2.0369   0.0450
 
 95% Wald confidence intervals (fixed effects):
               2.5 % 97.5 %
-(Intercept)  1.9738 8.6349
-SAM_s       -0.1837 1.0043
-ENSO_s      -0.6069 0.3675
-SeaIce_s    -1.0946 1.0134
-whale_s      0.0221 1.1528
+(Intercept)  1.9737 8.6356
+SAM_s       -0.1841 1.0045
+ENSO_s      -0.6072 0.3676
+SeaIce_s    -1.0955 1.0136
+whale_s      0.0222 1.1535
 
-Response SD (for scaling coefficients): 3.7921
-Residual SD: 2.1843
+Response SD (for scaling coefficients): 3.7928
+Residual SD: 2.1854
 
 ======================================================================
 Model: Genus Q2 
@@ -167,56 +167,56 @@ Formula: genus_Q2 ~ SAM_s + ENSO_s + SeaIce_s + whale_s + (1 | site)
 ----------------------------------------------------------------------
 Random effects (variance components):
       grp        var1     vcov    sdcor
-     site (Intercept) 2.302235 1.517312
- Residual        <NA> 1.279526 1.131161
+     site (Intercept) 2.303399 1.517695
+ Residual        <NA> 1.280389 1.131543
 
 Fixed effects (Satterthwaite df, lmerTest):
             Estimate Std. Error      df t value Pr(>|t|)
-(Intercept)   2.8080     0.6929  3.8579  4.0527   0.0166
-SAM_s         0.2510     0.1567 79.4094  1.6021   0.1131
-ENSO_s        0.0047     0.1285 79.3408  0.0367   0.9708
-SeaIce_s     -0.0097     0.2677 54.0363 -0.0361   0.9714
-whale_s       0.2538     0.1494 78.3031  1.6993   0.0932
+(Intercept)   2.8083     0.6930  3.8577  4.0522   0.0166
+SAM_s         0.2510     0.1567 79.4094  1.6015   0.1132
+ENSO_s        0.0048     0.1286 79.3408  0.0371   0.9705
+SeaIce_s     -0.0098     0.2678 54.0293 -0.0367   0.9709
+whale_s       0.2539     0.1494 78.3030  1.6995   0.0932
 
 95% Wald confidence intervals (fixed effects):
               2.5 % 97.5 %
-(Intercept)  1.4500 4.1660
-SAM_s       -0.0561 0.5581
-ENSO_s      -0.2472 0.2566
-SeaIce_s    -0.5343 0.5150
-whale_s     -0.0389 0.5466
+(Intercept)  1.4500 4.1666
+SAM_s       -0.0562 0.5582
+ENSO_s      -0.2472 0.2567
+SeaIce_s    -0.5347 0.5150
+whale_s     -0.0389 0.5468
 
-Response SD (for scaling coefficients): 1.7397
-Residual SD: 1.1312
+Response SD (for scaling coefficients): 1.7401
+Residual SD: 1.1315
 
 ======================================================================
 Compact summary table: estimate (SE), 95% CI, p-value
 ======================================================================
 
     model predictor estimate      SE      df       t    CI_lo   CI_hi p_value sig
-   ASV Q0     SAM_s  43.5178 15.9996 78.5401  2.7199  12.1591 74.8765  0.0080  **
-   ASV Q0    ENSO_s  -3.0509 13.1217 78.5141 -0.2325 -28.7689 22.6671  0.8167    
-   ASV Q0  SeaIce_s   2.2772 29.1882 79.6184  0.0780 -54.9307 59.4851  0.9380    
-   ASV Q0   whale_s   1.5756 15.2099 77.9889  0.1036 -28.2353 31.3866  0.9178    
-   ASV Q1     SAM_s   0.9316  1.9859 78.6396  0.4691  -2.9606  4.8239  0.6403    
-   ASV Q1    ENSO_s  -0.9104  1.6287 78.5985 -0.5590  -4.1027  2.2818  0.5778    
-   ASV Q1  SeaIce_s   0.0062  3.5513 72.5360  0.0017  -6.9542  6.9666  0.9986    
-   ASV Q1   whale_s   2.9330  1.8895 77.8412  1.5523  -0.7704  6.6363  0.1247    
-   ASV Q2     SAM_s   0.3717  0.5568 79.0945  0.6676  -0.7196  1.4630  0.5063    
-   ASV Q2    ENSO_s  -0.1222  0.4567 79.0268 -0.2676  -1.0174  0.7729  0.7897    
-   ASV Q2  SeaIce_s   0.3831  0.9596 56.0991  0.3992  -1.4977  2.2639  0.6913    
-   ASV Q2   whale_s   0.8156  0.5306 77.9648  1.5371  -0.2244  1.8556  0.1283    
- Genus Q0     SAM_s   6.9328  3.0300 78.8789  2.2880   0.9941 12.8716  0.0248   *
- Genus Q0    ENSO_s  -2.2409  2.4851 78.8421 -0.9017  -7.1117  2.6298  0.3699    
- Genus Q0  SeaIce_s   3.8295  5.4290 73.9678  0.7054  -6.8111 14.4702  0.4828    
- Genus Q0   whale_s   1.4735  2.8827 78.1583  0.5111  -4.1766  7.1236  0.6107    
- Genus Q1     SAM_s   0.4103  0.3031 78.8777  1.3538  -0.1837  1.0043  0.1797    
- Genus Q1    ENSO_s  -0.1197  0.2486 78.8329 -0.4816  -0.6069  0.3675  0.6314    
- Genus Q1  SeaIce_s  -0.0406  0.5378 69.6632 -0.0755  -1.0946  1.0134  0.9401    
- Genus Q1   whale_s   0.5874  0.2884 78.0367  2.0365   0.0221  1.1528  0.0451   *
- Genus Q2     SAM_s   0.2510  0.1567 79.4094  1.6021  -0.0561  0.5581  0.1131    
- Genus Q2    ENSO_s   0.0047  0.1285 79.3408  0.0367  -0.2472  0.2566  0.9708    
- Genus Q2  SeaIce_s  -0.0097  0.2677 54.0363 -0.0361  -0.5343  0.5150  0.9714    
- Genus Q2   whale_s   0.2538  0.1494 78.3031  1.6993  -0.0389  0.5466  0.0932   .
+   ASV Q0     SAM_s  43.5433 15.9923 78.5404  2.7228  12.1989 74.8878  0.0080  **
+   ASV Q0    ENSO_s  -3.0948 13.1157 78.5144 -0.2360 -28.8011 22.6116  0.8141    
+   ASV Q0  SeaIce_s   2.3261 29.1756 79.6236  0.0797 -54.8569 59.5092  0.9367    
+   ASV Q0   whale_s   1.5371 15.2030 77.9895  0.1011 -28.2603 31.3344  0.9197    
+   ASV Q1     SAM_s   0.9329  1.9863 78.6399  0.4697  -2.9601  4.8259  0.6399    
+   ASV Q1    ENSO_s  -0.9111  1.6291 78.5987 -0.5593  -4.1040  2.2818  0.5776    
+   ASV Q1  SeaIce_s   0.0020  3.5519 72.5282  0.0006  -6.9596  6.9637  0.9995    
+   ASV Q1   whale_s   2.9346  1.8899 77.8412  1.5528  -0.7695  6.6387  0.1245    
+   ASV Q2     SAM_s   0.3721  0.5568 79.0947  0.6682  -0.7193  1.4634  0.5059    
+   ASV Q2    ENSO_s  -0.1221  0.4567 79.0269 -0.2673  -1.0172  0.7730  0.7899    
+   ASV Q2  SeaIce_s   0.3815  0.9596 56.0968  0.3976  -1.4993  2.2623  0.6924    
+   ASV Q2   whale_s   0.8155  0.5306 77.9650  1.5370  -0.2244  1.8555  0.1283    
+ Genus Q0     SAM_s   6.9130  3.0340 78.8808  2.2785   0.9665 12.8595  0.0254   *
+ Genus Q0    ENSO_s  -2.2530  2.4883 78.8438 -0.9054  -7.1301  2.6240  0.3680    
+ Genus Q0  SeaIce_s   3.7897  5.4351 73.9008  0.6973  -6.8629 14.4423  0.4878    
+ Genus Q0   whale_s   1.4645  2.8865 78.1584  0.5074  -4.1929  7.1220  0.6133    
+ Genus Q1     SAM_s   0.4102  0.3032 78.8782  1.3527  -0.1841  1.0045  0.1800    
+ Genus Q1    ENSO_s  -0.1198  0.2487 78.8334 -0.4817  -0.6072  0.3676  0.6313    
+ Genus Q1  SeaIce_s  -0.0409  0.5380 69.6399 -0.0761  -1.0955  1.0136  0.9396    
+ Genus Q1   whale_s   0.5879  0.2886 78.0368  2.0369   0.0222  1.1535  0.0450   *
+ Genus Q2     SAM_s   0.2510  0.1567 79.4094  1.6015  -0.0562  0.5582  0.1132    
+ Genus Q2    ENSO_s   0.0048  0.1286 79.3408  0.0371  -0.2472  0.2567  0.9705    
+ Genus Q2  SeaIce_s  -0.0098  0.2678 54.0293 -0.0367  -0.5347  0.5150  0.9709    
+ Genus Q2   whale_s   0.2539  0.1494 78.3030  1.6995  -0.0389  0.5468  0.0932   .
 
 Significance codes:  *** < 0.001   ** < 0.01   * < 0.05   . < 0.1
