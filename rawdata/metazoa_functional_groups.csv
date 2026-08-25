@@ -1,0 +1,56 @@
+family,group,display_name,check_status
+Actinostolidae,Benthic suspension feeder,Actinostolidae,audit-confirmed
+Ampharetidae,Soft-sediment deposit feeder,Ampharetidae,audit-confirmed
+Ascidiidae,Benthic suspension feeder,Ascidiidae,audit-confirmed
+Barentsiidae,Benthic suspension feeder,Barentsiidae,RAMS-confirm
+Bugulidae,Benthic suspension feeder,Bugulidae,audit-confirmed
+Callochitonidae,Epibenthic grazer,Callochitonidae,audit-confirmed
+Canthocamptidae,Meiofauna,Canthocamptidae,note: likely freshwater/meltwater input
+Cirratulidae,Soft-sediment deposit feeder,Cirratulidae,audit-confirmed
+Clavelinidae,Benthic suspension feeder,Clavelinidae,note: Distaplia = Holozoidae in WoRMS; name kept for NCBI consistency
+Comesomatidae,Meiofauna,Comesomatidae,audit-confirmed
+Convolutidae,Meiofauna,Convolutidae,audit-confirmed
+Cyamiidae,Benthic suspension feeder,Cyamiidae,audit-confirmed
+Echinoderidae,Meiofauna,Echinoderidae,audit-confirmed
+Echinometridae,Epibenthic grazer,Echinoidea (fam. indet.),relabelled (BLAST: V9 unresolved at family)
+Echiuridae,Soft-sediment deposit feeder,Echiuridae,audit-confirmed
+Ectinosomatidae,Meiofauna,Ectinosomatidae,audit-confirmed
+Edwardsiidae,Benthic suspension feeder,Edwardsiidae,audit-confirmed
+Euphausiidae,Pelagic water-column feeder,Euphausiidae,audit-confirmed
+Foveolariidae,Benthic suspension feeder,Foveolariidae,audit-confirmed
+Golfingiidae,Soft-sediment deposit feeder,Golfingiidae,audit-confirmed
+Inversiulidae,Benthic suspension feeder,Inversiulidae,audit-confirmed
+Iphimediidae,Mobile benthic predator/scavenger,Iphimediidae,audit-confirmed
+Lacernidae,Benthic suspension feeder,Lacernidae,RAMS-confirm
+Leptolaimidae,Meiofauna,Leptolaimidae,audit-confirmed
+Lineidae,Mobile benthic predator/scavenger,Lineidae,audit-confirmed
+Lumbrineridae,Mobile benthic predator/scavenger,Lumbrineridae,audit-confirmed
+Lysianassidae,Mobile benthic predator/scavenger,Lysianassidae,audit-confirmed
+Maldanidae,Soft-sediment deposit feeder,Maldanidae,audit-confirmed
+Miraciidae,Meiofauna,Miraciidae,audit-confirmed
+Monhysteridae,Meiofauna,Monhysteridae,audit-confirmed
+Mopaliidae,Epibenthic grazer,Mopaliidae,audit-confirmed
+Nacellidae,Epibenthic grazer,Nacellidae,audit-confirmed
+Nephtheidae,Benthic suspension feeder,Octocorallia (fam. indet.),relabelled (BLAST: V9 unresolved at family)
+Obeliidae,Benthic suspension feeder,Obeliidae,audit-confirmed
+Oerstediidae,Mobile benthic predator/scavenger,Oerstediidae,audit-confirmed
+Oikopleuridae,Pelagic water-column feeder,Oikopleuridae,audit-confirmed
+Oithonidae,Pelagic water-column feeder,Oithonidae,audit-confirmed
+Opheliidae,Soft-sediment deposit feeder,Opheliidae,audit-confirmed
+Orbiniidae,Soft-sediment deposit feeder,Orbiniidae,audit-confirmed
+Periphyllidae,Pelagic water-column feeder,Periphyllidae,audit-confirmed
+Pleustidae,Epibenthic grazer,Pleustidae,audit-confirmed
+Pontogeneiidae,Epibenthic grazer,Pontogeneiidae,audit-confirmed
+Prayidae,Pelagic water-column feeder,Prayidae,audit-confirmed
+Rhopalonematidae,Pelagic water-column feeder,Rhopalonematidae,audit-confirmed
+Salpidae,Pelagic water-column feeder,Salpidae,audit-confirmed
+Siphonodentaliidae,Soft-sediment deposit feeder,Siphonodentaliidae,audit-confirmed
+Speleoithonidae,Meiofauna,Cyclopoida (fam. indet.),relabelled (BLAST: V9 unresolved at family)
+Spionidae,Soft-sediment deposit feeder,Spionidae,audit-confirmed
+Sternaspidae,Soft-sediment deposit feeder,Sternaspidae,audit-confirmed
+Syllidae,Mobile benthic predator/scavenger,Syllidae,audit-confirmed
+Terebellidae,Soft-sediment deposit feeder,Terebellidae,audit-confirmed
+Thyasiridae,Soft-sediment deposit feeder,Thyasiridae,audit-confirmed
+Tisbidae,Meiofauna,Tisbidae,audit-confirmed
+Ulmaridae,Pelagic water-column feeder,Ulmaridae,audit-confirmed
+Yoldiidae,Soft-sediment deposit feeder,Yoldiidae,audit-confirmed

@@ -1,0 +1,56 @@
+"family","in_RAMS","rams_status","rams_valid_name","is_marine","is_freshwater","worms_order","worms_class","proposed_name","basis","name_changed"
+"Actinostolidae",TRUE,"accepted","Actinostolidae",1,NA,NA,NA,"Actinostolidae","RAMS: accepted",FALSE
+"Ampharetidae",TRUE,"accepted","Ampharetidae",1,0,NA,NA,"Ampharetidae","RAMS: accepted",FALSE
+"Ascidiidae",TRUE,"accepted","Ascidiidae",1,0,NA,NA,"Ascidiidae","RAMS: accepted",FALSE
+"Barentsiidae",FALSE,NA,NA,NA,NA,NA,NA,"Entoprocta (fam. indet.)","no SO record; nearest RAMS rank = Phylum",TRUE
+"Bugulidae",TRUE,"accepted","Bugulidae",1,NA,NA,NA,"Bugulidae","RAMS: accepted",FALSE
+"Callochitonidae",TRUE,"accepted","Callochitonidae",1,0,NA,NA,"Callochitonidae","RAMS: accepted",FALSE
+"Canthocamptidae",TRUE,"accepted","Canthocamptidae",1,1,NA,NA,"Canthocamptidae","RAMS: accepted",FALSE
+"Cirratulidae",TRUE,"accepted","Cirratulidae",1,0,NA,NA,"Cirratulidae","RAMS: accepted",FALSE
+"Clavelinidae",TRUE,"accepted","Clavelinidae",1,0,NA,NA,"Clavelinidae","RAMS: accepted",FALSE
+"Comesomatidae",TRUE,"accepted","Comesomatidae",1,NA,NA,NA,"Comesomatidae","RAMS: accepted",FALSE
+"Convolutidae",FALSE,NA,NA,NA,NA,"Acoela",NA,"Convolutidae","retained: RAMS coverage gap (phylum absent from register scope)",FALSE
+"Cyamiidae",TRUE,"accepted","Cyamiidae",1,0,NA,NA,"Cyamiidae","RAMS: accepted",FALSE
+"Echinoderidae",TRUE,"accepted","Echinoderidae",1,NA,NA,NA,"Echinoderidae","RAMS: accepted",FALSE
+"Echinometridae",FALSE,NA,NA,NA,NA,"Camarodonta","Echinoidea","Camarodonta (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Echiuridae",TRUE,"accepted","Echiuridae",1,0,NA,NA,"Echiuridae","RAMS: accepted",FALSE
+"Ectinosomatidae",TRUE,"accepted","Ectinosomatidae",1,1,NA,NA,"Ectinosomatidae","RAMS: accepted",FALSE
+"Edwardsiidae",TRUE,"accepted","Edwardsiidae",1,NA,NA,NA,"Edwardsiidae","RAMS: accepted",FALSE
+"Euphausiidae",TRUE,"accepted","Euphausiidae",1,0,NA,NA,"Euphausiidae","RAMS: accepted",FALSE
+"Foveolariidae",FALSE,NA,NA,NA,NA,"Cheilostomatida","Gymnolaemata","Cheilostomatida (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Golfingiidae",TRUE,"accepted","Golfingiidae",1,0,NA,NA,"Golfingiidae","RAMS: accepted",FALSE
+"Inversiulidae",TRUE,"accepted","Inversiulidae",1,NA,NA,NA,"Inversiulidae","RAMS: accepted",FALSE
+"Iphimediidae",TRUE,"accepted","Iphimediidae",1,NA,NA,NA,"Iphimediidae","RAMS: accepted",FALSE
+"Lacernidae",TRUE,"accepted","Lacernidae",1,NA,NA,NA,"Lacernidae","RAMS: accepted",FALSE
+"Leptolaimidae",TRUE,"accepted","Leptolaimidae",1,1,NA,NA,"Leptolaimidae","RAMS: accepted",FALSE
+"Lineidae",TRUE,"accepted","Lineidae",1,1,NA,NA,"Lineidae","RAMS: accepted",FALSE
+"Lumbrineridae",TRUE,"accepted","Lumbrineridae",1,0,NA,NA,"Lumbrineridae","RAMS: accepted",FALSE
+"Lysianassidae",TRUE,"accepted","Lysianassidae",1,NA,NA,NA,"Lysianassidae","RAMS: accepted",FALSE
+"Maldanidae",TRUE,"accepted","Maldanidae",1,0,NA,NA,"Maldanidae","RAMS: accepted",FALSE
+"Miraciidae",TRUE,"accepted","Miraciidae",1,1,NA,NA,"Miraciidae","RAMS: accepted",FALSE
+"Monhysteridae",TRUE,"accepted","Monhysteridae",1,1,NA,NA,"Monhysteridae","RAMS: accepted",FALSE
+"Mopaliidae",TRUE,"accepted","Mopaliidae",1,0,NA,NA,"Mopaliidae","RAMS: accepted",FALSE
+"Nacellidae",TRUE,"accepted","Nacellidae",1,0,NA,NA,"Nacellidae","RAMS: accepted",FALSE
+"Nephtheidae",TRUE,"accepted","Nephtheidae",1,0,NA,NA,"Nephtheidae","RAMS: accepted",FALSE
+"Obeliidae",TRUE,"accepted","Campanulariidae",1,0,NA,NA,"Campanulariidae","NCBI name unrecognised by WoRMS; type genus Obelia -> Campanulariidae (WoRMS); RAMS: accepted",TRUE
+"Oerstediidae",TRUE,"accepted","Oerstediidae",1,0,NA,NA,"Oerstediidae","RAMS: accepted",FALSE
+"Oikopleuridae",TRUE,"accepted","Oikopleuridae",1,0,NA,NA,"Oikopleuridae","RAMS: accepted",FALSE
+"Oithonidae",TRUE,"accepted","Oithonidae",1,1,NA,NA,"Oithonidae","RAMS: accepted",FALSE
+"Opheliidae",TRUE,"accepted","Opheliidae",1,0,NA,NA,"Opheliidae","RAMS: accepted",FALSE
+"Orbiniidae",TRUE,"accepted","Orbiniidae",1,0,NA,NA,"Orbiniidae","RAMS: accepted",FALSE
+"Periphyllidae",TRUE,"accepted","Periphyllidae",1,0,NA,NA,"Periphyllidae","RAMS: accepted",FALSE
+"Pleustidae",TRUE,"accepted","Pleustidae",1,NA,NA,NA,"Pleustidae","RAMS: accepted",FALSE
+"Pontogeneiidae",TRUE,"accepted","Pontogeneiidae",1,0,NA,NA,"Pontogeneiidae","RAMS: accepted",FALSE
+"Prayidae",TRUE,"accepted","Prayidae",1,0,NA,NA,"Prayidae","RAMS: accepted",FALSE
+"Rhopalonematidae",TRUE,"accepted","Rhopalonematidae",1,0,NA,NA,"Rhopalonematidae","RAMS: accepted",FALSE
+"Salpidae",TRUE,"accepted","Salpidae",1,0,NA,NA,"Salpidae","RAMS: accepted",FALSE
+"Siphonodentaliidae",TRUE,"accepted","Gadilidae",1,0,NA,NA,"Gadilidae","NCBI name unrecognised by WoRMS; type genus Siphonodentalium -> Gadilidae (WoRMS); RAMS: accepted",TRUE
+"Speleoithonidae",FALSE,NA,NA,NA,NA,"Cyclopoida","Copepoda","Cyclopoida (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Spionidae",TRUE,"accepted","Spionidae",1,0,NA,NA,"Spionidae","RAMS: accepted",FALSE
+"Sternaspidae",TRUE,"accepted","Sternaspidae",1,0,NA,NA,"Sternaspidae","RAMS: accepted",FALSE
+"Syllidae",TRUE,"accepted","Syllidae",1,0,NA,NA,"Syllidae","RAMS: accepted",FALSE
+"Terebellidae",TRUE,"accepted","Terebellidae",1,0,NA,NA,"Terebellidae","RAMS: accepted",FALSE
+"Thyasiridae",TRUE,"accepted","Thyasiridae",1,0,NA,NA,"Thyasiridae","RAMS: accepted",FALSE
+"Tisbidae",TRUE,"accepted","Tisbidae",1,NA,NA,NA,"Tisbidae","RAMS: accepted",FALSE
+"Ulmaridae",TRUE,"accepted","Ulmaridae",1,0,NA,NA,"Ulmaridae","RAMS: accepted",FALSE
+"Yoldiidae",TRUE,"accepted","Yoldiidae",1,0,NA,NA,"Yoldiidae","RAMS: accepted",FALSE

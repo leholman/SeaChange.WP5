@@ -1,0 +1,56 @@
+"family","group","display_name","group_check","group_explanation","in_RAMS","rams_status","rams_valid_name","is_marine","is_freshwater","worms_order","worms_class","proposed_name","basis","name_changed"
+"Actinostolidae","Benthic suspension feeder","Actinostolidae","holds","",TRUE,"accepted","Actinostolidae",1,NA,NA,NA,"Actinostolidae","RAMS: accepted",FALSE
+"Ampharetidae","Soft-sediment deposit feeder","Ampharetidae","holds","",TRUE,"accepted","Ampharetidae",1,0,NA,NA,"Ampharetidae","RAMS: accepted",FALSE
+"Ascidiidae","Benthic suspension feeder","Ascidiidae","holds","",TRUE,"accepted","Ascidiidae",1,0,NA,NA,"Ascidiidae","RAMS: accepted",FALSE
+"Barentsiidae","Benthic suspension feeder","Entoprocta (fam. indet.)","holds","Entoprocta are uniformly sessile suspension feeders; group holds at phylum rank.",FALSE,NA,NA,NA,NA,NA,NA,"Entoprocta (fam. indet.)","no SO record; nearest RAMS rank = Phylum",TRUE
+"Bugulidae","Benthic suspension feeder","Bugulidae","holds","",TRUE,"accepted","Bugulidae",1,NA,NA,NA,"Bugulidae","RAMS: accepted",FALSE
+"Callochitonidae","Epibenthic grazer","Callochitonidae","holds","",TRUE,"accepted","Callochitonidae",1,0,NA,NA,"Callochitonidae","RAMS: accepted",FALSE
+"Canthocamptidae","Meiofauna","Canthocamptidae","holds - with note","In RAMS with both marine AND freshwater flags; constituent ASV genera span freshwater (Bryocamptus) and brackish/marine (Mesochra, Itunella) taxa, consistent with mixed meltwater input and marine meiofauna.",TRUE,"accepted","Canthocamptidae",1,1,NA,NA,"Canthocamptidae","RAMS: accepted",FALSE
+"Cirratulidae","Soft-sediment deposit feeder","Cirratulidae","holds","",TRUE,"accepted","Cirratulidae",1,0,NA,NA,"Cirratulidae","RAMS: accepted",FALSE
+"Clavelinidae","Benthic suspension feeder","Clavelinidae","holds - with note","NCBI places Distaplia in Clavelinidae; WoRMS uses Holozoidae - nomenclature only.",TRUE,"accepted","Clavelinidae",1,0,NA,NA,"Clavelinidae","RAMS: accepted",FALSE
+"Comesomatidae","Meiofauna","Comesomatidae","holds","",TRUE,"accepted","Comesomatidae",1,NA,NA,NA,"Comesomatidae","RAMS: accepted",FALSE
+"Convolutidae","Meiofauna","Convolutidae","holds - with note","Name retained: RAMS does not cover Xenacoelomorpha (register scope gap, not evidence of absence).",FALSE,NA,NA,NA,NA,"Acoela",NA,"Convolutidae","retained: RAMS coverage gap (phylum absent from register scope)",FALSE
+"Cyamiidae","Benthic suspension feeder","Cyamiidae","holds","",TRUE,"accepted","Cyamiidae",1,0,NA,NA,"Cyamiidae","RAMS: accepted",FALSE
+"Echinoderidae","Meiofauna","Echinoderidae","holds","",TRUE,"accepted","Echinoderidae",1,NA,NA,NA,"Echinoderidae","RAMS: accepted",FALSE
+"Echinometridae","Epibenthic grazer","Camarodonta (fam. indet.)","holds","Camarodont urchins (incl. Antarctic Sterechinus) are grazers/omnivores; group holds at order rank.",FALSE,NA,NA,NA,NA,"Camarodonta","Echinoidea","Camarodonta (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Echiuridae","Soft-sediment deposit feeder","Echiuridae","holds","",TRUE,"accepted","Echiuridae",1,0,NA,NA,"Echiuridae","RAMS: accepted",FALSE
+"Ectinosomatidae","Meiofauna","Ectinosomatidae","holds","",TRUE,"accepted","Ectinosomatidae",1,1,NA,NA,"Ectinosomatidae","RAMS: accepted",FALSE
+"Edwardsiidae","Benthic suspension feeder","Edwardsiidae","holds","",TRUE,"accepted","Edwardsiidae",1,NA,NA,NA,"Edwardsiidae","RAMS: accepted",FALSE
+"Euphausiidae","Pelagic water-column feeder","Euphausiidae","holds","",TRUE,"accepted","Euphausiidae",1,0,NA,NA,"Euphausiidae","RAMS: accepted",FALSE
+"Foveolariidae","Benthic suspension feeder","Cheilostomatida (fam. indet.)","holds","All cheilostome bryozoans are suspension feeders; group holds at order rank.",FALSE,NA,NA,NA,NA,"Cheilostomatida","Gymnolaemata","Cheilostomatida (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Golfingiidae","Soft-sediment deposit feeder","Golfingiidae","holds","",TRUE,"accepted","Golfingiidae",1,0,NA,NA,"Golfingiidae","RAMS: accepted",FALSE
+"Inversiulidae","Benthic suspension feeder","Inversiulidae","holds","",TRUE,"accepted","Inversiulidae",1,NA,NA,NA,"Inversiulidae","RAMS: accepted",FALSE
+"Iphimediidae","Mobile benthic predator/scavenger","Iphimediidae","holds","",TRUE,"accepted","Iphimediidae",1,NA,NA,NA,"Iphimediidae","RAMS: accepted",FALSE
+"Lacernidae","Benthic suspension feeder","Lacernidae","holds","",TRUE,"accepted","Lacernidae",1,NA,NA,NA,"Lacernidae","RAMS: accepted",FALSE
+"Leptolaimidae","Meiofauna","Leptolaimidae","holds","",TRUE,"accepted","Leptolaimidae",1,1,NA,NA,"Leptolaimidae","RAMS: accepted",FALSE
+"Lineidae","Mobile benthic predator/scavenger","Lineidae","holds","",TRUE,"accepted","Lineidae",1,1,NA,NA,"Lineidae","RAMS: accepted",FALSE
+"Lumbrineridae","Mobile benthic predator/scavenger","Lumbrineridae","holds","",TRUE,"accepted","Lumbrineridae",1,0,NA,NA,"Lumbrineridae","RAMS: accepted",FALSE
+"Lysianassidae","Mobile benthic predator/scavenger","Lysianassidae","holds","",TRUE,"accepted","Lysianassidae",1,NA,NA,NA,"Lysianassidae","RAMS: accepted",FALSE
+"Maldanidae","Soft-sediment deposit feeder","Maldanidae","holds","",TRUE,"accepted","Maldanidae",1,0,NA,NA,"Maldanidae","RAMS: accepted",FALSE
+"Miraciidae","Meiofauna","Miraciidae","holds","",TRUE,"accepted","Miraciidae",1,1,NA,NA,"Miraciidae","RAMS: accepted",FALSE
+"Monhysteridae","Meiofauna","Monhysteridae","holds","",TRUE,"accepted","Monhysteridae",1,1,NA,NA,"Monhysteridae","RAMS: accepted",FALSE
+"Mopaliidae","Epibenthic grazer","Mopaliidae","holds","",TRUE,"accepted","Mopaliidae",1,0,NA,NA,"Mopaliidae","RAMS: accepted",FALSE
+"Nacellidae","Epibenthic grazer","Nacellidae","holds","",TRUE,"accepted","Nacellidae",1,0,NA,NA,"Nacellidae","RAMS: accepted",FALSE
+"Nephtheidae","Benthic suspension feeder","Nephtheidae","holds - with note","Name retained (in RAMS via Gersemia) but NCBI and PR2 disagree on this ASV's placement (Nephtheidae vs Swiftia/Plexauridae); any candidate octocoral is a sessile suspension feeder, so the group is robust.",TRUE,"accepted","Nephtheidae",1,0,NA,NA,"Nephtheidae","RAMS: accepted",FALSE
+"Obeliidae","Benthic suspension feeder","Campanulariidae","holds","Name change only (NCBI Obeliidae = WoRMS Campanulariidae); same colonial hydroid ecology.",TRUE,"accepted","Campanulariidae",1,0,NA,NA,"Campanulariidae","NCBI name unrecognised by WoRMS; type genus Obelia -> Campanulariidae (WoRMS); RAMS: accepted",TRUE
+"Oerstediidae","Mobile benthic predator/scavenger","Oerstediidae","holds","",TRUE,"accepted","Oerstediidae",1,0,NA,NA,"Oerstediidae","RAMS: accepted",FALSE
+"Oikopleuridae","Pelagic water-column feeder","Oikopleuridae","holds","",TRUE,"accepted","Oikopleuridae",1,0,NA,NA,"Oikopleuridae","RAMS: accepted",FALSE
+"Oithonidae","Pelagic water-column feeder","Oithonidae","holds","",TRUE,"accepted","Oithonidae",1,1,NA,NA,"Oithonidae","RAMS: accepted",FALSE
+"Opheliidae","Soft-sediment deposit feeder","Opheliidae","holds","",TRUE,"accepted","Opheliidae",1,0,NA,NA,"Opheliidae","RAMS: accepted",FALSE
+"Orbiniidae","Soft-sediment deposit feeder","Orbiniidae","holds","",TRUE,"accepted","Orbiniidae",1,0,NA,NA,"Orbiniidae","RAMS: accepted",FALSE
+"Periphyllidae","Pelagic water-column feeder","Periphyllidae","holds","",TRUE,"accepted","Periphyllidae",1,0,NA,NA,"Periphyllidae","RAMS: accepted",FALSE
+"Pleustidae","Epibenthic grazer","Pleustidae","holds","",TRUE,"accepted","Pleustidae",1,NA,NA,NA,"Pleustidae","RAMS: accepted",FALSE
+"Pontogeneiidae","Epibenthic grazer","Pontogeneiidae","holds","",TRUE,"accepted","Pontogeneiidae",1,0,NA,NA,"Pontogeneiidae","RAMS: accepted",FALSE
+"Prayidae","Pelagic water-column feeder","Prayidae","holds","",TRUE,"accepted","Prayidae",1,0,NA,NA,"Prayidae","RAMS: accepted",FALSE
+"Rhopalonematidae","Pelagic water-column feeder","Rhopalonematidae","holds","",TRUE,"accepted","Rhopalonematidae",1,0,NA,NA,"Rhopalonematidae","RAMS: accepted",FALSE
+"Salpidae","Pelagic water-column feeder","Salpidae","holds","",TRUE,"accepted","Salpidae",1,0,NA,NA,"Salpidae","RAMS: accepted",FALSE
+"Siphonodentaliidae","Soft-sediment deposit feeder","Gadilidae","holds","Name change only (Siphonodentalium now placed in Gadilidae); same infaunal scaphopods.",TRUE,"accepted","Gadilidae",1,0,NA,NA,"Gadilidae","NCBI name unrecognised by WoRMS; type genus Siphonodentalium -> Gadilidae (WoRMS); RAMS: accepted",TRUE
+"Speleoithonidae","Meiofauna","Cyclopoida (fam. indet.)","FLAGGED","Cyclopoida spans benthic AND planktonic ecologies (cf. Oithonidae, pelagic in this dataset). At order rank the Meiofauna assignment is no longer secured by taxonomy; retained provisionally (sediment-derived ASV) and greyed in guild colouring.",FALSE,NA,NA,NA,NA,"Cyclopoida","Copepoda","Cyclopoida (fam. indet.)","no SO record; nearest RAMS rank = Order",TRUE
+"Spionidae","Soft-sediment deposit feeder","Spionidae","holds","",TRUE,"accepted","Spionidae",1,0,NA,NA,"Spionidae","RAMS: accepted",FALSE
+"Sternaspidae","Soft-sediment deposit feeder","Sternaspidae","holds","",TRUE,"accepted","Sternaspidae",1,0,NA,NA,"Sternaspidae","RAMS: accepted",FALSE
+"Syllidae","Mobile benthic predator/scavenger","Syllidae","holds","",TRUE,"accepted","Syllidae",1,0,NA,NA,"Syllidae","RAMS: accepted",FALSE
+"Terebellidae","Soft-sediment deposit feeder","Terebellidae","holds","",TRUE,"accepted","Terebellidae",1,0,NA,NA,"Terebellidae","RAMS: accepted",FALSE
+"Thyasiridae","Soft-sediment deposit feeder","Thyasiridae","holds","",TRUE,"accepted","Thyasiridae",1,0,NA,NA,"Thyasiridae","RAMS: accepted",FALSE
+"Tisbidae","Meiofauna","Tisbidae","holds","",TRUE,"accepted","Tisbidae",1,NA,NA,NA,"Tisbidae","RAMS: accepted",FALSE
+"Ulmaridae","Pelagic water-column feeder","Ulmaridae","holds","",TRUE,"accepted","Ulmaridae",1,0,NA,NA,"Ulmaridae","RAMS: accepted",FALSE
+"Yoldiidae","Soft-sediment deposit feeder","Yoldiidae","holds","",TRUE,"accepted","Yoldiidae",1,0,NA,NA,"Yoldiidae","RAMS: accepted",FALSE
