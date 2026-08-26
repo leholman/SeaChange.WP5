@@ -1,3 +1,9 @@
 rawdata/climate/HadISST_sst.nc
 rawdata/climate/HadISST_sst.nc 2
 rawdata/climate/HadISST_sst.nc.gz
+cleandata/MCMCchains/Meta.PA.rds
+cleandata/MCMCchains/Meta.rds
+cleandata/MCMCchains/SubDiv.rds
+All.RData
+All.RData
+All.RData

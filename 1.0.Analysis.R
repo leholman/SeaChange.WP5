@@ -2968,7 +2968,13 @@ zero_pct <- colMeans(comm.sub == 0)
 comm.sub <- zero_replace(comm.sub)
 Y <- clr(comm.sub)
 cat("Subdivisions retained:", ncol(Y), "\n")
-
+for (p in c("SAM", "ENSO", "SeaIce")) {
+  kk <- grep(p, m.fam$covNames, ignore.case = TRUE)
+  ps <- sapply(post.g, function(s) {
+    b <- s$Beta[kk, ]; mean(outer(b[wc.grp], b[!wc.grp], ">")) })
+  cat(sprintf("%s: P(sup) = %.2f (%.2f-%.2f)\n",
+      p, mean(ps), quantile(ps, .025), quantile(ps, .975)))
+}
 
 comm.sub <- zero_replace(comm.sub)
 Y <- clr(comm.sub)
@@ -3276,11 +3282,29 @@ beta_full    <- beta_full[, keep, drop = FALSE]
 sig_full     <- sig_full[, keep, drop = FALSE]
 taxon_order  <- taxon_order[keep]
 
+## ---- R2 scaling for VP bars -------------------------------------------------
+## Bars show share of TOTAL variance (VP proportions x per-taxon R2), normalised
+## so the largest single bar spans the full bar panel; axis relabelled to match.
+## NA R2 (Tjur undefined for taxa present at all sites) -> zero-length bar.
+scale_vp <- function(vp, r2) {
+  r2[is.na(r2)] <- 0
+  sc <- max(r2[colnames(vp)])
+  list(mat = sweep(vp, 2, r2[colnames(vp)] / sc, `*`), sc = sc)
+}
+vp_axis <- function(sc) {
+  tk <- pretty(c(0, sc)); tk <- tk[tk <= sc + 1e-9]   # drop this filter to allow a tick past the bar end
+  axis(1, at = tk / sc, labels = paste0(round(100 * tk), "%"), cex.axis = 0.85)
+}
+
+fit.sub <- evaluateModelFit(m, predY = computePredictedValues(m))
+r2.sub  <- setNames(fit.sub$R2, m$spNames)
+sv <- scale_vp(vp_mat_rev, r2.sub)
+
 pdf("figures/HMSC/subdivision.combined.sig.pdf", height = 9, width = 7)
 par(mar = c(4, 10, 3, 12),xpd = TRUE)
 
 bp <- barplot(
-  vp_mat_rev,
+  sv$mat,
   horiz     = TRUE,
   col       = cols_vp,
   border    = NA,
@@ -3291,9 +3315,8 @@ bp <- barplot(
   cex.names = 0.7,
   axes      = FALSE
 )
-axis(1, at = seq(0, 1, 0.25),
-     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
-mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+vp_axis(sv$sc)
+mtext("Variance explained (% of total)", side = 1, line = 2.5, at = 0.5, cex = 0.85)
 legend(-1,-2,
        legend = rownames(vp_mat_rev),
        fill   = cols_vp,
@@ -3678,17 +3701,25 @@ guild_pal <- c("Pelagic water-column feeder"       = "#46309B",
                "Mobile benthic predator/scavenger"  = "#8F7F6B",
                "Meiofauna"                          = "#D4C2A0")
 guild_cols <- setNames(guild_pal[met.groups$group], met.groups$family)
-# "*" marks names resolved above family rank (see legend)
-disp <- setNames(ifelse(grepl("fam\\. indet", met.groups$display_name),
-                        paste0(gsub(" \\(fam\\. indet\\.\\)", "",
-                                    met.groups$display_name), "\u2020"),
-                        met.groups$display_name),
-                 met.groups$family)
+disp     <- setNames(gsub(" \\(fam\\. indet\\.\\)", "", met.groups$display_name),
+                     met.groups$family)
+disp_dag <- setNames(grepl("fam\\. indet", met.groups$display_name),
+                     met.groups$family)
+add_daggers <- function(fams, x, y, dy, cex = 0.45) {
+  i <- which(disp_dag[fams])
+  if (length(i)) text(x, y[i] + dy, "\u2020", adj = 0, cex = cex, xpd = TRUE)
+}
+
+## Scale VP stacks by per-family R2 (share of TOTAL variance), normalised to
+## the largest bar. fit.fam$R2 is unnamed - stamp names first!
+fit.fam <- evaluateModelFit(m.fam, predY = computePredictedValues(m.fam))
+r2.fam  <- setNames(fit.fam$R2, m.fam$spNames)
+sv <- scale_vp(vp_mat_sig, r2.fam)
 
 pdf("figures/HMSC/metazoa.combined.sig.pdf", height = 9, width = 7)
 par(mar = c(7, 10, 3, 12), xpd = TRUE)
 bp <- barplot(
-  vp_mat_sig,
+  sv$mat,
   horiz     = TRUE,
   col       = cols_vp,
   border    = NA,
@@ -3699,17 +3730,17 @@ bp <- barplot(
   cex.names = 0.7,
   axes      = FALSE
 )
-axis(1, at = seq(0, 1, 0.25),
-     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
-mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+vp_axis(sv$sc)
+mtext("Variance explained (% of total)", side = 1, line = 2.5, at = 0.5, cex = 0.85)
 legend(-1.2, -6.5,
        legend = rownames(vp_mat_sig),
        fill   = cols_vp,
        border = NA, bty = "n", cex = 0.5)
 # Taxon labels (italic = resolved above family rank; see legend) + guild dots
-text(-0.075, bp, labels = disp[taxon_order_sig], adj = 1, cex = 0.7)
+text(-0.1, bp, labels = disp[taxon_order_sig], adj = 1, cex = 0.7)
+add_daggers(taxon_order_sig, -0.1, bp, dy = 0.28)
 points(rep(-0.03, length(bp)), bp, pch = 21,
-       bg = guild_cols[taxon_order_sig], col = "white", lwd = 0.4, cex = 1.5)
+       bg = guild_cols[taxon_order_sig], col = "white", lwd = 0.4, cex = 1.8)
 legend(-1.2, -1.5, legend = names(guild_pal), pch = 21, pt.bg = guild_pal,
        col = "white", pt.cex = 1.3, bty = "n", cex = 0.5)
 
@@ -3759,9 +3790,89 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
      expression(beta), cex = 0.7, adj = c(0.5, 1))
 par(xpd = FALSE)
 dev.off()
+## ===== Guild contrast: whaling beta ~ feeding ecology (Metazoa CLR) ==========
+## Water-column feeders (pelagic + benthic suspension) vs all benthic taxa.
+## All modelled families included (no significance filtering). Families treated
+## as independent units (no phylogenetic correction); descriptive association.
 
+wc.grp <- met.groups$group[match(colnames(m.fam$Y), met.groups$family)] %in%
+  c("Pelagic water-column feeder", "Benthic suspension feeder")
+k.wh   <- grep("whale", m.fam$covNames, ignore.case = TRUE)
+post.g <- Hmsc::poolMcmcChains(m.fam$postList)
 
+gdiff <- sapply(post.g, function(s)                       # effect size (in-sample)
+  mean(s$Beta[k.wh, wc.grp]) - mean(s$Beta[k.wh, !wc.grp]))
+psup  <- sapply(post.g, function(s) {                     # generalising statistic
+  b <- s$Beta[k.wh, ]; mean(outer(b[wc.grp], b[!wc.grp], ">")) })
+bhat  <- Hmsc::getPostEstimate(m.fam, "Beta")$mean[k.wh, ]
+wt    <- wilcox.test(bhat[wc.grp], bhat[!wc.grp])         # frequentist companion
 
+sink("summaryfiles/HMSC_guild_tests.txt")
+cat("==== Guild contrasts: whaling beta ~ feeding ecology ====\n\n")
+cat("---- Metazoa CLR ----\n")
+cat(sprintf("Water-column n = %d; benthic n = %d (all modelled families)\n",
+            sum(wc.grp), sum(!wc.grp)))
+cat(sprintf("Group-mean difference: %.3f (95%% CI %.3f to %.3f); P(diff > 0) %s\n",
+            mean(gdiff), quantile(gdiff, .025), quantile(gdiff, .975),
+            if (all(gdiff > 0)) sprintf("> %.4f (all %d draws positive)",
+                                        1 - 1/length(gdiff), length(gdiff))
+            else sprintf("= %.4f", mean(gdiff > 0))))
+cat(sprintf("P(superiority): %.3f (95%% CI %.3f to %.3f)\n",
+            mean(psup), quantile(psup, .025), quantile(psup, .975)))
+cat(sprintf("Wilcoxon on posterior means: W = %.0f, p = %.4g\n\n",
+            wt$statistic, wt$p.value))
+sink()
+
+## Figure: portrait - pooled compartments on top, families by descending beta
+fam.draws <- sapply(post.g, function(s) s$Beta[k.wh, ])
+rownames(fam.draws) <- m.fam$spNames
+ord <- rev(taxon_order_sig)                     # largest beta at top
+fam.draws <- fam.draws[ord, ]
+gcol <- guild_pal[met.groups$group[match(ord, met.groups$family)]]
+
+grp.draws <- rbind(                             # full 55-family pools
+  benthic = sapply(post.g, function(s) mean(s$Beta[k.wh, !wc.grp])),
+  water   = sapply(post.g, function(s) mean(s$Beta[k.wh,  wc.grp])))
+grp.cols <- c(benthic = "#B09265", water = "#46309B")
+grp.labs <- c("Benthic taxa", "Water-column feeders")
+
+pdf("figures/HMSC/metazoa.whaling.guild.posteriors.pdf", width = 6, height = 10)
+par(mar = c(4, 9, 1, 1))
+n  <- nrow(fam.draws)
+yf <- n:1                                        # family rows, top -> bottom
+yg <- n + c(1.8, 3.2)                            # pooled rows above (benthic, water)
+xr <- range(fam.draws, grp.draws)
+plot(NA, xlim = xr, ylim = c(0.4, max(yg) + 0.9), axes = FALSE,
+     xlab = expression("Whaling "*beta*" (posterior)"), ylab = "")
+abline(v = 0, col = "grey70", lwd = 0.8)
+for (i in 1:n) {
+  d <- density(fam.draws[i, ]); s <- d$y / max(d$y) * 0.42
+  polygon(c(d$x, rev(d$x)), c(yf[i] - s, rev(yf[i] + s)),
+          col = adjustcolor(gcol[i], 0.75), border = NA)
+  segments(mean(fam.draws[i, ]), yf[i] - 0.1,
+           mean(fam.draws[i, ]), yf[i] + 0.1, lwd = 1.2)
+}
+for (j in 1:2) {
+  d <- density(grp.draws[j, ]); s <- d$y / max(d$y) * 0.65
+  polygon(c(d$x, rev(d$x)), c(yg[j] - s, rev(yg[j] + s)),
+          col = adjustcolor(grp.cols[j], 0.9), border = grp.cols[j], lwd = 0.8)
+  ci <- quantile(grp.draws[j, ], c(0.025, 0.5, 0.975))
+  segments(ci[1], yg[j], ci[3], yg[j], lwd = 1.4)
+  segments(ci[2], yg[j] - 0.15, ci[2], yg[j] + 0.15, lwd = 2)
+}
+axis(1, cex.axis = 0.8)
+text(xr[1] - 0.03 * diff(xr), yf, labels = disp[ord], adj = 1,
+     cex = 0.55, xpd = TRUE)
+text(xr[1] - 0.03 * diff(xr), yg, labels = grp.labs, adj = 1,
+     cex = 0.65, font = 2, xpd = TRUE)
+text(xr[2], mean(yg), sprintf("P(sup) = %.2f", mean(psup)),
+     adj = 1, cex = 0.65)
+legend("bottomright", legend = names(guild_pal), pt.bg = guild_pal, pch = 21,
+       col = "white", pt.cex = 1.2, bty = "n", cex = 0.55)
+
+stopifnot(identical(rownames(fam.draws), ord),
+          !any(is.na(gcol)), !any(is.na(disp[ord])))
+dev.off()
 
 
 # -- Metazoa family-level HMSC (presence/absence) -----------------------------
@@ -3974,10 +4085,14 @@ sig_full     <- sig_full[, keep, drop = FALSE]
 taxon_order  <- taxon_order[keep]
 
 
+fit.pa <- evaluateModelFit(m.fam.pa, predY = computePredictedValues(m.fam.pa))
+r2.pa  <- setNames(fit.pa$TjurR2, m.fam.pa$spNames)
+sv <- scale_vp(vp_mat_rev, r2.pa)
+
 pdf("figures/HMSC/metazoa.pa.combined.sig.pdf", height = 10, width = 7)
 par(mar = c(4, 10, 3, 12), xpd = TRUE)
 bp <- barplot(
-  vp_mat_rev,
+  sv$mat,
   horiz     = TRUE,
   col       = cols_vp,
   border    = NA,
@@ -3990,9 +4105,9 @@ bp <- barplot(
 )
 # Taxon labels (italic = resolved above family rank; see legend); no guild dots
 text(-0.02, bp, labels = disp[colnames(vp_mat_rev)], adj = 1, cex = 0.7)
-axis(1, at = seq(0, 1, 0.25),
-     labels = paste0(seq(0, 100, 25), "%"), cex.axis = 0.85)
-mtext("Variance explained", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+vp_axis(sv$sc)
+mtext(expression("Variance explained (% of total, Tjur "*R^2*")"),
+      side = 1, line = 2.5, at = 0.5, cex = 0.85)
 legend(-1, -1,
        legend = rownames(vp_mat_rev),
        fill   = cols_vp,
@@ -4043,6 +4158,85 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
 par(xpd = FALSE)
 dev.off()
 
+## ===== Guild contrast: whaling beta ~ feeding ecology (Metazoa PA) ===========
+wc.pa <- met.groups$group[match(colnames(m.fam.pa$Y), met.groups$family)] %in%
+  c("Pelagic water-column feeder", "Benthic suspension feeder")
+k.pa    <- grep("whale", m.fam.pa$covNames, ignore.case = TRUE)
+post.pa <- Hmsc::poolMcmcChains(m.fam.pa$postList)
+
+gdiff.pa <- sapply(post.pa, function(s)
+  mean(s$Beta[k.pa, wc.pa]) - mean(s$Beta[k.pa, !wc.pa]))
+psup.pa  <- sapply(post.pa, function(s) {
+  b <- s$Beta[k.pa, ]; mean(outer(b[wc.pa], b[!wc.pa], ">")) })
+bhat.pa  <- Hmsc::getPostEstimate(m.fam.pa, "Beta")$mean[k.pa, ]
+wt.pa    <- wilcox.test(bhat.pa[wc.pa], bhat.pa[!wc.pa])
+
+sink("summaryfiles/HMSC_guild_tests.txt", append = TRUE)
+cat("---- Metazoa PA (probit scale) ----\n")
+cat(sprintf("Water-column n = %d; benthic n = %d (all modelled families)\n",
+            sum(wc.pa), sum(!wc.pa)))
+cat(sprintf("Group-mean difference: %.3f (95%% CI %.3f to %.3f); P(diff > 0) %s\n",
+            mean(gdiff.pa), quantile(gdiff.pa, .025), quantile(gdiff.pa, .975),
+            if (all(gdiff.pa > 0)) sprintf("> %.4f (all %d draws positive)",
+                                           1 - 1/length(gdiff.pa), length(gdiff.pa))
+            else sprintf("= %.4f", mean(gdiff.pa > 0))))
+cat(sprintf("P(superiority): %.3f (95%% CI %.3f to %.3f)\n",
+            mean(psup.pa), quantile(psup.pa, .025), quantile(psup.pa, .975)))
+cat(sprintf("Wilcoxon on posterior means: W = %.0f, p = %.4g\n",
+            wt.pa$statistic, wt.pa$p.value))
+sink()
+
+## Figure: portrait, PA - binary colours, largest beta at top
+fam.draws <- sapply(post.pa, function(s) s$Beta[k.pa, ])
+rownames(fam.draws) <- m.fam.pa$spNames
+ord <- rev(taxon_order)                          # PA figure order, flipped
+fam.draws <- fam.draws[ord, ]
+bcol <- ifelse(wc.pa[match(ord, colnames(m.fam.pa$Y))], "#46309B", "#B09265")
+
+grp.draws <- rbind(
+  benthic = sapply(post.pa, function(s) mean(s$Beta[k.pa, !wc.pa])),
+  water   = sapply(post.pa, function(s) mean(s$Beta[k.pa,  wc.pa])))
+grp.cols <- c(benthic = "#B09265", water = "#46309B")
+grp.labs <- c("Benthic taxa", "Water-column feeders")
+
+pdf("figures/HMSC/metazoa.pa.whaling.guild.posteriors.pdf", width = 6, height = 10)
+par(mar = c(4, 9, 1, 1))
+n  <- nrow(fam.draws)
+yf <- n:1
+yg <- n + c(1.8, 3.2)
+xr <- range(fam.draws, grp.draws)
+plot(NA, xlim = xr, ylim = c(0.4, max(yg) + 0.9), axes = FALSE,
+     xlab = expression("Whaling "*beta*" (posterior, probit scale)"), ylab = "")
+abline(v = 0, col = "grey70", lwd = 0.8)
+for (i in 1:n) {
+  d <- density(fam.draws[i, ]); s <- d$y / max(d$y) * 0.42
+  polygon(c(d$x, rev(d$x)), c(yf[i] - s, rev(yf[i] + s)),
+          col = adjustcolor(bcol[i], 0.75), border = NA)
+  segments(mean(fam.draws[i, ]), yf[i] - 0.1,
+           mean(fam.draws[i, ]), yf[i] + 0.1, lwd = 1.2)
+}
+for (j in 1:2) {
+  d <- density(grp.draws[j, ]); s <- d$y / max(d$y) * 0.65
+  polygon(c(d$x, rev(d$x)), c(yg[j] - s, rev(yg[j] + s)),
+          col = adjustcolor(grp.cols[j], 0.9), border = grp.cols[j], lwd = 0.8)
+  ci <- quantile(grp.draws[j, ], c(0.025, 0.5, 0.975))
+  segments(ci[1], yg[j], ci[3], yg[j], lwd = 1.4)
+  segments(ci[2], yg[j] - 0.15, ci[2], yg[j] + 0.15, lwd = 2)
+}
+axis(1, cex.axis = 0.8)
+text(xr[1] - 0.03 * diff(xr), yf, labels = disp[ord], adj = 1,
+     cex = 0.55, xpd = TRUE)
+text(xr[1] - 0.03 * diff(xr), yg, labels = grp.labs, adj = 1,
+     cex = 0.65, font = 2, xpd = TRUE)
+text(xr[2], mean(yg), sprintf("P(sup) = %.2f", mean(psup.pa)),
+     adj = 1, cex = 0.65)
+legend("bottomright", legend = c("Water-column feeder", "Benthic"),
+       pt.bg = c("#46309B", "#B09265"), pch = 21, col = "white",
+       pt.cex = 1.2, bty = "n", cex = 0.55)
+
+stopifnot(identical(rownames(fam.draws), ord),
+          !any(is.na(bcol)), !any(is.na(disp[ord])))
+dev.off()
 
 ####====Export HMSC results to text file====####
 ## Writes a single summary file for all three HMSC models:
@@ -4269,6 +4463,26 @@ support_met_pa <- hmsc_summary_block(
   support_threshold = support_threshold
 )
 
+## 4. Explanatory power per taxon (residual = 1 - R2)
+cat("\n======================================================================\n")
+cat("Explanatory power per taxon (residual = 1 - R2)\n")
+cat("======================================================================\n\n")
+for (blk in list(list("Subdivision CLR",        fit.sub$R2,     m$spNames),
+                 list("Metazoa family CLR",     fit.fam$R2,     m.fam$spNames),
+                 list("Metazoa family PA (Tjur R2)", fit.pa$TjurR2, m.fam.pa$spNames))) {
+  r <- setNames(round(blk[[2]], 3), blk[[3]])
+  cat(sprintf("---- %s: mean R2 = %.3f (range %.3f-%.3f); mean residual = %.3f ----\n",
+              blk[[1]], mean(r, na.rm = TRUE), min(r, na.rm = TRUE),
+              max(r, na.rm = TRUE), 1 - mean(r, na.rm = TRUE)))
+  print(sort(r, decreasing = TRUE))
+  cat("\n")
+}
+cat(sprintf("Metazoa family PA: mean AUC = %.3f\n",
+            mean(fit.pa$AUC, na.rm = TRUE)))
+if (any(is.na(fit.pa$TjurR2)))
+  cat("NOTE: Tjur R2 is NA for taxa present in all samples; shown as NA above\n",
+      "and plotted with zero-length bars in the PA figure.\n")
+
 sink()
 
 
@@ -4288,7 +4502,112 @@ write.csv(compact, "summaryfiles/HMSC_fixedeffects_compact.csv",
 cat("Wrote: ", out_file, "\n",
     "Wrote:  summaryfiles/HMSC_fixedeffects_compact.csv\n", sep = "")
 
+### build tables for output 
 
+## ===== Supplementary tables: per-taxon beta, posterior support, and =========
+## ===== variance shares (of total) for each HMSC model =======================
+## One CSV per model: beta and posterior support (probability of the estimated
+## sign) for each predictor, plus climate / whaling / site shares of TOTAL
+## variance (VP proportion x taxon R2) and residual (1 - R2). Rows ordered by
+## whaling beta (descending, matching the figures); mean row appended.
+## PA model uses Tjur R2 for the conversion (approximation, as in Fig. S$);
+## taxa present in all samples have undefined Tjur R2 and are reported NA.
+
+hmsc_supp_table <- function(model, r2, outfile, display = NULL) {
+  pb   <- getPostEstimate(model, "Beta")
+  beta <- pb$mean;    supp <- pmax(pb$support, 1 - pb$support)
+  rownames(beta) <- rownames(supp) <- model$covNames
+  colnames(beta) <- colnames(supp) <- model$spNames
+  vp <- computeVariancePartitioning(model, group = c(1, 2, 2, 2, 3),
+                                    groupnames = c("Intercept", "Climate", "Whaling"))$vals
+  colnames(vp) <- model$spNames
+  r2 <- r2[model$spNames]
+  
+  preds <- model$covNames[grep("Intercept", model$covNames, invert = TRUE)]
+  tab <- data.frame(taxon = if (is.null(display)) model$spNames
+                    else display[model$spNames])
+  for (p in preds) {
+    tab[[paste0("beta_", p)]]    <- round(beta[p, ], 3)
+    tab[[paste0("support_", p)]] <- round(supp[p, ], 3)
+  }
+  tab$var_climate_pct  <- round(100 * vp["Climate", ]      * r2, 1)
+  tab$var_whaling_pct  <- round(100 * vp["Whaling", ]      * r2, 1)
+  tab$var_site_pct     <- round(100 * vp["Random: site", ] * r2, 1)
+  tab$var_residual_pct <- round(100 * (1 - r2), 1)
+  
+  k <- grep("whale", preds, ignore.case = TRUE, value = TRUE)
+  tab <- tab[order(-tab[[paste0("beta_", k)]]), ]
+  means <- c(taxon = "Mean",
+             lapply(tab[-1], function(x) round(mean(x, na.rm = TRUE), 3)))
+  tab <- rbind(tab, means)
+  
+  ## tripwire: variance columns must sum to ~100% for every taxon
+  sums <- rowSums(tab[seq_len(nrow(tab) - 1),
+                      c("var_climate_pct", "var_whaling_pct",
+                        "var_site_pct", "var_residual_pct")])
+  stopifnot(all(is.na(sums) | abs(sums - 100) < 0.5))
+  
+  write.csv(tab, outfile, row.names = FALSE)
+  cat("wrote", outfile, "-", nrow(tab) - 1, "taxa\n")
+  invisible(tab)
+}
+
+disp_tab <- setNames(paste0(disp, ifelse(disp_dag, "\u2020", "")),
+                     names(disp))                       # dagger as plain char
+
+hmsc_supp_table(m.fam,    setNames(fit.fam$R2, m.fam$spNames),
+                "summaryfiles/TableS_HMSC_metazoa_CLR.csv",  disp_tab)
+hmsc_supp_table(m,        setNames(fit.sub$R2, m$spNames),
+                "summaryfiles/TableS_HMSC_subdivision_CLR.csv",
+                setNames(gsub("_X", "", m$spNames), m$spNames))
+hmsc_supp_table(m.fam.pa, setNames(fit.pa$TjurR2, m.fam.pa$spNames),
+                "summaryfiles/TableS_HMSC_metazoa_PA.csv",   disp_tab)
+
+
+## ===== Supplementary table: guild contrasts for every predictor =============
+## Water-column feeders vs all other taxa, per predictor, per model. All
+## modelled families included (no significance filtering). Difference and
+## superiority computed within each posterior sample; Wilcoxon on posterior
+## means as frequentist companion. Backs the results sentence and Fig. S$.
+
+guild_contrast_table <- function(model, label) {
+  wc   <- met.groups$group[match(model$spNames, met.groups$family)] %in%
+    c("Pelagic water-column feeder", "Benthic suspension feeder")
+  post <- Hmsc::poolMcmcChains(model$postList)
+  bhat <- Hmsc::getPostEstimate(model, "Beta")$mean
+  rownames(bhat) <- model$covNames
+  preds <- grep("Intercept", model$covNames, invert = TRUE, value = TRUE)
+  
+  out <- do.call(rbind, lapply(preds, function(p) {
+    k  <- match(p, model$covNames)
+    dd <- sapply(post, function(s) mean(s$Beta[k, wc]) - mean(s$Beta[k, !wc]))
+    ps <- sapply(post, function(s) {
+      b <- s$Beta[k, ]; mean(outer(b[wc], b[!wc], ">")) })
+    wt <- wilcox.test(bhat[p, wc], bhat[p, !wc])
+    data.frame(model = label, predictor = p,
+               n_water = sum(wc), n_other = sum(!wc),
+               diff_mean   = round(mean(dd), 3),
+               diff_lo95   = round(quantile(dd, .025), 3),
+               diff_hi95   = round(quantile(dd, .975), 3),
+               P_diff_gt0  = round(mean(dd > 0), 4),
+               superiority = round(mean(ps), 3),
+               sup_lo95    = round(quantile(ps, .025), 3),
+               sup_hi95    = round(quantile(ps, .975), 3),
+               wilcoxon_W  = unname(wt$statistic),
+               wilcoxon_p  = signif(wt$p.value, 3))
+  }))
+  rownames(out) <- NULL
+  out
+}
+
+tab <- rbind(guild_contrast_table(m.fam,    "Metazoa CLR"),
+             guild_contrast_table(m.fam.pa, "Metazoa PA"))
+write.csv(tab, "summaryfiles/TableS_guild_contrasts.csv", row.names = FALSE)
+
+sink("summaryfiles/HMSC_guild_tests.txt", append = TRUE)
+cat("\n==== Guild contrasts, all predictors (Table S$) ====\n")
+print(tab, row.names = FALSE)
+sink()
 
 
 ##### Now we make a composite figure for specific taxa
