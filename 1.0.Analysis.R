@@ -542,6 +542,89 @@ legend(0,2.4,
 
 dev.off()
 
+#### NEW TEST 
+pdf("figures/DraftFigures/Fig.2/EUK.bigplot.2v2.pdf", width = 10, height = 6.5)
+
+par(mfrow = c(length(sites), 1),
+    mar   = c(0.2, 4.1, 0.5, 1.1),
+    oma   = c(6, 0, 0, 0),
+    xpd   = NA,
+    las   = 1)
+
+site_order <- c(2, 4, 3, 1, 5)
+
+## shared y-axis ticks: drop the top one so adjacent panels don't collide
+yticks <- pretty(ylim, n = 4)
+yticks <- yticks[yticks >= ylim[1] & yticks < ylim[2]]
+
+## right-hand padding, in bar-width units (bars are 30 wide, space = 0)
+xpad <- 60
+
+for (idx in seq_along(site_order)) {
+  i    <- site_order[idx]
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  mat[, colSums(mat) == 0] <- NA
+  
+  xr <- c(0, ncol(mat) * 30 + xpad)
+  
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width  = 30,
+                ylim   = ylim,
+                xlim   = xr,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "n")
+  
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  
+  barplot(mat,
+          col    = pal,
+          space  = 0,
+          width  = 30,
+          ylim   = ylim,
+          border = NA,
+          xaxt   = "n",
+          yaxt   = "n",
+          add    = TRUE)
+  
+  ## y-axis on the right, sitting in the padded space
+  axis(4,
+       at       = c(yticks,1),
+       pos      = ncol(mat) * 30 + 6,
+       las      = 1,
+       tcl      = -0.25,
+       mgp      = c(3, 0.4, 0),
+       cex.axis = 0.8)
+  
+  ## site name stays in the left margin
+  mtext(site, side = 4, line = 0, las = 0, cex = 0.9)
+  
+  ## bottom panel only: shared x-axis
+  if (idx == length(site_order)) {
+    tick_pos <- bp[match(tick_years, all_years)]
+    keep     <- !is.na(tick_pos)
+    axis(1,
+         at       = tick_pos[keep],
+         labels   = tick_years[keep],
+         las      = 1,
+         cex.axis = 1.5)
+  }
+}
+
+## legend — fill order now matches the label order
+legend(0, 2.4,
+       legend = gsub("_X", "", rownames(EUK.tax.a.2)),
+       fill   = pal,
+       border = NA,
+       cex    = 1.2,
+       bty    = "n",
+       xpd    = NA)
+
+dev.off()
+
 
 
 ### metazoan subset 
@@ -1817,21 +1900,24 @@ alpha_genus_avg_reps <- alpha_genus_avg %>%
   summarise(across(ends_with("_mean"), \(x) mean(x, na.rm = TRUE)),
             across(ends_with("_sd"),   \(x) sqrt(mean(x^2, na.rm = TRUE))))
 
-
-
-
 pdf("figures/EUK_genus.Q0.pdf", height = 4.5, width = 12)
+par(mar = c(5.1, 2.1, 4.1, 4.1))
 plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)],
      alpha_genus_avg$q0_mean,
      col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
      pch=16,
      bty = "n",
      xlab="Year",
-     ylab="Genus Richness")
+     ylab="",
+     yaxt="n")
+axis(4,at=c(50,100,150,200),labels=c(50,100,150,200))
+mtext("Genus Richness", side = 4, line = 3)
 points(expandedDates$CalYear[match(alpha_genus_avg_reps$replicate, expandedDates$SampleName)],
        alpha_genus_avg_reps$q0_mean,
        col=coredata$col[match(toupper(expandedDates$Site[match(alpha_genus_avg_reps$replicate, expandedDates$SampleName)]),toupper(coredata$Site))],
        pch=16, cex=1.2)
+dev.off()
+
 dev.off()
 pdf("figures/EUK_genus.Q1.pdf", height = 7, width = 9)
 plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)],
