@@ -36,8 +36,8 @@ basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb",rotate = TRUE,glacie
           legend.background = element_rect(fill = "transparent", color = NA),
           legend.key = element_rect(fill = "transparent", color = NA))
 dev.off()
-pdf("mapping/OverviewV3smol.pdf",height = 5,width = 3.5)
-basemap(limits = c(-70, -56, -70, -60), bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
+pdf("mapping/OverviewV3smol.pdf",height = 4.5,width = 3.15)
+basemap(limits = c(-70, -56, -70, -60.5), bathy.style = "rcb", rotate = TRUE, glaciers = TRUE) +
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat), data = pt, color = "black", cex = 3.5, crs = 4326) +
   ggspatial::geom_spatial_point(aes(x = Lon, y = Lat), data = pt,
                                 color = c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73"),

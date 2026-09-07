@@ -603,15 +603,15 @@ for (idx in seq_along(site_order)) {
   mtext(site, side = 4, line = 0, las = 0, cex = 0.9)
   
   ## bottom panel only: shared x-axis
-  if (idx == length(site_order)) {
-    tick_pos <- bp[match(tick_years, all_years)]
-    keep     <- !is.na(tick_pos)
-    axis(1,
-         at       = tick_pos[keep],
-         labels   = tick_years[keep],
-         las      = 1,
-         cex.axis = 1.5)
-  }
+ # if (idx == length(site_order)) {
+#    tick_pos <- bp[match(tick_years, all_years)]
+#    keep     <- !is.na(tick_pos)
+#    axis(1,
+#         at       = tick_pos[keep],
+#         labels   = tick_years[keep],
+#         las      = 1,
+#         cex.axis = 1.5)
+#  }
 }
 
 ## legend — fill order now matches the label order
@@ -1907,9 +1907,11 @@ plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), 
      col=add.alpha(coredata$col[match(toupper(expandedDates$Site[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), expandedDates$SampleName)]),toupper(coredata$Site))], 0.2),
      pch=16,
      bty = "n",
-     xlab="Year",
+ xlab="",
      ylab="",
-     yaxt="n")
+     yaxt="n",
+     xaxt="n")
+axis(1,at=seq(1775,2000,by=25),labels=seq(1775,2000,by=25),cex.axis=1.5)
 axis(4,at=c(50,100,150,200),labels=c(50,100,150,200))
 mtext("Genus Richness", side = 4, line = 3)
 points(expandedDates$CalYear[match(alpha_genus_avg_reps$replicate, expandedDates$SampleName)],
@@ -2465,7 +2467,7 @@ draw_trajectories <- function(points, sites, years, site_col,
 trajectory_pdf <- function(file, points, sites, years, site_col,
                            main, smooth = FALSE, year_step = 20,
                            base_lighten = 0.5, shade_offset = 0.3) {
-  pdf(file, height = 5, width = 5)
+  pdf(file, height = 5.5, width = 5)
   plot(points[,1], points[,2],
        col = site_col, pch = 16, cex=0.8,
        main = main, xlab = "", ylab = "")
