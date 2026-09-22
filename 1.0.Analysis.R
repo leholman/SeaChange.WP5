@@ -2683,10 +2683,10 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
   arrows(0, 0, sc_bp_scaled[,1], sc_bp_scaled[,2],
          col = arrow_cols, lwd = 2, length = 0.1)
   
-  legend("topleft",
-         legend = gsub("whale","WhaleBiomass",gsub("_s", "", names(arrow_cols))),
-         col    = arrow_cols,
-         lwd    = 2, cex = 0.85, bty = "n")
+  #legend("topleft",
+   #      legend = gsub("whale","WhaleBiomass",gsub("_s", "", names(arrow_cols))),
+    #     col    = arrow_cols,
+     #    lwd    = 2, cex = 0.85, bty = "n")
   
   u_sites <- unique(sample_sites)
   u_cols <- coredata$col[match(toupper(u_sites), toupper(coredata$Site))]
@@ -2694,10 +2694,10 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
   #      pch = 16, cex = 0.75, bty = "n")
 }
 pdf("figures/stat.beta.dbRDA.b.pdf",height = 8,width = 8)
-plot_dbrda(mod_bray, "db-RDA – Bray-Curtis",trajectories =FALSE )
+plot_dbrda(mod_bray, "",trajectories =FALSE )
 dev.off()
 pdf("figures/stat.beta.dbRDA.j.pdf",height = 8,width = 8)
-plot_dbrda(mod_jacc, "db-RDA – Jaccard",trajectories =FALSE )
+plot_dbrda(mod_jacc, "",trajectories =FALSE )
 dev.off()
 
 
@@ -3782,8 +3782,8 @@ taxon_order_sig <- taxon_order[keep]
 
 # Functional groupings + RAMS-screened names (rawdata/metazoa_functional_groups_RAMS.csv)
 met.groups <- read.csv("rawdata/metazoa_functional_groups_RAMS.csv")
-guild_pal <- c("Pelagic water-column feeder"       = "#46309B",
-               "Benthic suspension feeder"          = "#9A8CD8",
+guild_pal <- c("Pelagic water-column feeder"       = "#24507F",
+               "Benthic suspension feeder"          = "#8FB8DE",
                "Soft-sediment deposit feeder"       = "#7A5C3D",
                "Epibenthic grazer"                  = "#B09265",
                "Mobile benthic predator/scavenger"  = "#8F7F6B",
@@ -3878,10 +3878,145 @@ text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
      expression(beta), cex = 0.7, adj = c(0.5, 1))
 par(xpd = FALSE)
 dev.off()
+
+#### DIFFERENT ORDER
+
+# -- Combined: Metazoa CLR ----------------------------------------------------
+vp_mat <- VP.fam$vals
+vp_mat_rev <- vp_mat[, dim(vp_mat)[2]:1]
+vp_mat_rev <- vp_mat_rev[rownames(vp_mat_rev) != "Intercept", ]
+fit.fam <- evaluateModelFit(m.fam, predY = computePredictedValues(m.fam))
+r2.fam  <- setNames(fit.fam$R2, m.fam$spNames)
+sv <- scale_vp(vp_mat_sig, r2.fam)
+
+# Ordering
+order <- names(sort(colSums(sv$mat[1:2,])))
+vp_mat_rev <- vp_mat_rev[, order]
+taxon_order <- order
+# Beta and significance in same order
+beta_mat <- postBeta.fam$mean[2:5, , drop = FALSE]
+rownames(beta_mat) <- c("SAM", "ENSO", "SeaIce", "WhaleBiomass")
+sup_pos <- postBeta.fam$support[2:5, ]
+sup_neg <- postBeta.fam$supportNeg[2:5, ]
+sig_mat <- matrix("", nrow = 4, ncol = ncol(beta_mat))
+sig_mat[sup_pos > 0.95 | sup_neg > 0.95] <- "*"
+sig_mat[sup_pos > 0.99 | sup_neg > 0.99] <- "**"
+beta_full <- beta_mat[, taxon_order]
+sig_full  <- sig_mat[, match(taxon_order, colnames(beta_mat))]
+pred_ord  <- c(4, 1, 2, 3)            # WhaleBiomass, SAM, ENSO, SeaIce
+beta_full <- beta_full[pred_ord, , drop = FALSE]
+sig_full  <- sig_full[pred_ord, , drop = FALSE]
+zlim <- c(-max(abs(beta_full)), max(abs(beta_full)))
+cols_vp <- c("#31424e","#7d9bb0","#d6d2c9")
+pred_names <- rownames(beta_full)
+
+# Keep only taxa with ≥1 significant predictor
+
+keep <- colSums(sig_full != "") > 0
+
+vp_mat_sig   <- vp_mat_rev[, keep, drop = FALSE]
+beta_sig     <- beta_full[, keep, drop = FALSE]
+sig_sig      <- sig_full[, keep, drop = FALSE]
+taxon_order_sig <- taxon_order[keep]
+
+disp     <- setNames(gsub(" \\(fam\\. indet\\.\\)", "", met.groups$display_name),
+                     met.groups$family)
+disp_dag <- setNames(grepl("fam\\. indet", met.groups$display_name),
+                     met.groups$family)
+add_daggers <- function(fams, x, y, dy, cex = 0.45) {
+  i <- which(disp_dag[fams])
+  if (length(i)) text(x, y[i] + dy, "\u2020", adj = 0, cex = cex, xpd = TRUE)
+}
+
+## Scale VP stacks by per-family R2 (share of TOTAL variance), normalised to
+## the largest bar. fit.fam$R2 is unnamed - stamp names first!
+fit.fam <- evaluateModelFit(m.fam, predY = computePredictedValues(m.fam))
+r2.fam  <- setNames(fit.fam$R2, m.fam$spNames)
+sv <- scale_vp(vp_mat_sig, r2.fam)
+
+pdf("figures/HMSC/metazoa.combined.sig.o2.pdf", height = 9, width = 7)
+par(mar = c(7, 10, 3, 12), xpd = TRUE)
+bp <- barplot(
+  sv$mat,
+  horiz     = TRUE,
+  col       = cols_vp,
+  border    = NA,
+  xlab      = "",
+  las       = 1,
+  xlim      = c(0, 1.8),
+  names.arg = rep("", ncol(vp_mat_sig)),
+  cex.names = 0.7,
+  axes      = FALSE
+)
+vp_axis(sv$sc)
+mtext("Variance explained (%)", side = 1, line = 2.5, at = 0.5, cex = 0.85)
+#legend(-1.2, -6.5,
+ #      legend = rownames(vp_mat_sig),
+  #     fill   = cols_vp,
+   #    border = NA, bty = "n", cex = 0.5)
+# Taxon labels (italic = resolved above family rank; see legend) + guild dots
+text(-0.1, bp, labels = disp[taxon_order_sig], adj = 1, cex = 0.7)
+add_daggers(taxon_order_sig, -0.1, bp, dy = 0.28)
+#points(rep(-0.03, length(bp)), bp, pch = 21,
+   #    bg = guild_cols[taxon_order_sig], col = "white", lwd = 0.4, cex = 1.8)
+#legend(-1.2, -1.5, legend = names(guild_pal), pch = 21, pt.bg = guild_pal,
+   #    col = "white", pt.cex = 1.3, bty = "n", cex = 0.5)
+
+# Heatmap strips
+bar_h   <- diff(bp[1:2]) * 0.85
+strip_w <- 0.15
+gap     <- 0.04
+x_start <- 1.15
+par(xpd = TRUE)
+for (k in 1:4) {
+  xl <- x_start + (k - 1) * (strip_w + gap)
+  xr <- xl + strip_w
+  for (j in seq_along(taxon_order_sig)) {
+    cell_col <- if (sig_sig[k, j] != "") {
+      beta_to_col(beta_sig[k, j], zlim, heat_cols)
+    } else "#f2f0ec"
+    rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+         col = cell_col, border = NA)
+    if (sig_sig[k, j] == "**") {
+      rect(xl, bp[j] - bar_h / 2, xr, bp[j] + bar_h / 2,
+           border = "black", lwd = 0.9)
+    }
+  }
+  text((xl + xr) / 2, max(bp) + bar_h, pred_names[k],
+       cex = 0.6, srt = 45, adj = c(0, 0.5))
+}
+
+# Colour bar legend for beta
+n_leg <- 100
+leg_xl <- x_start
+leg_xr <- x_start + 4 * strip_w + 3 * gap
+leg_w  <- (leg_xr - leg_xl) / n_leg
+leg_yb <- min(bp) - bar_h * 2.7
+leg_yt <- leg_yb + bar_h * 0.5
+for (i in 1:n_leg) {
+  rect(leg_xl + (i - 1) * leg_w, leg_yb,
+       leg_xl + i * leg_w, leg_yt,
+       col = heat_cols[i], border = NA)
+}
+text(leg_xl, leg_yt + bar_h * 0.2,
+     round(zlim[1], 2), cex = 0.6, adj = c(0, 0))
+text(leg_xr, leg_yt + bar_h * 0.2,
+     round(zlim[2], 2), cex = 0.6, adj = c(1, 0))
+text((leg_xl + leg_xr) / 2, leg_yt + bar_h * 0.2,
+     "0", cex = 0.6, adj = c(0.5, 0))
+text((leg_xl + leg_xr) / 2, leg_yb - bar_h * 0.4,
+     expression(beta), cex = 0.7, adj = c(0.5, 1))
+par(xpd = FALSE)
+dev.off()
+
+
+
+
+
 ## ===== Guild contrast: whaling beta ~ feeding ecology (Metazoa CLR) ==========
 ## Water-column feeders (pelagic + benthic suspension) vs all benthic taxa.
 ## All modelled families included (no significance filtering). Families treated
-## as independent units (no phylogenetic correction); descriptive association.
+## as independent units  descriptive association.
 
 wc.grp <- met.groups$group[match(colnames(m.fam$Y), met.groups$family)] %in%
   c("Pelagic water-column feeder", "Benthic suspension feeder")
@@ -3921,8 +4056,9 @@ gcol <- guild_pal[met.groups$group[match(ord, met.groups$family)]]
 grp.draws <- rbind(                             # full 55-family pools
   benthic = sapply(post.g, function(s) mean(s$Beta[k.wh, !wc.grp])),
   water   = sapply(post.g, function(s) mean(s$Beta[k.wh,  wc.grp])))
-grp.cols <- c(benthic = "#B09265", water = "#46309B")
+grp.cols <- c(benthic = "#B09265", water = "#3F6F9F")
 grp.labs <- c("Benthic taxa", "Water-column feeders")
+
 
 pdf("figures/HMSC/metazoa.whaling.guild.posteriors.pdf", width = 6, height = 10)
 par(mar = c(4, 9, 1, 1))
@@ -3961,6 +4097,92 @@ legend("bottomright", legend = names(guild_pal), pt.bg = guild_pal, pch = 21,
 stopifnot(identical(rownames(fam.draws), ord),
           !any(is.na(gcol)), !any(is.na(disp[ord])))
 dev.off()
+
+## ===== Figure: whaling beta by family, pooled guild violins on top ==========
+
+## Families shown = those with >=1 predictor at >95% support.
+## Defined here directly so it doesn't depend on taxon_order_sig from earlier blocks.
+pb.fam  <- Hmsc::getPostEstimate(m.fam, "Beta")
+#sig.any <- colSums(pb.fam$support[2:5, , drop = FALSE] > 0.95 |
+#                     pb.fam$supportNeg[2:5, , drop = FALSE] > 0.95) > 0
+#fam.show <- m.fam$spNames[sig.any]
+
+fam.draws <- sapply(post.g, function(s) s$Beta[k.wh, ])
+rownames(fam.draws) <- m.fam$spNames
+fam.draws <- fam.draws[fam.show, , drop = FALSE]
+
+
+## Families shown = every family in the model, i.e. exactly those pooled in the stats
+fam.draws <- sapply(post.g, function(s) s$Beta[k.wh, ])
+rownames(fam.draws) <- m.fam$spNames
+
+## (3) order by posterior mean whaling beta, largest at top
+ord       <- names(sort(rowMeans(fam.draws), decreasing = TRUE))
+fam.draws <- fam.draws[ord, , drop = FALSE]
+gcol      <- guild_pal[met.groups$group[match(ord, met.groups$family)]]
+
+stopifnot(identical(rownames(fam.draws), ord),
+          !any(is.na(gcol)), !any(is.na(disp[ord])), !any(is.na(disp_dag[ord])))
+
+## (4) labels as in the combined plot: RAMS display names, dagger = fam. indet.
+fam.labs <- as.expression(lapply(ord, function(f)
+  if (disp_dag[[f]]) bquote(.(disp[[f]])^"\u2020") else disp[[f]]))
+
+## pooled guild draws: per MCMC draw, mean whaling beta over ALL modelled families
+grp.draws <- rbind(
+  benthic = sapply(post.g, function(s) mean(s$Beta[k.wh, !wc.grp])),
+  water   = sapply(post.g, function(s) mean(s$Beta[k.wh,  wc.grp])))
+grp.cols <- c(benthic = "#B09265", water = "#3F6F9F")
+grp.labs <- c(sprintf("Benthic taxa (n = %d)",        sum(!wc.grp)),
+              sprintf("Water-column feeders (n = %d)", sum(wc.grp)))
+
+## layout
+n  <- nrow(fam.draws)
+yf <- n:1                          # family rows, top -> bottom
+yg <- n + c(2.2, 4.4)              # (1) pooled rows, more space for bigger violins
+xr <- range(fam.draws, grp.draws)
+
+pdf("figures/HMSC/metazoa.whaling.guild.posteriors.pdf", width = 6, height = 10)
+par(mar = c(7, 10, 1, 1))
+plot(NA, xlim = rev(xr),           # (3) reversed: left = higher beta
+     ylim = c(0.4, max(yg) + 2.4), axes = FALSE,
+     xlab = expression("Whaling " * beta * " (posterior)"), ylab = "")
+abline(v = 0, col = "grey70", lwd = 0.8)
+abline(h = n + 0.9, col = "grey85", lwd = 0.8)   # separates summary from families
+
+## family violins (posterior mean tick kept)
+for (i in 1:n) {
+  d <- density(fam.draws[i, ]); s <- d$y / max(d$y) * 0.42
+  polygon(c(d$x, rev(d$x)), c(yf[i] - s, rev(yf[i] + s)),
+          col = adjustcolor(gcol[i], 0.75), border = NA)
+  m <- mean(fam.draws[i, ])
+  segments(m, yf[i] - 0.1, m, yf[i] + 0.1, lwd = 1.2)
+}
+
+## (1)+(2) larger pooled violins, no CI bar or median tick
+for (j in 1:2) {
+  d <- density(grp.draws[j, ]); s <- d$y / max(d$y) * 1.0
+  polygon(c(d$x, rev(d$x)), c(yg[j] - s, rev(yg[j] + s)),
+          col = adjustcolor(grp.cols[j], 0.9), border = grp.cols[j], lwd = 0.8)
+}
+
+
+
+## axes and labels (axis() copes with the reversed x-range, so no manual offsets)
+axis(1, cex.axis = 0.8)
+axis(2, at = yf, labels = fam.labs, las = 1, tick = FALSE,
+     cex.axis = 0.55, mgp = c(3, 0.3, 0))
+axis(2, at = yg, labels = grp.labs, las = 1, tick = FALSE,
+     cex.axis = 0.65, font.axis = 2, mgp = c(3, 0.3, 0))
+
+## guild legend below the axis so it can't collide with violins
+legend("bottom", inset = c(0, -0.13), xpd = NA, ncol = 2,
+       legend = names(guild_pal), pt.bg = guild_pal, pch = 21,
+       col = "white", pt.cex = 1.2, bty = "n", cex = 0.55)
+dev.off()
+
+
+
 
 
 # -- Metazoa family-level HMSC (presence/absence) -----------------------------
