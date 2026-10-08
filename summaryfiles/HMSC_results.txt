@@ -1,6 +1,6 @@
 ======================================================================
 Hmsc model results: community ~ SAM + ENSO + SeaIce + whale + (1 | site)
-Generated: 2026-08-26 10:04:45 
+Generated: 2026-10-06 14:07:36 
 ======================================================================
 
 Sites used as random effect:
@@ -28,13 +28,17 @@ Model: Subdivision-level CLR (m)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Acidobacteria_X"       "Alveolata_X"           "Ancyromonadida_X"      "Apicomplexa"           "Apusomonada_X"         "Bigyra"                "Breviatea_X"           "Centroplasthelida_X"  
- [9] "Cercozoa"              "Chlorophyta_X"         "Choanoflagellata"      "Chrompodellids"        "Ciliophora"            "Cryptophyta_X"         "Cryptophyta_X:nucl"    "Dadabacteria_X"       
-[17] "Dinoflagellata"        "Discoba_X"             "Discosea_X"            "Epsilonbacteraeota_X"  "Euglenozoa"            "Eurhodophytina"        "Euryarchaeota_X"       "Evosea_X"             
-[25] "Firmicutes_X"          "Foraminifera"          "Fornicata"             "Fungi"                 "Gyrista"               "Haptophyta_X"          "Hemimastigophora_X"    "Hydrogenedentes_X"    
-[33] "Ichthyosporea"         "Kiritimatiellaeota_X"  "Metamonada_X"          "Metazoa"               "Nebulidia_X"           "Nitrospinae_X"         "Nitrospirae_X"         "Opisthokonta_X"       
-[41] "Perkinsea"             "Picozoa_subdivision_1" "Picozoa_subdivision_2" "Planctomycetes_X"      "Prasinodermophyta_X"   "Proteobacteria_X"      "Radiolaria"            "Rhodophyta_X"         
-[49] "Streptophyta_X"        "Telonemia_X"           "Thaumarchaeota_X"      "Tubulinea_X"           "Verrucomicrobia_X"    
+ [1] "Acidobacteria_X"       "Alveolata_X"           "Ancyromonadida_X"      "Apicomplexa"           "Apusomonada_X"        
+ [6] "Bigyra"                "Breviatea_X"           "Centroplasthelida_X"   "Cercozoa"              "Chlorophyta_X"        
+[11] "Choanoflagellata"      "Chrompodellids"        "Ciliophora"            "Cryptophyta_X"         "Cryptophyta_X:nucl"   
+[16] "Dadabacteria_X"        "Dinoflagellata"        "Discoba_X"             "Discosea_X"            "Epsilonbacteraeota_X" 
+[21] "Euglenozoa"            "Eurhodophytina"        "Euryarchaeota_X"       "Evosea_X"              "Firmicutes_X"         
+[26] "Foraminifera"          "Fornicata"             "Fungi"                 "Gyrista"               "Haptophyta_X"         
+[31] "Hemimastigophora_X"    "Hydrogenedentes_X"     "Ichthyosporea"         "Kiritimatiellaeota_X"  "Metamonada_X"         
+[36] "Metazoa"               "Nebulidia_X"           "Nitrospinae_X"         "Nitrospirae_X"         "Opisthokonta_X"       
+[41] "Perkinsea"             "Picozoa_subdivision_1" "Picozoa_subdivision_2" "Planctomycetes_X"      "Prasinodermophyta_X"  
+[46] "Proteobacteria_X"      "Radiolaria"            "Rhodophyta_X"          "Streptophyta_X"        "Telonemia_X"          
+[51] "Thaumarchaeota_X"      "Tubulinea_X"           "Verrucomicrobia_X"    
 
   Y column summary (mean, sd, min, max):
                          mean     sd     min     max
@@ -402,13 +406,17 @@ Model: Metazoa family CLR (m.fam)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"          "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"      
-[10] "Comesomatidae"      "Convolutidae"       "Cyamiidae"          "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"      
-[19] "Foveolariidae"      "Golfingiidae"       "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"      "Lineidae"           "Lumbrineridae"      "Lysianassidae"     
-[28] "Maldanidae"         "Miraciidae"         "Monhysteridae"      "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
-[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"      "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"   "Salpidae"          
-[46] "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"          "Sternaspidae"       "Syllidae"           "Terebellidae"       "Thyasiridae"        "Tisbidae"           "Ulmaridae"         
-[55] "Yoldiidae"         
+ [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"         
+ [6] "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"       "Comesomatidae"     
+[11] "Convolutidae"       "Cyamiidae"          "Echinoderidae"      "Echinometridae"     "Echiuridae"        
+[16] "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"       "Foveolariidae"      "Golfingiidae"      
+[21] "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"      "Lineidae"          
+[26] "Lumbrineridae"      "Lysianassidae"      "Maldanidae"         "Miraciidae"         "Monhysteridae"     
+[31] "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"      
+[36] "Oikopleuridae"      "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"     
+[41] "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"   "Salpidae"          
+[46] "Siphonodentaliidae" "Speleoithonidae"    "Spionidae"          "Sternaspidae"       "Syllidae"          
+[51] "Terebellidae"       "Thyasiridae"        "Tisbidae"           "Ulmaridae"          "Yoldiidae"         
 
   Y column summary (mean, sd, min, max):
                       mean     sd     min    max
@@ -781,12 +789,17 @@ Model: Metazoa family P/A probit (m.fam.pa)
   Predictors in XData:        SAM, ENSO, SeaIce, whale
 
   Response groups included:
- [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"          "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"      
-[10] "Comesomatidae"      "Convolutidae"       "Cyamiidae"          "Echinoderidae"      "Echinometridae"     "Echiuridae"         "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"      
-[19] "Foveolariidae"      "Golfingiidae"       "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"      "Lineidae"           "Lumbrineridae"      "Lysianassidae"     
-[28] "Maldanidae"         "Miraciidae"         "Monhysteridae"      "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"       "Oikopleuridae"     
-[37] "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"      "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"   "Siphonodentaliidae"
-[46] "Speleoithonidae"    "Spionidae"          "Sternaspidae"       "Syllidae"           "Terebellidae"       "Thyasiridae"        "Tisbidae"           "Ulmaridae"          "Yoldiidae"         
+ [1] "Actinostolidae"     "Ampharetidae"       "Ascidiidae"         "Barentsiidae"       "Bugulidae"         
+ [6] "Callochitonidae"    "Canthocamptidae"    "Cirratulidae"       "Clavelinidae"       "Comesomatidae"     
+[11] "Convolutidae"       "Cyamiidae"          "Echinoderidae"      "Echinometridae"     "Echiuridae"        
+[16] "Ectinosomatidae"    "Edwardsiidae"       "Euphausiidae"       "Foveolariidae"      "Golfingiidae"      
+[21] "Inversiulidae"      "Iphimediidae"       "Lacernidae"         "Leptolaimidae"      "Lineidae"          
+[26] "Lumbrineridae"      "Lysianassidae"      "Maldanidae"         "Miraciidae"         "Monhysteridae"     
+[31] "Mopaliidae"         "Nacellidae"         "Nephtheidae"        "Obeliidae"          "Oerstediidae"      
+[36] "Oikopleuridae"      "Oithonidae"         "Opheliidae"         "Orbiniidae"         "Periphyllidae"     
+[41] "Pleustidae"         "Pontogeneiidae"     "Prayidae"           "Rhopalonematidae"   "Siphonodentaliidae"
+[46] "Speleoithonidae"    "Spionidae"          "Sternaspidae"       "Syllidae"           "Terebellidae"      
+[51] "Thyasiridae"        "Tisbidae"           "Ulmaridae"          "Yoldiidae"         
 
   Y column summary (mean, sd, min, max):
                      mean     sd min max
@@ -1125,45 +1138,69 @@ Explanatory power per taxon (residual = 1 - R2)
 ======================================================================
 
 ---- Subdivision CLR: mean R2 = 0.382 (range 0.091-0.799); mean residual = 0.618 ----
-              Gyrista        Chrompodellids                Bigyra     Hydrogenedentes_X        Dinoflagellata              Cercozoa             Fornicata            Radiolaria          Firmicutes_X 
-                0.799                 0.753                 0.739                 0.689                 0.671                 0.664                 0.663                 0.652                 0.641 
-       Eurhodophytina         Cryptophyta_X         Chlorophyta_X           Nebulidia_X         Nitrospinae_X       Euryarchaeota_X            Discosea_X        Opisthokonta_X   Prasinodermophyta_X 
-                0.629                 0.584                 0.567                 0.564                 0.512                 0.500                 0.442                 0.439                 0.439 
-         Haptophyta_X         Ichthyosporea    Hemimastigophora_X      Ancyromonadida_X             Perkinsea           Telonemia_X        Dadabacteria_X               Metazoa           Breviatea_X 
-                0.428                 0.422                 0.399                 0.382                 0.380                 0.375                 0.353                 0.339                 0.331 
-     Thaumarchaeota_X Picozoa_subdivision_1  Epsilonbacteraeota_X        Streptophyta_X         Nitrospirae_X      Choanoflagellata          Rhodophyta_X     Verrucomicrobia_X             Discoba_X 
-                0.331                 0.329                 0.307                 0.304                 0.303                 0.301                 0.299                 0.295                 0.285 
-         Metamonada_X         Apusomonada_X              Evosea_X          Foraminifera Picozoa_subdivision_2    Cryptophyta_X:nucl           Apicomplexa           Tubulinea_X            Euglenozoa 
-                0.285                 0.272                 0.254                 0.232                 0.229                 0.211                 0.205                 0.193                 0.186 
-                Fungi       Acidobacteria_X           Alveolata_X      Planctomycetes_X      Proteobacteria_X            Ciliophora   Centroplasthelida_X  Kiritimatiellaeota_X 
-                0.184                 0.169                 0.169                 0.153                 0.131                 0.102                 0.091                 0.091 
+              Gyrista        Chrompodellids                Bigyra     Hydrogenedentes_X        Dinoflagellata 
+                0.799                 0.753                 0.739                 0.689                 0.671 
+             Cercozoa             Fornicata            Radiolaria          Firmicutes_X        Eurhodophytina 
+                0.664                 0.663                 0.652                 0.641                 0.629 
+        Cryptophyta_X         Chlorophyta_X           Nebulidia_X         Nitrospinae_X       Euryarchaeota_X 
+                0.584                 0.567                 0.564                 0.512                 0.500 
+           Discosea_X        Opisthokonta_X   Prasinodermophyta_X          Haptophyta_X         Ichthyosporea 
+                0.442                 0.439                 0.439                 0.428                 0.422 
+   Hemimastigophora_X      Ancyromonadida_X             Perkinsea           Telonemia_X        Dadabacteria_X 
+                0.399                 0.382                 0.380                 0.375                 0.353 
+              Metazoa           Breviatea_X      Thaumarchaeota_X Picozoa_subdivision_1  Epsilonbacteraeota_X 
+                0.339                 0.331                 0.331                 0.329                 0.307 
+       Streptophyta_X         Nitrospirae_X      Choanoflagellata          Rhodophyta_X     Verrucomicrobia_X 
+                0.304                 0.303                 0.301                 0.299                 0.295 
+            Discoba_X          Metamonada_X         Apusomonada_X              Evosea_X          Foraminifera 
+                0.285                 0.285                 0.272                 0.254                 0.232 
+Picozoa_subdivision_2    Cryptophyta_X:nucl           Apicomplexa           Tubulinea_X            Euglenozoa 
+                0.229                 0.211                 0.205                 0.193                 0.186 
+                Fungi       Acidobacteria_X           Alveolata_X      Planctomycetes_X      Proteobacteria_X 
+                0.184                 0.169                 0.169                 0.153                 0.131 
+           Ciliophora   Centroplasthelida_X  Kiritimatiellaeota_X 
+                0.102                 0.091                 0.091 
 
 ---- Metazoa family CLR: mean R2 = 0.318 (range 0.093-0.682); mean residual = 0.682 ----
-        Nacellidae      Inversiulidae           Salpidae         Echiuridae         Ascidiidae         Oithonidae       Oerstediidae       Golfingiidae         Opheliidae       Edwardsiidae 
-             0.682              0.610              0.534              0.521              0.502              0.494              0.488              0.469              0.469              0.466 
-      Sternaspidae           Prayidae         Maldanidae          Cyamiidae   Rhopalonematidae       Barentsiidae     Actinostolidae           Lineidae           Syllidae       Terebellidae 
-             0.465              0.453              0.437              0.425              0.385              0.383              0.373              0.372              0.367              0.365 
-      Euphausiidae         Pleustidae        Nephtheidae       Iphimediidae      Monhysteridae         Lacernidae      Periphyllidae     Echinometridae          Ulmaridae       Cirratulidae 
-             0.361              0.354              0.344              0.341              0.339              0.328              0.327              0.322              0.314              0.307 
-         Spionidae Siphonodentaliidae      Comesomatidae         Mopaliidae      Foveolariidae          Obeliidae      Leptolaimidae    Speleoithonidae      Oikopleuridae           Tisbidae 
-             0.289              0.288              0.274              0.274              0.263              0.255              0.250              0.245              0.243              0.243 
-        Miraciidae       Clavelinidae      Lysianassidae         Orbiniidae        Thyasiridae       Ampharetidae      Echinoderidae    Canthocamptidae    Callochitonidae    Ectinosomatidae 
-             0.224              0.206              0.191              0.184              0.182              0.169              0.163              0.159              0.153              0.129 
-    Pontogeneiidae      Lumbrineridae          Yoldiidae          Bugulidae       Convolutidae 
-             0.118              0.114              0.107              0.099              0.093 
+        Nacellidae      Inversiulidae           Salpidae         Echiuridae         Ascidiidae         Oithonidae 
+             0.682              0.610              0.534              0.521              0.502              0.494 
+      Oerstediidae       Golfingiidae         Opheliidae       Edwardsiidae       Sternaspidae           Prayidae 
+             0.488              0.469              0.469              0.466              0.465              0.453 
+        Maldanidae          Cyamiidae   Rhopalonematidae       Barentsiidae     Actinostolidae           Lineidae 
+             0.437              0.425              0.385              0.383              0.373              0.372 
+          Syllidae       Terebellidae       Euphausiidae         Pleustidae        Nephtheidae       Iphimediidae 
+             0.367              0.365              0.361              0.354              0.344              0.341 
+     Monhysteridae         Lacernidae      Periphyllidae     Echinometridae          Ulmaridae       Cirratulidae 
+             0.339              0.328              0.327              0.322              0.314              0.307 
+         Spionidae Siphonodentaliidae      Comesomatidae         Mopaliidae      Foveolariidae          Obeliidae 
+             0.289              0.288              0.274              0.274              0.263              0.255 
+     Leptolaimidae    Speleoithonidae      Oikopleuridae           Tisbidae         Miraciidae       Clavelinidae 
+             0.250              0.245              0.243              0.243              0.224              0.206 
+     Lysianassidae         Orbiniidae        Thyasiridae       Ampharetidae      Echinoderidae    Canthocamptidae 
+             0.191              0.184              0.182              0.169              0.163              0.159 
+   Callochitonidae    Ectinosomatidae     Pontogeneiidae      Lumbrineridae          Yoldiidae          Bugulidae 
+             0.153              0.129              0.118              0.114              0.107              0.099 
+      Convolutidae 
+             0.093 
 
 ---- Metazoa family PA (Tjur R2): mean R2 = 0.300 (range 0.028-0.632); mean residual = 0.700 ----
-     Inversiulidae         Nacellidae           Syllidae     Echinometridae         Oithonidae        Thyasiridae     Actinostolidae           Lineidae         Opheliidae       Golfingiidae 
-             0.632              0.603              0.549              0.543              0.528              0.516              0.501              0.486              0.485              0.450 
-         Cyamiidae           Tisbidae   Rhopalonematidae         Orbiniidae      Oikopleuridae         Maldanidae Siphonodentaliidae         Pleustidae       Convolutidae       Terebellidae 
-             0.426              0.425              0.407              0.402              0.372              0.369              0.363              0.360              0.359              0.346 
-        Echiuridae    Ectinosomatidae       Barentsiidae       Oerstediidae       Sternaspidae          Obeliidae          Bugulidae      Comesomatidae     Pontogeneiidae          Ulmaridae 
-             0.333              0.316              0.313              0.313              0.309              0.296              0.294              0.294              0.282              0.271 
-      Edwardsiidae        Nephtheidae         Mopaliidae      Leptolaimidae       Euphausiidae          Spionidae       Iphimediidae         Miraciidae       Ampharetidae         Lacernidae 
-             0.263              0.241              0.237              0.232              0.231              0.217              0.208              0.206              0.200              0.196 
-   Speleoithonidae          Yoldiidae      Monhysteridae    Callochitonidae      Lumbrineridae      Lysianassidae      Echinoderidae    Canthocamptidae       Clavelinidae       Cirratulidae 
-             0.186              0.183              0.173              0.167              0.165              0.161              0.141              0.139              0.122              0.102 
-     Foveolariidae           Prayidae      Periphyllidae         Ascidiidae 
-             0.079              0.079              0.078              0.028 
+     Inversiulidae         Nacellidae           Syllidae     Echinometridae         Oithonidae        Thyasiridae 
+             0.632              0.603              0.549              0.543              0.528              0.516 
+    Actinostolidae           Lineidae         Opheliidae       Golfingiidae          Cyamiidae           Tisbidae 
+             0.501              0.486              0.485              0.450              0.426              0.425 
+  Rhopalonematidae         Orbiniidae      Oikopleuridae         Maldanidae Siphonodentaliidae         Pleustidae 
+             0.407              0.402              0.372              0.369              0.363              0.360 
+      Convolutidae       Terebellidae         Echiuridae    Ectinosomatidae       Barentsiidae       Oerstediidae 
+             0.359              0.346              0.333              0.316              0.313              0.313 
+      Sternaspidae          Obeliidae          Bugulidae      Comesomatidae     Pontogeneiidae          Ulmaridae 
+             0.309              0.296              0.294              0.294              0.282              0.271 
+      Edwardsiidae        Nephtheidae         Mopaliidae      Leptolaimidae       Euphausiidae          Spionidae 
+             0.263              0.241              0.237              0.232              0.231              0.217 
+      Iphimediidae         Miraciidae       Ampharetidae         Lacernidae    Speleoithonidae          Yoldiidae 
+             0.208              0.206              0.200              0.196              0.186              0.183 
+     Monhysteridae    Callochitonidae      Lumbrineridae      Lysianassidae      Echinoderidae    Canthocamptidae 
+             0.173              0.167              0.165              0.161              0.141              0.139 
+      Clavelinidae       Cirratulidae      Foveolariidae           Prayidae      Periphyllidae         Ascidiidae 
+             0.122              0.102              0.079              0.079              0.078              0.028 
 
 Metazoa family PA: mean AUC = 0.874
