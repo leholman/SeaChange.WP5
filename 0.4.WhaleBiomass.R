@@ -1,4 +1,6 @@
 ### Whale analysis 
+library(tidyverse)
+library(glmmTMB)
 
 ## helper: load, reshape, add pristine=1850
 prep <- function(path) {
@@ -393,4 +395,64 @@ ggplot() +
   theme_classic()
 
 
+## new plot
+library(glmmTMB)
+coredata <- read.csv("metadata/sitemetadata.csv")
+coredata$col <- c("#D55E00","#cc79a7","#0072B2","#f0e442","#009e73")
+site_cols <- setNames(coredata$col, tolower(coredata$Site))
 
+sites <- levels(d$site)
+scol  <- setNames(site_cols[tolower(sites)], sites)
+stopifnot(!anyNA(scol))   # catches any site name mismatch
+xl    <- c(1760, 2025)
+
+## model ----------------------------------------------------------------------
+d$bz <- ave(d$biomass, d$spp_short, FUN = function(z) (z - mean(z)) / sd(z))
+m <- glmmTMB(value ~ spp_short * bz + site, family = nbinom2, data = d)
+summary(m)
+
+## combined figure: rows = species, left = time series, right = model --------
+pdf("figures/whalecomp/whales_edna_biomass.pdf", width = 9, height = 10)
+layout(matrix(1:10, 5, 2, byrow = TRUE), widths = c(2.2, 1))
+par(mgp = c(2, 0.6, 0))
+for (s in spp) {
+  b <- bio[[s]]
+  x <- d[d$spp_short == s, ]
+  pc <- adjustcolor(scol[as.character(x$site)], 0.7)
+  
+  ## left: biomass + detections through time
+  par(mar = c(2.5, 4, 1.5, 4))
+  plot(b$year, b$mid, type = "n", xlim = xl, ylim = range(b$lo, b$hi),
+       xlab = "", ylab = "Modelled biomass", main = s)
+  polygon(c(b$year, rev(b$year)), c(b$lo, rev(b$hi)), col = "grey90", border = NA)
+  lines(b$year, b$mid, lwd = 2)
+  par(new = TRUE)
+  plot(x$dates, x$value, xlim = xl, pch = 16, cex = 0.7, col = pc,
+       axes = FALSE, xlab = "", ylab = "")
+  axis(4)
+  if (s == spp[1])
+    legend("topright", c(sites, "Biomass (median)", "Biomass (95% CI)"),
+           col = c(scol, "black", "grey90"), pch = c(rep(16, length(sites)), NA, 15),
+           lty = c(rep(NA, length(sites)), 1, NA), pt.cex = c(rep(1, length(sites)), 1, 2),
+           bty = "n", cex = 0.8)
+  
+  ## right: detections ~ biomass model
+  nd <- expand.grid(biomass = seq(min(x$biomass), max(x$biomass), length.out = 100),
+                    site = factor(sites, levels = sites),
+                    spp_short = factor(s, levels = spp))
+  nd$bz <- (nd$biomass - mean(x$biomass)) / sd(x$biomass)
+  p <- predict(m, nd, se.fit = TRUE)
+  par(mar = c(2.5, 4, 1.5, 1))
+  plot(x$biomass, x$value, pch = 16, cex = 0.7, col = pc, main = s,
+       xlab = "", ylab = "Positive PCR replicates")
+  for (k in sites) {
+    i <- nd$site == k; xx <- nd$biomass[i]
+    polygon(c(xx, rev(xx)),
+            exp(c(p$fit[i] - 1.96 * p$se.fit[i], rev(p$fit[i] + 1.96 * p$se.fit[i]))),
+            col = adjustcolor(scol[k], 0.15), border = NA)
+    lines(xx, exp(p$fit[i]), col = scol[k], lwd = 2)
+  }
+}
+mtext("Year", side = 1, line = -1.2, outer = TRUE, adj = 0.33)
+mtext("Modelled biomass (tonnes)", side = 1, line = -1.2, outer = TRUE, adj = 0.9)
+dev.off()
