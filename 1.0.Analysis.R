@@ -5390,9 +5390,9 @@ for (species in unique(seals.sum.nreps$spp)){
 }
 
 dev.off()
-pdf("figures/seals.loess.pdf", width = 9, height = 6.5)
-par(mfrow = c(2, 3))
-
+pdf("figures/seals.loess.pdf", width = 6, height = 8)
+par(mfrow = c(5, 1),mar=c(2.1, 3.1, 1.1, 1.1))
+loess <- "yes"
 for (species in unique(seals.sum.nreps$spp)) {
   
   loopdat <- seals.sum.nreps[seals.sum.nreps$spp == species, ]
@@ -5401,11 +5401,13 @@ for (species in unique(seals.sum.nreps$spp)) {
        jitter(loopdat$value, 0.8),
        col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.5),
        main = species,
-       xlab = "Date",
-       ylab = "nPCR reps",
+       xlab = "",
+       ylab = "",
        ylim = c(0, 8),
-       pch = ifelse(loopdat$value > 0, 16, 4))
+       pch = ifelse(loopdat$value > 0, 16, 4),
+       bty = "n")
   
+  if (loess!="no"){
   # Add LOESS smooth per site
   for (s in unique(loopdat$site)) {
     subdat <- loopdat[loopdat$site == s, ]
@@ -5413,10 +5415,17 @@ for (species in unique(seals.sum.nreps$spp)) {
     if (nrow(subdat) > 4) {
       fit <- loess(value ~ dates, data = subdat, span = 0.8)
       lines(subdat$dates, predict(fit),
-            col = coredata$col[match(toupper(s), coredata$Site)],
+            col = add.alpha(coredata$col[match(toupper(s), coredata$Site)], 0.25),
             lwd = 2)
     }
-  }
+  }}
+  set.seed(1234)
+  points(loopdat$dates,
+         jitter(loopdat$value, 0.8),
+         col = coredata$col[match(toupper(loopdat$site), coredata$Site)],
+                            pch = ifelse(loopdat$value > 0, 16, 4))
+  
+  
 }
 
 dev.off()

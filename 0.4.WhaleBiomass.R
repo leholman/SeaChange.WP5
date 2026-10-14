@@ -427,7 +427,7 @@ for (s in spp) {
   polygon(c(b$year, rev(b$year)), c(b$lo, rev(b$hi)), col = "grey90", border = NA)
   lines(b$year, b$mid, lwd = 2)
   par(new = TRUE)
-  plot(x$dates, x$value, xlim = xl, pch = 16, cex = 0.7, col = pc,
+  plot(x$dates, x$value, xlim = xl, pch = 16, cex = 1, col = pc,
        axes = FALSE, xlab = "", ylab = "")
   axis(4)
   if (s == spp[1])
@@ -443,7 +443,7 @@ for (s in spp) {
   nd$bz <- (nd$biomass - mean(x$biomass)) / sd(x$biomass)
   p <- predict(m, nd, se.fit = TRUE)
   par(mar = c(2.5, 4, 1.5, 1))
-  plot(x$biomass, x$value, pch = 16, cex = 0.7, col = pc, main = s,
+  plot(x$biomass, x$value, pch = 16, cex = 1, col = pc, main = s,
        xlab = "", ylab = "Positive PCR replicates")
   for (k in sites) {
     i <- nd$site == k; xx <- nd$biomass[i]
@@ -453,6 +453,5 @@ for (s in spp) {
     lines(xx, exp(p$fit[i]), col = scol[k], lwd = 2)
   }
 }
-mtext("Year", side = 1, line = -1.2, outer = TRUE, adj = 0.33)
-mtext("Modelled biomass (tonnes)", side = 1, line = -1.2, outer = TRUE, adj = 0.9)
 dev.off()
+
