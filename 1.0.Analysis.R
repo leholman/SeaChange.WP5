@@ -1911,7 +1911,7 @@ plot(expandedDates$CalYear[match(gsub("\\.[0-9]+$", "",alpha_genus_avg$sample), 
      ylab="",
      yaxt="n",
      xaxt="n")
-axis(1,at=seq(1775,2000,by=25),labels=seq(1775,2000,by=25),cex.axis=1.5)
+axis(1,at=seq(1775,2025,by=25),labels=seq(1775,2025,by=25),cex.axis=1.5)
 axis(4,at=c(50,100,150,200),labels=c(50,100,150,200))
 mtext("Genus Richness", side = 4, line = 3)
 points(expandedDates$CalYear[match(alpha_genus_avg_reps$replicate, expandedDates$SampleName)],
@@ -5393,7 +5393,7 @@ dev.off()
 pdf("figures/seals.loess.pdf", width = 6, height = 8)
 par(mfrow = c(5, 1),mar=c(2.1, 3.1, 1.1, 1.1))
 loess <- "yes"
-for (species in unique(seals.sum.nreps$spp)) {
+for (species in sort(unique(seals.sum.nreps$spp))) {
   
   loopdat <- seals.sum.nreps[seals.sum.nreps$spp == species, ]
   set.seed(1234)
