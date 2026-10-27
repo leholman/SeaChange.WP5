@@ -1,0 +1,74 @@
+rank,taxon,category,Justification,suppl_category
+Class,Bacillariophyceae,Diatom,diatom,Diatom
+Class,Mediophyceae,Diatom,diatom,Diatom
+Class,Coscinodiscophyceae,Diatom,diatom,Diatom
+Class,Cryptophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Order,Goniomonadales,Exclude,no plastid,Exclude
+Genus,Goniomonas,Exclude,no plastid,Exclude
+Genus,Hemiarma,Exclude,no plastid,Exclude
+Class,Cryptophyceae:nucl,Exclude,nucl,Exclude
+Class,Prymnesiophyceae,Exclude,cocolith,Phototroph
+Order,Prymnesiales,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Isochrysis,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Tisochrysis,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Phaeocystis,Flagellate,photosynthetic + flagellate (single cells),Phototroph
+Order,Phaeocystales,Flagellate,photosynthetic + flagellate (single cells),Phototroph
+Genus,Emiliania,Exclude,cocolith,Phototroph
+Genus,Gephyrocapsa,Exclude,cocolith,Phototroph
+Order,Coccolithales,Exclude,cocolith,Phototroph
+Order,Syracosphaerales,Exclude,cocolith,Phototroph
+Order,Zygodiscales,Exclude,cocolith,Phototroph
+Class,Pavlovophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Haptophyta_Clade_HAP4,Exclude,unknown,Exclude
+Class,Mamiellophyceae,Exclude,mixed group,Phototroph
+Order,Dolichomastigales,Flagellate,photosynthetic + flagellate,Phototroph
+Order,Monomastigales,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Micromonas,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Mantoniella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Mamiella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Bathycoccus,Exclude,no flagelette,Phototroph
+Genus,Ostreococcus,Exclude,no flagelette,Phototroph
+Class,Pyramimonadophyceae,Exclude,mixed group,Phototroph
+Genus,Pyramimonas,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Cymbomonas,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pterosperma,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Halosphaera,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Nephroselmidophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Chlorodendrophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Prasinodermophyceae,Exclude,no flagelette,Phototroph
+Class,Chloropicophyceae,Exclude,no flagelette,Phototroph
+Class,Pseudoscourfieldiophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Pelagophyceae,Exclude,mixed group,Phototroph
+Genus,Pelagomonas,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Aureococcus,Exclude,no flagelette,Phototroph
+Genus,Pelagococcus,Exclude,no flagelette,Phototroph
+Genus,Aureoumbra,Exclude,no flagelette,Phototroph
+Class,Bolidophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Dictyochophyceae,Exclude,mixed group,Exclude
+Genus,Dictyocha,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Distephanus,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Stephanocha,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Octactis,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Florenciella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pseudochattonella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pseudopedinella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pedinella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Apedinella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Mesopedinella,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pteridomonas,Exclude,heterotroph,Exclude
+Genus,Actinomonas,Exclude,heterotroph,Exclude
+Genus,Ciliophrys,Exclude,heterotroph,Exclude
+Genus,Rhizochromulina,Flagellate,photosynthetic + flagellate,Phototroph
+Genus,Pedinellales_X,Exclude,unknown trophic mode (ASV_21),Exclude
+Class,Raphidophyceae,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Chlorarachniophyceae,Exclude,mixed group (amoeboid/coccoid + flagellate),Phototroph
+Genus,Bigelowiella,Flagellate,photosynthetic + flagellate,Phototroph
+Class,Dinophyceae,Flagellate,mixed group,Exclude
+Class,Chrysophyceae,Exclude,mixed group,Exclude
+Class,Chrysomerophyceae,Exclude,no flagelette,Exclude
+Class,Eustigmatophyceae,Exclude,no flagelette,Exclude
+Class,Xanthophyceae,Exclude,no flagelette,Exclude
+Class,Chlorophyceae,Exclude,non marine,Exclude
+Class,Trebouxiophyceae,Exclude,non marine,Exclude
+Class,Euglenophyceae,Exclude,non marine,Exclude
+Class,Klebsormidiophyceae,Exclude,non marine,Exclude

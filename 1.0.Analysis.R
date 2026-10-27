@@ -203,1458 +203,256 @@ local({
   if (length(ghost)) cat("Named but absent from data:", paste(ghost, collapse = ", "), "\n")
 })
 
-##pull in this little class classifier - note check this if it becomes important 
+##pull in this little class classifier 
 classes <- read.csv("taxonomy/class_category.csv")
 
 ASVs.diatom <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Diatom"] & euk.pr2.2$Class.1 > 80]
 ASVs.dino <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Dinoflagellate"] & euk.pr2.2$Class.1 > 80]
-ASVs.smolphy <- euk.pr2.2$X.1[euk.pr2.2$Class %in%  classes$Class[classes$Category=="Pico/nanophytoplankton"] & euk.pr2.2$Class.1 > 80]
+
+## 'smol' = flagellates from the diatom/flagellate key (same call as Fig 4c)
+dia.key  <- read.csv("taxonomy/diatom_flagellate_key.csv", stringsAsFactors = FALSE)
+dia.boot <- c(Class = 80, Order = 60, Family = 60, Genus = 60)
+dia.cat  <- list()
+for (col in c("category", "suppl_category")) {
+  dia.cat[[col]] <- rep(NA, nrow(euk.pr2.2))
+  for (rk in names(dia.boot)) {
+    kk <- dia.key[dia.key$rank == rk, ]
+    ok <- suppressWarnings(as.numeric(euk.pr2.2[[paste0(rk, ".1")]])) > dia.boot[rk] & euk.pr2.2[[rk]] %in% kk$taxon
+    ok[is.na(ok)] <- FALSE
+    if (rk != "Class") ok <- ok & !is.na(dia.cat[[col]])   # lower ranks only refine key classes
+    dia.cat[[col]][ok] <- kk[[col]][match(euk.pr2.2[[rk]][ok], kk$taxon)]
+  }
+}
+ASVs.smolphy <- euk.pr2.2$X.1[dia.cat$category %in% "Flagellate"]
 
 
 ## Taxonomic overview
 
-#EUK taxonomy all family 
-EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Subdivision),euk.reps,output = "Abundance"),minAbun=0.01)
-row.names(EUK.tax.a)[1] <- "Unknown"
-EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[,sort(colnames(EUK.tax.a))]),margin = 2))
-barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
-
-
-pdf("figures/EUK.all.fam.pdf",width = 14,height = 9)
-par(mfrow=c(1,1),mar=c(5.1, 4.1, 1.1, 6.1),xpd=TRUE)
-barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
-legend(150,1,rev(rownames(EUK.tax.a.2)),fill=getPalette(dim(EUK.tax.a.2)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-dev.off()
-
-
-## use this little script to seperate everything 
+## sample -> site / year lookup
 site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
-
 expandedDates <- merge(
   data.frame(SampleName = cn <- colnames(euk.reps),
              Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
              SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
              stringsAsFactors = FALSE),
   dates, by = c("Site", "SampleID"), all.x = TRUE)
-
 expandedDates$originalCalYear <- expandedDates$CalYear
-
 expandedDates$CalYear <- round(expandedDates$CalYear)
+write.csv(expandedDates, "metadata/expandeddates.csv")
 
-write.csv(expandedDates,"metadata/expandeddates.csv")
+all_years  <- min(na.omit(expandedDates$CalYear)):max(na.omit(expandedDates$CalYear))
+sites      <- unique(expandedDates$Site)
+site_order <- c(2, 4, 3, 1, 5)                                 # plotting order, north to south
 
-##loop over sites 
-unique(expandedDates$Site)
-for (site in unique(expandedDates$Site)){
-  loopdat <- EUK.tax.a.2[,colnames(EUK.tax.a.2)%in%(expandedDates$SampleName[expandedDates$Site==site])]
-  pdf(paste0("figures/EUK.",site,".fam.pdf"),width = 7.5,height = 5)
-  par(mfrow=c(1,1),mar=c(3.1, 3.1, 1.1, 1.1),xpd=TRUE)
-  barplot(loopdat,col=rev(getPalette(dim(EUK.tax.a.2)[1])),las=2,names.arg = expandedDates$CalYear[match(colnames(loopdat),expandedDates$SampleName)])  
-  dev.off()
-}
-
-## print out a legend
-
-pal <- rev(getPalette(nrow(EUK.tax.a.2))) 
-pdf("figures/EUK.family.legend.pdf", width = 4.5, height = 9)
-par(mar = c(0, 0, 0, 0))  
-plot.new()
-legend("center",
-       legend = rev(rownames(EUK.tax.a.2)),       
-       fill   = rev(pal),                         
-       bty    = "n",
-       border  = NA,
-       cex    = 0.6,
-       y.intersp = 0.7)
-
-dev.off()
-
-### attempt of a shared x axis
-
-
-# Common, ordered time axis across all sites
-all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
-sites     <- unique(expandedDates$Site)
-
-# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
-# rename the matrix arg so it won't collide with lapply's X
-make_site_year <- function(site, M, map, years){
-  out <- sapply(years, function(y){
-    smps <- map$SampleName[map$Site == site & map$CalYear == y]
-    if (length(smps) == 0) {
-      rep(0, nrow(M))
-    } else if (length(smps) == 1) {
-      M[, smps, drop = FALSE][,1]
-    } else {
-      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
-    }
-  })
-  rownames(out) <- rownames(M)
-  colnames(out) <- years
-  out
-}
-
-### now a helper to plot segments between all the bars
-# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
-
-connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
-  M[is.na(M)] <- 0
-  obs <- which(colSums(M) > 0)
-  if (length(obs) < 2) return(invisible(NULL))
-  cs <- apply(M, 2, cumsum)
-  bt <- rbind(0, cs[-nrow(M), , drop=FALSE])
-  tp <- cs
-  for (r in seq_len(nrow(M))){
-    for (k in seq_len(length(obs) - 1)){
-      i <- obs[k]; j <- obs[k + 1]
-      if (M[r, i] <= minval && M[r, j] <= minval) next
-      polygon(
-        x = c(bp[i], bp[i], bp[j], bp[j]),
-        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
-        col = adjustcolor(cols[r], alpha.f = alpha),
-        border = NA
-      )
-    }
-  }
-  invisible(NULL)
-}
-
-
-# now this works (no name collision)
-site_mats <- setNames(
-  lapply(sites, make_site_year, M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1,], map = expandedDates, years = all_years),
-  sites
-)
-
-# Consistent spacing and limits
-sp <- 0.2
-ylim <- c(0, 1)
-pal <- getPalette(nrow(EUK.tax.a.2)) # you already defined getPalette
-
-pdf("figures/EUK.bigplot.pdf",width = 14,height = 10)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.2, 4.1, 0.5, 1.1),  # small bottom margins for all but last
-    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
-    xpd = NA)
-
-
-
-for (i in c(2,4,3,1,5)) {
-  site <- sites[i]
-  mat  <- site_mats[[site]]
-  
-  # Draw the stacked barplot without x-axis ticks
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t",add = TRUE)
-  
-  # Add a site label on the left
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  
-  
-  # Only the bottom panel gets the shared x-axis
-  if (i == length(sites)) {
-    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
-    mtext("Calibrated year", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,3,
-       legend = rownames(EUK.tax.a.2),
-       fill   = rev(pal),
-       border = NA,
-       cex    = 0.6,
-       bty    = "n",
-       inset  = c(-0.01, 0), xpd = NA)
-
-
-dev.off()
-
-
-##### How about this 
-# Common, ordered time axis across all sites
-all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
-sites     <- unique(expandedDates$Site)
-
-# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
-make_site_year <- function(site, M, map, years){
-  out <- sapply(years, function(y){
-    smps <- map$SampleName[map$Site == site & map$CalYear == y]
-    if (length(smps) == 0) {
-      rep(0, nrow(M))
-    } else if (length(smps) == 1) {
-      M[, smps, drop = FALSE][, 1]
-    } else {
-      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
-    }
-  })
-  rownames(out) <- rownames(M)
-  colnames(out) <- years
-  out
-}
-
-# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
-connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
-  M[is.na(M)] <- 0
-  obs <- which(colSums(M) > 0)
-  if (length(obs) < 2) return(invisible(NULL))
-  cs <- apply(M, 2, cumsum)
-  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
-  tp <- cs
-  for (r in seq_len(nrow(M))){
-    for (k in seq_len(length(obs) - 1)){
-      i <- obs[k]; j <- obs[k + 1]
-      if (M[r, i] <= minval && M[r, j] <= minval) next
-      polygon(
-        x = c(bp[i], bp[i], bp[j], bp[j]),
-        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
-        col = adjustcolor(cols[r], alpha.f = alpha),
-        border = NA
-      )
-    }
-  }
-  invisible(NULL)
-}
-
-site_mats <- setNames(
-  lapply(sites, make_site_year,
-         M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1, ],
-         map = expandedDates,
-         years = all_years),
-  sites
-)
-
-# --- Pastel, colourblind-friendly palette for up to ~15 categories ---
-pastelize <- function(hex, mix = 0.40){
-  rgb_mat <- col2rgb(hex) / 255
-  white   <- matrix(1, nrow = 3, ncol = ncol(rgb_mat))
-  out     <- rgb_mat * (1 - mix) + white * mix
-  rgb(out[1, ], out[2, ], out[3, ])
-}
-
-
-# --- Soft palette with more contrast between taxa ---
-soft_pal <- c(
-  "Unknown"          = "#BDB7AE",  # darker warm grey — recedes
-  "Apicomplexa"      = "#9B7EBD",  # deeper lilac/purple
-  "Bigyra"           = "#5FA8A3",  # teal — saturated but soft
-  "Cercozoa"         = "#E89F71",  # warm peach-orange
-  "Chlorophyta_X"    = "#B8D87A",  # bright sage — pops
-  "Ciliophora"       = "#6FA8DC",  # clear powder blue
-  "Dinoflagellata"   = "#E87A8A",  # rosy pink — saturated
-  "Fungi"            = "#8B6F47",  # warm brown — earthy, distinct
-  "Gyrista"          = "#4A9D6C",  # deeper diatom green
-  "Ichthyosporea"    = "#F2C9A0",  # pale apricot
-  "Metazoa"          = "#C75B93",  # magenta — animal pop
-  "Proteobacteria_X" = "#3D5A80",  # deep slate blue
-  "Radiolaria"       = "#F0D060",  # golden yellow
-  "Others"           = "#8A8A7A"   # darker olive-grey — recedes
-)
-
-pal <- rev(soft_pal[rownames(EUK.tax.a.2)])
-
-# Consistent spacing and limits
-sp   <- 0.2
-ylim <- c(0, 1)
-
-# --- X-axis tick positions: every ~25 years, on round numbers ---
-tick_step  <- 25
-tick_years <- seq(1775,
-                  2025,
-                  by = tick_step)
-
-
-pdf("figures/EUK.bigplot.2.pdf", width = 10, height = 6.5)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.2, 4.1, 0.5, 1.1),
-    oma = c(6, 0, 0, 0),
-    xpd = NA,
-    las = 1)
-
-site_order <- c(2, 4, 3, 1, 5)
-
-for (idx in seq_along(site_order)) {
-  i    <- site_order[idx]
-  site <- sites[i]
-  mat  <- site_mats[[site]]
-  mat[, colSums(mat) == 0] <- NA
-  
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width  = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "s")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
-  barplot(mat,
-          col    = pal,
-          space  = 0,
-          width  = 30,
-          ylim   = ylim,
-          border = NA,
-          xaxt   = "n",
-          yaxt   = "n",
-          add    = TRUE)
-  
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  # Only the bottom panel gets the shared x-axis
-  if (idx == length(site_order)) {
-    # Map calendar years to bar-plot positions (bp is aligned with all_years)
-    tick_pos <- bp[match(tick_years, all_years)]
-    keep     <- !is.na(tick_pos)
-    axis(1,
-         at      = tick_pos[keep],
-         labels  = tick_years[keep],
-         las     = 1,
-         cex.axis = 1.5)
-    mtext("", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,2.4,
-       legend = gsub("_X","",rownames(EUK.tax.a.2)),
-       fill   = rev(pal),            # match plotting order (no rev needed)
-       border = NA,
-       cex    = 1.2,
-       bty    = "n",
-       inset  = c(-0.01, 0),
-       xpd    = NA)
-
-dev.off()
-
-#### NEW TEST 
-pdf("figures/DraftFigures/Fig.2/EUK.bigplot.2v2.pdf", width = 10, height = 6.5)
-
-par(mfrow = c(length(sites), 1),
-    mar   = c(0.2, 4.1, 0.5, 1.1),
-    oma   = c(6, 0, 0, 0),
-    xpd   = NA,
-    las   = 1)
-
-site_order <- c(2, 4, 3, 1, 5)
-
-## shared y-axis ticks: drop the top one so adjacent panels don't collide
-yticks <- pretty(ylim, n = 4)
-yticks <- yticks[yticks >= ylim[1] & yticks < ylim[2]]
-
-## right-hand padding, in bar-width units (bars are 30 wide, space = 0)
-xpad <- 60
-
-for (idx in seq_along(site_order)) {
-  i    <- site_order[idx]
-  site <- sites[i]
-  mat  <- site_mats[[site]]
-  mat[, colSums(mat) == 0] <- NA
-  
-  xr <- c(0, ncol(mat) * 30 + xpad)
-  
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width  = 30,
-                ylim   = ylim,
-                xlim   = xr,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "n")
-  
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
-  
-  barplot(mat,
-          col    = pal,
-          space  = 0,
-          width  = 30,
-          ylim   = ylim,
-          border = NA,
-          xaxt   = "n",
-          yaxt   = "n",
-          add    = TRUE)
-  
-  ## y-axis on the right, sitting in the padded space
-  axis(4,
-       at       = c(yticks,1),
-       pos      = ncol(mat) * 30 + 6,
-       las      = 1,
-       tcl      = -0.25,
-       mgp      = c(3, 0.4, 0),
-       cex.axis = 0.8)
-  
-  ## site name stays in the left margin
-  mtext(site, side = 4, line = 0, las = 0, cex = 0.9)
-  
-  ## bottom panel only: shared x-axis
- # if (idx == length(site_order)) {
-#    tick_pos <- bp[match(tick_years, all_years)]
-#    keep     <- !is.na(tick_pos)
-#    axis(1,
-#         at       = tick_pos[keep],
-#         labels   = tick_years[keep],
-#         las      = 1,
-#         cex.axis = 1.5)
-#  }
-}
-
-## legend — fill order now matches the label order
-legend(0, 2.4,
-       legend = gsub("_X", "", rownames(EUK.tax.a.2)),
-       fill   = pal,
-       border = NA,
-       cex    = 1.2,
-       bty    = "n",
-       xpd    = NA)
-
-dev.off()
-
-
-
-### metazoan subset 
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only Metazoan ASVs (use AFTER relative abundance)
-euk.met.only <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
-euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only),euk.pr2.2$X.1),]
-
-EUK.met <- minAbundance(CountTable(as.character(euk.pr2.2.met$Family),euk.met.only,output = "Abundance"),minAbun=0.01)
-row.names(EUK.met)[1] <- "Unknown"
-
-barplot(as.matrix(EUK.met),col=rev(getPalette(dim(EUK.met)[1])))
-legend(50,0.1,rev(rownames(EUK.met)),fill=getPalette(dim(EUK.met)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only Metazoan ASVs (use AFTER relative abundance)
-euk.met.only <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
-
-## ---- Get Family-level annotations
-euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only), euk.pr2.2$X.1),]
-met.fam <- euk.pr2.2.met$Family
-met.fam[is.na(met.fam) | met.fam == ""] <- "Unknown"
-
-## ---- Collapse to family-level abundance
-EUK.met <- minAbundance(CountTable(as.character(euk.pr2.2.met$Family),euk.met.only,output = "Abundance"),minAbun=0.01)
-rownames(EUK.met)[1] <- "Unknown"
-EUK.met.2 <- as.matrix(EUK.met)
-
-for (site in unique(expandedDates$Site)) {
-  # Identify relevant sample names for this site
-  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
-  
-  # Match to calendar years and sort descending
-  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
-  names(cal_years) <- site_samples
-  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
-  
-  # Subset and reorder columns in loopdat
-  loopdat <- EUK.met.2[, colnames(EUK.met.2) %in% sorted_samples, drop = FALSE]
-  loopdat <- loopdat[, sorted_samples, drop = FALSE]
-  
-  # Barplot
-  pdf(paste0("figures/EUK.metazoa.", site, ".fam.pdf"), width = 7.5, height = 5)
-  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
-  
-  barplot(loopdat,
-          col = rev(getPalette(nrow(EUK.met.2))),
-          las = 2,
-          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
-  
-  dev.off()
-}
-
-
-## ---- Legend for Metazoa only
-pdf("figures/EUK.metazoa.family.legend.pdf", width = 4.5, height = 9)
-par(mar = c(0, 0, 0, 0))  
-plot.new()
-legend("center",
-       legend = rev(rownames(EUK.met.2)), 
-       fill = getPalette(nrow(EUK.met.2)),
-       bty = "n",
-       border = NA,
-       cex = 0.6,
-       y.intersp = 0.7)
-dev.off()
-
-## what about a big plot 
-
-# now this works (no name collision)
-site_mats_met <- setNames(
-  lapply(sites, make_site_year, M = EUK.met.2, map = expandedDates, years = all_years),
-  sites
-)
-
-# Consistent spacing and limits
-sp <- 0.2
-ylim <- c(0, 0.2)
-pal <- rev(getPalette(nrow(EUK.met.2)))  # you already defined getPalette
-
-pdf("figures/EUK.large.met.pdf",width = 14,height = 10)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
-    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
-    xpd = NA)
-
-for (i in c(2,4,3,1,5)) {
-  site <- sites[i]
-  mat  <- site_mats_met[[site]]
-  
-  # Draw the stacked barplot without x-axis ticks
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                #             ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                #             ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t",add=TRUE)
-  
-  # Add a site label on the left
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  
-  
-  # Only the bottom panel gets the shared x-axis
-  if (i == length(sites)) {
-    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
-    mtext("Calibrated year", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,0.4,
-       legend = rownames(EUK.met.2),
-       fill   = pal,
-       border = NA,
-       cex    = 0.6,
-       bty    = "n",
-       inset  = c(-0.01, 0), xpd = NA)
-
-
-dev.off()
-
-
-
-
-
-### lets make some other subsets! 
-
-
-### diatoms
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only diatoms ASVs (use AFTER relative abundance)
-euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
-euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only),euk.pr2.2$X.1),]
-
-EUK.dia <- minAbundance(CountTable(as.character(euk.pr2.2.dia$Order),euk.dia.only,output = "Abundance"),minAbun=0.01)
-row.names(EUK.dia)[1] <- "Unknown"
-
-barplot(as.matrix(EUK.dia),col=rev(getPalette(dim(EUK.dia)[1])))
-legend(50,0.1,rev(rownames(EUK.dia)),fill=getPalette(dim(EUK.dia)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only diaazoan ASVs (use AFTER relative abundance)
-euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
-
-## ---- Get Family-level annotations
-euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1),]
-dia.fam <- euk.pr2.2.dia$Family
-dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
-
-## ---- Collapse to family-level abundance
-EUK.dia <- minAbundance(CountTable(dia.fam,euk.dia.only,output = "Abundance"),minAbun=0.01)
-EUK.dia.2 <- log10(as.matrix(EUK.dia))
-EUK.dia.2[EUK.dia.2 =="-Inf"] <- 0
-EUK.dia.3<-as.matrix(EUK.dia)
-
-
-for (site in unique(expandedDates$Site)) {
-  # Identify relevant sample names for this site
-  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
-  
-  # Match to calendar years and sort descending
-  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
-  names(cal_years) <- site_samples
-  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
-  
-  # Subset and reorder columns in loopdat
-  loopdat <- EUK.dia.2[, colnames(EUK.dia.2) %in% sorted_samples, drop = FALSE]
-  loopdat <- loopdat[, sorted_samples, drop = FALSE]
-  
-  # Barplot
-  pdf(paste0("figures/EUK.dia.", site, ".fam.pdf"), width = 7.5, height = 5)
-  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
-  
-  barplot(loopdat,
-          col = rev(getPalette(nrow(EUK.dia.2))),
-          las = 2,
-          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
-  
-  dev.off()
-}
-
-## ---- Legend for diatoms only
-pdf("figures/EUK.diatom.family.legend.pdf", width = 4.5, height = 9)
-par(mar = c(0, 0, 0, 0))  
-plot.new()
-legend("center",
-       legend = rownames(EUK.dia.2), 
-       fill = getPalette(nrow(EUK.dia.2)),
-       bty = "n",
-       border = NA,
-       cex = 0.6,
-       y.intersp = 0.7)
-dev.off()
-
-## what about a big plot 
-
-# now this works (no name collision)
-site_mats_dia <- setNames(
-  lapply(sites, make_site_year, M = EUK.dia.3, map = expandedDates, years = all_years),
-  sites
-)
-
-# Consistent spacing and limits
-sp <- 0.2
-ylim <- c(0, 1)
-pal <- rev(getPalette(nrow(EUK.dia.3)))  # you already defined getPalette
-
-pdf("figures/EUK.large.dia.pdf",width = 14,height = 10)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
-    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
-    xpd = NA)
-
-for (i in c(2,4,3,1,5)) {
-  site <- sites[i]
-  mat  <- site_mats_dia[[site]]
-  
-  # Draw the stacked barplot without x-axis ticks
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t",add = TRUE)
-  
-  
-  # Add a site label on the left
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  
-  
-  # Only the bottom panel gets the shared x-axis
-  if (i == length(sites)) {
-    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
-    mtext("Calibrated year", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,0.4,
-       legend = rownames(EUK.dia.3),
-       fill   = pal,
-       border = NA,
-       cex    = 0.6,
-       bty    = "n",
-       inset  = c(-0.01, 0), xpd = NA)
-
-
-dev.off()
-
-
-
-
-
-## now we do the dinos 
-
-
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only diatoms ASVs (use AFTER relative abundance)
-euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
-euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only),euk.pr2.2$X.1),]
-
-EUK.din <- minAbundance(CountTable(as.character(euk.pr2.2.din$Order),euk.din.only,output = "Abundance"),minAbun=0.01)
-row.names(EUK.din)[1] <- "Unknown"
-
-barplot(as.matrix(EUK.din),col=rev(getPalette(dim(EUK.din)[1])))
-legend(50,0.1,rev(rownames(EUK.din)),fill=getPalette(dim(EUK.din)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only dinazoan ASVs (use AFTER relative abundance)
-euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
-
-## ---- Get Family-level annotations
-euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1),]
-din.fam <- euk.pr2.2.din$Family
-din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
-
-## ---- Collapse to family-level abundance
-EUK.din <- minAbundance(CountTable(din.fam,euk.din.only,output = "Abundance"),minAbun=0.01)
-EUK.din.2 <- as.matrix(EUK.din)
-
-
-for (site in unique(expandedDates$Site)) {
-  # Identify relevant sample names for this site
-  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
-  
-  # Match to calendar years and sort descending
-  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
-  names(cal_years) <- site_samples
-  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
-  
-  # Subset and reorder columns in loopdat
-  loopdat <- EUK.din.2[, colnames(EUK.din.2) %in% sorted_samples, drop = FALSE]
-  loopdat <- loopdat[, sorted_samples, drop = FALSE]
-  
-  # Barplot
-  pdf(paste0("figures/EUK.din.", site, ".fam.pdf"), width = 7.5, height = 5)
-  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
-  
-  barplot(loopdat,
-          col = rev(getPalette(nrow(EUK.din.2))),
-          las = 2,
-          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
-  
-  dev.off()
-}
-
-## ---- Legend for dintoms only
-pdf("figures/EUK.dino.family.legend.pdf", width = 4.5, height = 9)
-par(mar = c(0, 0, 0, 0))  
-plot.new()
-legend("center",
-       legend = rev(rownames(EUK.din.2)), 
-       fill = getPalette(nrow(EUK.din.2)),
-       bty = "n",
-       border = NA,
-       cex = 0.6,
-       y.intersp = 0.7)
-dev.off()
-
-
-## what about a big plot 
-
-# now this works (no name collision)
-site_mats_din <- setNames(
-  lapply(sites, make_site_year, M = EUK.din.2, map = expandedDates, years = all_years),
-  sites
-)
-
-# Consistent spacing and limits
-sp <- 0.2
-ylim <- c(0, 1)
-pal <- rev(getPalette(nrow(EUK.din.2)))  # you already defined getPalette
-
-pdf("figures/EUK.large.din.pdf",width = 14,height = 10)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
-    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
-    xpd = NA)
-
-for (i in c(2,4,3,1,5)) {
-  site <- sites[i]
-  mat  <- site_mats_din[[site]]
-  
-  # Draw the stacked barplot without x-axis ticks
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                #            ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t",add = TRUE)
-  
-  # Add a site label on the left
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  
-  
-  # Only the bottom panel gets the shared x-axis
-  if (i == length(sites)) {
-    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
-    mtext("Calibrated year", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,0.12,
-       legend = rownames(EUK.din.2),
-       fill   = pal,
-       border = NA,
-       cex    = 0.6,
-       bty    = "n",
-       inset  = c(-0.01, 0), xpd = NA)
-
-
-dev.off()
-
-
-
-
-## finally small phyto
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only diatoms ASVs (use AFTER relative abundance)
-euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
-euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only),euk.pr2.2$X.1),]
-
-EUK.smolphy <- minAbundance(CountTable(as.character(euk.pr2.2.smolphy$Order),euk.smolphy.only,output = "Abundance"),minAbun=0.01)
-
-
-barplot(as.matrix(EUK.smolphy),col=rev(getPalette(dim(EUK.smolphy)[1])))
-legend(50,0.1,rev(rownames(EUK.smolphy)),fill=getPalette(dim(EUK.smolphy)[1]),cex=0.5,bty = "n",y.intersp=0.75)
-
-## ---- Relative abundance first
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
-
-## ---- Subset only smolphyazoan ASVs (use AFTER relative abundance)
-euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, ,drop = FALSE]
-
-## ---- Get Family-level annotations
-euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1),]
-smolphy.fam <- euk.pr2.2.smolphy$Family
-smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
-
-## ---- Collapse to family-level abundance
-EUK.smolphy <- minAbundance(CountTable(smolphy.fam,euk.smolphy.only,output = "Abundance"),minAbun=0.01)
-EUK.smolphy.2 <- as.matrix(EUK.smolphy)
-
-
-for (site in unique(expandedDates$Site)) {
-  # Identify relevant sample names for this site
-  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
-  
-  # Match to calendar years and sort descensmolphyg
-  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
-  names(cal_years) <- site_samples
-  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
-  
-  # Subset and reorder columns in loopdat
-  loopdat <- EUK.smolphy.2[, colnames(EUK.smolphy.2) %in% sorted_samples, drop = FALSE]
-  loopdat <- loopdat[, sorted_samples, drop = FALSE]
-  
-  # Barplot
-  pdf(paste0("figures/EUK.smolphy.", site, ".fam.pdf"), width = 7.5, height = 5)
-  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
-  
-  barplot(loopdat,
-          col = rev(getPalette(nrow(EUK.smolphy.2))),
-          las = 2,
-          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
-  
-  dev.off()
-}
-
-## ---- Legend for smolphytoms only
-pdf("figures/EUK.smolphyo.family.legend.pdf", width = 4.5, height = 9)
-par(mar = c(0, 0, 0, 0))  
-plot.new()
-legend("center",
-       legend = rev(rownames(EUK.smolphy.2)), 
-       fill = getPalette(nrow(EUK.smolphy.2)),
-       bty = "n",
-       border = NA,
-       cex = 0.6,
-       y.intersp = 0.7)
-dev.off()
-
-## what about a big plot 
-
-# now this works (no name collision)
-site_mats_smol <- setNames(
-  lapply(sites, make_site_year, M = EUK.smolphy.2, map = expandedDates, years = all_years),
-  sites
-)
-
-# Consistent spacing and limits
-sp <- 0.2
-ylim <- c(0, 1)
-pal <- rev(getPalette(nrow(EUK.smolphy.2)))  # you already defined getPalette
-
-pdf("figures/EUK.large.smol.pdf",width = 14,height = 10)
-par(mfrow = c(length(sites), 1),
-    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
-    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
-    xpd = NA)
-
-for (i in c(2,4,3,1,5)) {
-  site <- sites[i]
-  mat  <- site_mats_smol[[site]]
-  
-  # Draw the stacked barplot without x-axis ticks
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                #            ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t")
-  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
-  bp <- barplot(mat,
-                col    = pal,
-                space  = 0,
-                width = 30,
-                ylim   = ylim,
-                border = NA,
-                xaxt   = "n",
-                yaxt   = "t",add = TRUE)
-  
-  # Add a site label on the left
-  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-  
-  
-  
-  # Only the bottom panel gets the shared x-axis
-  if (i == length(sites)) {
-    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
-    mtext("Calibrated year", side = 1, line = 4)
-  }
-}
-
-# legend
-legend(0,0.04,
-       legend = rownames(EUK.smolphy.2),
-       fill   = pal,
-       border = NA,
-       cex    = 0.6,
-       bty    = "n",
-       inset  = c(-0.01, 0), xpd = NA)
-
-
-dev.off()
-
-#### what about a ratio???
-
-Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
-
-pdf("figures/EUK.dia.Smol.ratio.pdf",width = 9,height = 4)
-plot(expandedDates$CalYear[match(names(Dia.smol.ratio),expandedDates$SampleName)],
-     log10(Dia.smol.ratio),
-     col=coredata$col[match(toupper(expandedDates$Site[match(names(Dia.smol.ratio),expandedDates$SampleName)]),coredata$Site)],
-     pch=16,
-     xlim=c(2016,1780),
-     xlab="Date",ylab="log10 Diatom-SmallPhytoplankton Ratio",bty="n",axes=FALSE)
-axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
-axis(2)
-dev.off()
-
-
-
-# change point analysis 
-
-
-
-unique(expandedDates$Site)
-
-for (dataset in c("met","dia","din","smolphy"))
-  
-  
-  coniss.helper <- function(site,data){
-    data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
-    data.sub <- data[,grepl(site,data.sites)]
-    data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
-    data.sub.sort <- data.sub[,order(data.sub.years)]
-    data.dist <- vegdist(t(data.sub.sort), method = "bray")
-    data.coniss <- chclust(data.dist, method = "coniss")
-    bs <- bstick(data.coniss)                                           # expected SS decrease under null
-    return(data.coniss)
-  }
-
-BB.met.con <- coniss.helper("BB",euk.met.only) # 2
-cutree(BB.met.con, k = 2)
-MC.met.con <- coniss.helper("MC",euk.met.only) # 5
-cutree(MC.met.con, k = 5)
-p56.met.con <- coniss.helper("p56",euk.met.only) # 3
-cutree(p56.met.con, k = 3)
-p68.met.con <- coniss.helper("p68",euk.met.only) # 3
-cutree(p68.met.con, k = 3)
-SC.met.con <- coniss.helper("SC",euk.met.only) # 6
-cutree(SC.met.con, k = 6)
-
-
-BB.dia.con <- coniss.helper("BB",euk.dia.only) # 3
-cutree(BB.dia.con, k = 3)
-MC.dia.con <- coniss.helper("MC",euk.dia.only) # 3
-cutree(MC.dia.con, k = 3)
-p56.dia.con <- coniss.helper("p56",euk.dia.only) # 2
-cutree(p56.dia.con, k = 2)
-p68.dia.con <- coniss.helper("p68",euk.dia.only) # 3
-cutree(p68.dia.con, k = 3)
-SC.dia.con <- coniss.helper("SC",euk.dia.only) # 6
-cutree(SC.dia.con, k = 1)
-
-
-BB.din.con <- coniss.helper("BB",euk.din.only) # 2
-cutree(BB.din.con, k = 2)
-MC.din.con <- coniss.helper("MC",euk.din.only) # 1
-cutree(MC.din.con, k = 1)
-p56.din.con <- coniss.helper("p56",euk.din.only) # 2
-cutree(p56.din.con, k = 2)
-p68.din.con <- coniss.helper("p68",euk.din.only) # 4
-cutree(p68.din.con, k = 4)
-SC.din.con <- coniss.helper("SC",euk.din.only) # 1
-cutree(SC.din.con, k = 1)
-
-
-BB.smolphy.con <- coniss.helper("BB",euk.smolphy.only) # 2
-cutree(BB.smolphy.con, k = 2)
-MC.smolphy.con <- coniss.helper("MC",euk.smolphy.only) # 1
-cutree(MC.smolphy.con, k = 1)
-p56.smolphy.con <- coniss.helper("p56",euk.smolphy.only) # 3
-cutree(p56.smolphy.con, k = 3)
-p68.smolphy.con <- coniss.helper("p68",euk.smolphy.only) # 2
-cutree(p68.smolphy.con, k = 2)
-SC.smolphy.con <- coniss.helper("SC",euk.smolphy.only) # 2
-cutree(SC.smolphy.con, k = 2)
-
-
-## what about the whole timeseries
-BB.con <- coniss.helper("BB", euk.prop) # 2
-cutree(BB.con, k = 2)
-MC.con <- coniss.helper("MC", euk.prop) # 2
-cutree(MC.con, k = 2)
-p56.con <- coniss.helper("p56", euk.prop) # 4
-cutree(p56.con, k = 4)
-p68.con <- coniss.helper("p68", euk.prop) # 3
-cutree(p68.con, k = 3)
-SC.con <- coniss.helper("SC", euk.prop) # 1
-cutree(SC.con, k = 1)
-
-
-####====Taxonomic overview + CONISS zoned big plots====####
-## Assumes everything up to and including '## Taxonomic overview' has been run
-
-####----0. Build the EUK Subdivision-level matrix used by the first big plot----####
-EUK.tax.a <- minAbundance(
-  CountTable(as.character(euk.pr2.2$Subdivision), euk.reps, output = "Abundance"),
-  minAbun = 0.01
-)
+## whole community: subdivisions as proportions
+EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Subdivision), euk.reps, output = "Abundance"), minAbun = 0.01)
 row.names(EUK.tax.a)[1] <- "Unknown"
-EUK.tax.a.2 <- as.matrix(prop.table(
-  as.matrix(EUK.tax.a[, sort(colnames(EUK.tax.a))]), margin = 2
-))
+EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[, sort(colnames(EUK.tax.a))]), margin = 2))
+
+## ASV-level proportions of all eukaryote reads, then the four subsets
+euk.prop         <- prop.table(as.matrix(euk.reps), margin = 2)
+euk.met.only     <- euk.prop[rownames(euk.prop) %in% ASVs.met,     , drop = FALSE]
+euk.dia.only     <- euk.prop[rownames(euk.prop) %in% ASVs.diatom,  , drop = FALSE]
+euk.din.only     <- euk.prop[rownames(euk.prop) %in% ASVs.dino,    , drop = FALSE]
+euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
+
+## family-level tables for the barplots (families < 1% go to 'Others')
+fam_table <- function(M){
+  fam <- euk.pr2.2$Family[match(rownames(M), euk.pr2.2$X.1)]
+  fam[is.na(fam) | fam == ""] <- "Unknown"
+  as.matrix(minAbundance(CountTable(fam, M, output = "Abundance"), minAbun = 0.01))
+}
+EUK.met.2     <- fam_table(euk.met.only)
+EUK.dia.3     <- fam_table(euk.dia.only)
+EUK.din.2     <- fam_table(euk.din.only)
+EUK.smolphy.2 <- fam_table(euk.smolphy.only)
 
 
-####----1. Helpers shared by all big plots----####
+####----B. Helpers----####
 
+## site x year matrix (all_years on the x axis, zeros where no sample)
 make_site_year <- function(site, M, map, years){
   out <- sapply(years, function(y){
     smps <- map$SampleName[map$Site == site & map$CalYear == y]
-    if (length(smps) == 0) {
-      rep(0, nrow(M))
-    } else if (length(smps) == 1) {
-      M[, smps, drop = FALSE][, 1]
-    } else {
-      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
-    }
+    if (length(smps) == 0) rep(0, nrow(M))
+    else if (length(smps) == 1) M[, smps, drop = FALSE][, 1]
+    else rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
   })
-  rownames(out) <- rownames(M)
-  colnames(out) <- years
+  rownames(out) <- rownames(M); colnames(out) <- years
   out
 }
 
+## light ribbons joining sampled bars across gaps
 connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
   M[is.na(M)] <- 0
   obs <- which(colSums(M) > 0)
   if (length(obs) < 2) return(invisible(NULL))
-  cs <- apply(M, 2, cumsum)
-  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
-  tp <- cs
-  for (r in seq_len(nrow(M))){
-    for (k in seq_len(length(obs) - 1)){
-      i <- obs[k]; j <- obs[k + 1]
-      if (M[r, i] <= minval && M[r, j] <= minval) next
-      polygon(
-        x = c(bp[i], bp[i], bp[j], bp[j]),
-        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
-        col = adjustcolor(cols[r], alpha.f = alpha),
-        border = NA
-      )
-    }
+  cs <- apply(M, 2, cumsum); bt <- rbind(0, cs[-nrow(M), , drop = FALSE]); tp <- cs
+  for (r in seq_len(nrow(M))) for (k in seq_len(length(obs) - 1)) {
+    i <- obs[k]; j <- obs[k + 1]
+    if (M[r, i] <= minval && M[r, j] <= minval) next
+    polygon(c(bp[i], bp[i], bp[j], bp[j]), c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+            col = adjustcolor(cols[r], alpha.f = alpha), border = NA)
   }
   invisible(NULL)
 }
 
-coniss.helper <- function(site, data){
-  data.sites <- expandedDates$Site[match(colnames(data), expandedDates$SampleName)]
-  data.sub   <- data[, grepl(site, data.sites), drop = FALSE]
-  yrs        <- expandedDates$CalYear[match(colnames(data.sub), expandedDates$SampleName)]
-  data.sort  <- data.sub[, order(yrs), drop = FALSE]
-  d   <- vegdist(t(data.sort), method = "bray")
-  con <- chclust(d, method = "coniss")
-  con
+## CONISS for one site: samples in age order, Bray-Curtis on ASV proportions.
+## Samples with no date, or with no reads in this subset, are dropped (they break the distance matrix).
+coniss.helper <- function(site, M){
+  smp <- colnames(M)[expandedDates$Site[match(colnames(M), expandedDates$SampleName)] %in% site]
+  yrs <- expandedDates$CalYear[match(smp, expandedDates$SampleName)]
+  smp <- smp[!is.na(yrs) & colSums(M[, smp, drop = FALSE]) > 0]
+  smp <- smp[order(expandedDates$CalYear[match(smp, expandedDates$SampleName)])]
+  chclust(vegdist(t(M[, smp, drop = FALSE]), method = "bray"), method = "coniss")
 }
 
-coniss_boundaries <- function(con, k, map = expandedDates){
-  if (is.null(con) || k < 2) return(numeric(0))
+## broken-stick suggestion: number of zones before the first split that falls below the broken stick
+k_from_bstick <- function(con){
+  n <- length(con$order)
+  if (n < 4) return(1)
+  bs    <- bstick(con, ng = min(10, n - 1), plot = FALSE)
+  above <- bs$dispersion > bs$bstick
+  if (!above[1]) return(1)
+  if (all(above)) return(max(bs$nGroups))
+  bs$nGroups[which(!above)[1] - 1]
+}
+
+## zone boundaries as years (midpoint between the two samples either side of a split)
+coniss_boundaries <- function(con, k){
+  if (k < 2) return(numeric(0))
   cl  <- cutree(con, k = k)
-  yrs <- map$CalYear[match(names(cl), map$SampleName)]
+  yrs <- expandedDates$CalYear[match(names(cl), expandedDates$SampleName)]
   br  <- which(diff(cl) != 0)
-  if (length(br) == 0) return(numeric(0))
   (yrs[br] + yrs[br + 1]) / 2
 }
 
-draw_zone_lines <- function(boundary_years, bp, all_years,
-                            col = "darkred", lwd = 2, lty = 5){
-  if (length(boundary_years) == 0) return(invisible(NULL))
-  x <- approx(x = all_years, y = bp, xout = boundary_years, rule = 2)$y
-  abline(v = x, col = col, lwd = lwd, lty = lty, xpd = FALSE)
+
+####----C. Main Fig. 1b big plot (unchanged, no zones)----####
+
+site_mats <- setNames(lapply(sites, make_site_year, M = EUK.tax.a.2[nrow(EUK.tax.a.2):1, ],
+                             map = expandedDates, years = all_years), sites)
+soft_pal <- c(
+  "Unknown" = "#BDB7AE", "Apicomplexa" = "#9B7EBD", "Bigyra" = "#5FA8A3", "Cercozoa" = "#E89F71",
+  "Chlorophyta_X" = "#B8D87A", "Ciliophora" = "#6FA8DC", "Dinoflagellata" = "#E87A8A", "Fungi" = "#8B6F47",
+  "Gyrista" = "#4A9D6C", "Ichthyosporea" = "#F2C9A0", "Metazoa" = "#C75B93", "Proteobacteria_X" = "#3D5A80",
+  "Radiolaria" = "#F0D060", "Others" = "#8A8A7A")
+pal    <- rev(soft_pal[rownames(EUK.tax.a.2)])
+ylim   <- c(0, 1)
+yticks <- pretty(ylim, n = 4); yticks <- yticks[yticks >= ylim[1] & yticks < ylim[2]]
+xpad   <- 60
+
+pdf("figures/DraftFigures/Fig.2/EUK.bigplot.2v2.pdf", width = 10, height = 6.5)
+par(mfrow = c(length(sites), 1), mar = c(0.2, 4.1, 0.5, 1.1), oma = c(6, 0, 0, 0), xpd = NA, las = 1)
+for (idx in seq_along(site_order)) {
+  site <- sites[site_order[idx]]
+  mat  <- site_mats[[site]]
+  mat[, colSums(mat) == 0] <- NA
+  bp <- barplot(mat, col = pal, space = 0, width = 30, ylim = ylim, xlim = c(0, ncol(mat) * 30 + xpad),
+                border = NA, xaxt = "n", yaxt = "n")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  barplot(mat, col = pal, space = 0, width = 30, ylim = ylim, border = NA, xaxt = "n", yaxt = "n", add = TRUE)
+  axis(4, at = c(yticks, 1), pos = ncol(mat) * 30 + 6, las = 1, tcl = -0.25, mgp = c(3, 0.4, 0), cex.axis = 0.8)
+  mtext(site, side = 4, line = 0, las = 0, cex = 0.9)
 }
+legend(0, 2.4, legend = gsub("_X", "", rownames(EUK.tax.a.2)), fill = pal, border = NA, cex = 1.2, bty = "n", xpd = NA)
+dev.off()
 
+### CONISS plots
 
-####----2. Build per-taxon community matrices----####
+####----STEP 1. Run CONISS and inspect the diagnostics----####
 
-euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+coniss_data <- list(all  = euk.prop,          # whole community
+                    met  = euk.met.only,      # metazoa
+                    dia  = euk.dia.only,      # diatoms
+                    din  = euk.din.only,      # dinoflagellates
+                    smol = euk.smolphy.only)  # flagellates (key)
 
-## Metazoa
-euk.met.only  <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
-euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only), euk.pr2.2$X.1), ]
-met.fam <- euk.pr2.2.met$Family
-met.fam[is.na(met.fam) | met.fam == ""] <- "Unknown"
-EUK.met   <- minAbundance(CountTable(met.fam, euk.met.only, output = "Abundance"), minAbun = 0.01)
-EUK.met.2 <- as.matrix(EUK.met)
+con <- lapply(coniss_data, function(M) setNames(lapply(sites, coniss.helper, M = M), sites))
 
-## Diatoms
-euk.dia.only  <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
-euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1), ]
-dia.fam <- euk.pr2.2.dia$Family
-dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
-EUK.dia   <- minAbundance(CountTable(dia.fam, euk.dia.only, output = "Abundance"), minAbun = 0.01)
-EUK.dia.3 <- as.matrix(EUK.dia)
-
-## Dinoflagellates
-euk.din.only  <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
-euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1), ]
-din.fam <- euk.pr2.2.din$Family
-din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
-EUK.din   <- minAbundance(CountTable(din.fam, euk.din.only, output = "Abundance"), minAbun = 0.01)
-EUK.din.2 <- as.matrix(EUK.din)
-
-## Small phytoplankton
-euk.smolphy.only  <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
-euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1), ]
-smolphy.fam <- euk.pr2.2.smolphy$Family
-smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
-EUK.smolphy   <- minAbundance(CountTable(smolphy.fam, euk.smolphy.only, output = "Abundance"), minAbun = 0.01)
-EUK.smolphy.2 <- as.matrix(EUK.smolphy)
-
-
-####----3. Site/year scaffolding----####
-
-site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
-
-if (!exists("expandedDates")) {
-  cn <- colnames(euk.reps)
-  expandedDates <- merge(
-    data.frame(SampleName = cn,
-               Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
-               SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
-               stringsAsFactors = FALSE),
-    dates, by = c("Site", "SampleID"), all.x = TRUE
-  )
-  expandedDates$originalCalYear <- expandedDates$CalYear
-  expandedDates$CalYear         <- round(expandedDates$CalYear)
+## one page per dataset: left = dendrogram labelled by year, right = broken-stick plot
+pdf("figures/CONISS_diagnostics.pdf", width = 10, height = 14)
+for (ds in names(con)) {
+  par(mfrow = c(length(sites), 2), mar = c(3, 4, 2.5, 1), oma = c(0, 0, 2, 0))
+  for (s in sites[site_order]) {
+    cc  <- con[[ds]][[s]]
+    yrs <- expandedDates$CalYear[match(cc$labels, expandedDates$SampleName)]
+    plot(cc, labels = yrs, hang = -1, main = paste(s, "- dendrogram"), cex = 0.6)
+    if (length(cc$order) >= 4) {
+      bstick(cc, ng = min(10, length(cc$order) - 1))
+      title(paste(s, "- broken stick (suggested k =", k_from_bstick(cc), ")"))
+    } else plot.new()
+  }
+  mtext(paste("CONISS:", ds), outer = TRUE, font = 2)
 }
+dev.off()
 
-all_years  <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
-sites      <- unique(expandedDates$Site)
-site_order <- c(2, 4, 3, 1, 5)
+## broken-stick suggestions (rows = dataset, columns = site)
+k_suggest <- t(sapply(con, function(x) sapply(x, k_from_bstick)))
+print(k_suggest)
 
+k_zones <- k_suggest
 
-####----4. CONISS for every site x dataset combination----####
+print(k_zones)
 
-k_all  <- c(BB = 2, MC = 2, p56 = 4, p68 = 3, SC = 1)
-k_met  <- c(BB = 2, MC = 5, p56 = 3, p68 = 3, SC = 6)
-k_dia  <- c(BB = 3, MC = 3, p56 = 2, p68 = 3, SC = 1)
-k_din  <- c(BB = 2, MC = 1, p56 = 2, p68 = 4, SC = 1)
-k_smol <- c(BB = 2, MC = 1, p56 = 3, p68 = 2, SC = 2)
-
-run_coniss_all_sites <- function(M){
-  setNames(lapply(sites, function(s) coniss.helper(s, M)), sites)
-}
-
-con_all  <- run_coniss_all_sites(euk.prop)
-con_met  <- run_coniss_all_sites(euk.met.only)
-con_dia  <- run_coniss_all_sites(euk.dia.only)
-con_din  <- run_coniss_all_sites(euk.din.only)
-con_smol <- run_coniss_all_sites(euk.smolphy.only)
-
-zone_years <- function(con_list, k_vec){
-  setNames(lapply(names(con_list),
-                  function(s) coniss_boundaries(con_list[[s]], k_vec[s])),
-           names(con_list))
-}
-
-zones_all  <- zone_years(con_all,  k_all)
-zones_met  <- zone_years(con_met,  k_met)
-zones_dia  <- zone_years(con_dia,  k_dia)
-zones_din  <- zone_years(con_din,  k_din)
-zones_smol <- zone_years(con_smol, k_smol)
+zones <- lapply(setNames(names(con), names(con)), function(ds)
+  setNames(lapply(sites, function(s) coniss_boundaries(con[[ds]][[s]], k_zones[ds, s])), sites))
+str(zones)                                               # boundary years per dataset and site
 
 
-####----5. Pre-compute site x year matrices and shared ylim per dataset----####
+####----STEP 3. Zoned big plots----####
 
-build_site_mats <- function(M_full){
-  setNames(
-    lapply(sites, make_site_year, M = M_full,
-           map = expandedDates, years = all_years),
-    sites
-  )
-}
-
-# largest stacked-bar total observed across all sites for this dataset
-shared_ylim_max <- function(site_mats){
-  vals <- unlist(lapply(site_mats, function(mat) {
-    mat[is.na(mat)] <- 0
-    colSums(mat)
-  }))
-  max(vals, na.rm = TRUE)
-}
-
-site_mats_all  <- build_site_mats(EUK.tax.a.2[nrow(EUK.tax.a.2):1, ])
-site_mats_met  <- build_site_mats(EUK.met.2)
-site_mats_dia  <- build_site_mats(EUK.dia.3)
-site_mats_din  <- build_site_mats(EUK.din.2)
-site_mats_smol <- build_site_mats(EUK.smolphy.2)
-
-ymax_all  <- shared_ylim_max(site_mats_all)    # ~1 (proportions sum to 1)
-ymax_met  <- shared_ylim_max(site_mats_met)
-ymax_dia  <- shared_ylim_max(site_mats_dia)
-ymax_din  <- shared_ylim_max(site_mats_din)
-ymax_smol <- shared_ylim_max(site_mats_smol)
-
-
-####----6. Core plotting function----####
-# Same y-axis (0, ymax) across all 5 site panels of a dataset.
-# Legend placed on the LAST (bottom) panel using user-supplied coords,
-# matching the carefully placed legends from the original plots.
-
-big_plot_with_zones <- function(site_mats,
-                                zones_by_site,
-                                pal,
-                                ymax,
-                                pdf_path,
-                                legend_x, legend_y,
-                                legend_labels,
-                                legend_fill,
-                                legend_cex   = 0.6,
-                                ribbon_alpha = 0.70,
-                                width = 14, height = 10){
-  pdf(pdf_path, width = width, height = height)
-  par(mfrow = c(length(sites), 1),
-      mar = c(0.5, 4.1, 1.1, 1.1),
-      oma = c(6, 0, 0, 0),
-      xpd = NA)
-  
-  ylim <- c(0, ymax)
-  
+big_plot_with_zones <- function(M, zones_by_site, pal, pdf_path, legend_x, legend_y,
+                                legend_labels, legend_fill, ribbon_alpha = 0.70){
+  site_mats <- setNames(lapply(sites, make_site_year, M = M, map = expandedDates, years = all_years), sites)
+  ymax <- max(unlist(lapply(site_mats, colSums)), na.rm = TRUE)   # same y axis for every site
+  pdf(pdf_path, width = 14, height = 10)
+  par(mfrow = c(length(sites), 1), mar = c(0.5, 4.1, 1.1, 1.1), oma = c(6, 0, 0, 0), xpd = NA)
   for (idx in seq_along(site_order)) {
-    i    <- site_order[idx]
-    site <- sites[i]
+    site <- sites[site_order[idx]]
     mat  <- site_mats[[site]]
-    
-    bp <- barplot(mat,
-                  col    = pal,
-                  space  = 0,
-                  width  = 30,
-                  ylim   = ylim,
-                  border = NA,
-                  xaxt   = "n",
-                  yaxt   = "t")
+    bp <- barplot(mat, col = pal, space = 0, width = 30, ylim = c(0, ymax), border = NA, xaxt = "n")
     connect_observed(M = mat, bp = bp, cols = pal, alpha = ribbon_alpha)
-    barplot(mat,
-            col    = pal,
-            space  = 0,
-            width  = 30,
-            ylim   = ylim,
-            border = NA,
-            xaxt   = "n",
-            yaxt   = "t",
-            add    = TRUE)
-    
-    draw_zone_lines(zones_by_site[[site]], bp, all_years)
-    
+    barplot(mat, col = pal, space = 0, width = 30, ylim = c(0, ymax), border = NA, xaxt = "n", add = TRUE)
+    if (length(zones_by_site[[site]]))                             # dashed lines at zone boundaries
+      abline(v = approx(all_years, bp, xout = zones_by_site[[site]], rule = 2)$y,
+             col = "darkred", lwd = 2, lty = 5, xpd = FALSE)
     mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
-    
     if (idx == length(site_order)) {
       axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
       mtext("Calibrated year", side = 1, line = 4)
-      
-      # Legend on the bottom panel; xpd = NA lets it draw outside the panel
-      legend(legend_x, legend_y,
-             legend = legend_labels,
-             fill   = legend_fill,
-             border = NA,
-             cex    = legend_cex,
-             bty    = "n",
-             inset  = c(-0.01, 0),
-             xpd    = NA)
+      legend(legend_x, legend_y, legend = legend_labels, fill = legend_fill,
+             border = NA, cex = 1.2, bty = "n", xpd = NA)
     }
   }
   dev.off()
 }
 
-
-####----7. Produce all five zoned big plots, with original legend placement----####
-
-if (!dir.exists("figures")) dir.create("figures", recursive = TRUE)
-
-# 7a. Whole-community Subdivision plot
-#     Original (EUK.bigplot.pdf): legend(0, 3, ..., fill = rev(pal), cex = 0.6)
+## legend_x / legend_y are in the bottom panel's coordinates 
 pal_all <- getPalette(nrow(EUK.tax.a.2))
-big_plot_with_zones(
-  site_mats     = site_mats_all,
-  zones_by_site = zones_all,
-  pal           = pal_all,
-  ymax          = ymax_all,
-  pdf_path      = "figures/EUK.bigplot.zoned.pdf",
-  legend_x      = 0, legend_y = 3,
-  legend_labels = rownames(EUK.tax.a.2),
-  legend_fill   = rev(pal_all),
-  legend_cex    = 0.6,
-  ribbon_alpha  = 0.70
-)
+big_plot_with_zones(EUK.tax.a.2[nrow(EUK.tax.a.2):1, ], zones$all, pal_all, "figures/EUK.bigplot.zoned.pdf",
+                    0, 1.8,    rownames(EUK.tax.a.2),   rev(pal_all))
 
-# 7b. Metazoa
-#     Original (EUK.large.met.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
 pal_met <- rev(getPalette(nrow(EUK.met.2)))
-big_plot_with_zones(
-  site_mats     = site_mats_met,
-  zones_by_site = zones_met,
-  pal           = pal_met,
-  ymax          = ymax_met,
-  pdf_path      = "figures/EUK.large.met.zoned.pdf",
-  legend_x      = 0, legend_y = 0.4,
-  legend_labels = rownames(EUK.met.2),
-  legend_fill   = pal_met,
-  legend_cex    = 0.6,
-  ribbon_alpha  = 0.70
-)
+big_plot_with_zones(EUK.met.2, zones$met, pal_met, "figures/EUK.large.met.zoned.pdf",
+                    0, 0.48,  rownames(EUK.met.2),     pal_met)
 
-# 7c. Diatoms
-#     Original (EUK.large.dia.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
 pal_dia <- rev(getPalette(nrow(EUK.dia.3)))
-big_plot_with_zones(
-  site_mats     = site_mats_dia,
-  zones_by_site = zones_dia,
-  pal           = pal_dia,
-  ymax          = ymax_dia,
-  pdf_path      = "figures/EUK.large.dia.zoned.pdf",
-  legend_x      = 0, legend_y = 0.4,
-  legend_labels = rownames(EUK.dia.3),
-  legend_fill   = pal_dia,
-  legend_cex    = 0.6,
-  ribbon_alpha  = 0.35
-)
+big_plot_with_zones(EUK.dia.3, zones$dia, pal_dia, "figures/EUK.large.dia.zoned.pdf",
+                    0, 0.6,  rownames(EUK.dia.3),     pal_dia, ribbon_alpha = 0.35)
 
-# 7d. Dinoflagellates
-#     Original (EUK.large.din.pdf): legend(0, 0.12, ..., fill = pal, cex = 0.6)
 pal_din <- rev(getPalette(nrow(EUK.din.2)))
-big_plot_with_zones(
-  site_mats     = site_mats_din,
-  zones_by_site = zones_din,
-  pal           = pal_din,
-  ymax          = ymax_din,
-  pdf_path      = "figures/EUK.large.din.zoned.pdf",
-  legend_x      = 0, legend_y = 0.12,
-  legend_labels = rownames(EUK.din.2),
-  legend_fill   = pal_din,
-  legend_cex    = 0.6,
-  ribbon_alpha  = 0.35
-)
+big_plot_with_zones(EUK.din.2, zones$din, pal_din, "figures/EUK.large.din.zoned.pdf",
+                    0, 0.08, rownames(EUK.din.2),     pal_din, ribbon_alpha = 0.35)
 
-# 7e. Small phytoplankton
-#     Original (EUK.large.smol.pdf): legend(0, 0.04, ..., fill = pal, cex = 0.6)
 pal_smol <- rev(getPalette(nrow(EUK.smolphy.2)))
-big_plot_with_zones(
-  site_mats     = site_mats_smol,
-  zones_by_site = zones_smol,
-  pal           = pal_smol,
-  ymax          = ymax_smol,
-  pdf_path      = "figures/EUK.large.smol.zoned.pdf",
-  legend_x      = 0, legend_y = 0.2,
-  legend_labels = rownames(EUK.smolphy.2),
-  legend_fill   = pal_smol,
-  legend_cex    = 0.6,
-  ribbon_alpha  = 0.35
-)
+big_plot_with_zones(EUK.smolphy.2, zones$smol, pal_smol, "figures/EUK.large.smol.zoned.pdf",
+                    0, 0.14,  rownames(EUK.smolphy.2), pal_smol, ribbon_alpha = 0.35)
 
-####----8. PDF → PNG via sips (one line each)----####
-
-library(parallel)
-
-pdfs <- c("figures/EUK.bigplot.zoned.pdf",
-          "figures/EUK.large.met.zoned.pdf",
-          "figures/EUK.large.dia.zoned.pdf",
-          "figures/EUK.large.din.zoned.pdf",
-          "figures/EUK.large.smol.zoned.pdf")
-
-invisible(mclapply(pdfs, function(f) {
-  system2("sips", c("-s","format","png","-z",6000,8400, f, "--out", sub("\\.pdf$",".png",f)))
-}, mc.cores = 5))
-
-
+## PDF -> PNG (macOS sips)
+for (f in c("figures/EUK.bigplot.zoned.pdf", "figures/EUK.large.met.zoned.pdf", "figures/EUK.large.dia.zoned.pdf",
+            "figures/EUK.large.din.zoned.pdf", "figures/EUK.large.smol.zoned.pdf"))
+  system2("sips", c("-s", "format", "png", "-z", 6000, 8400, f, "--out", sub("\\.pdf$", ".png", f)))
 
 
 ### Alpha diversity 
@@ -2693,10 +1491,10 @@ plot_dbrda <- function(mod, title, trajectories = FALSE) {
   # legend("topright", legend = u_sites, col = u_cols,
   #      pch = 16, cex = 0.75, bty = "n")
 }
-pdf("figures/stat.beta.dbRDA.b.pdf",height = 8,width = 8)
+pdf("figures/stat.beta.dbRDA.b.pdf",height = 6,width = 6)
 plot_dbrda(mod_bray, "",trajectories =FALSE )
 dev.off()
-pdf("figures/stat.beta.dbRDA.j.pdf",height = 8,width = 8)
+pdf("figures/stat.beta.dbRDA.j.pdf",height = 6,width = 6)
 plot_dbrda(mod_jacc, "",trajectories =FALSE )
 dev.off()
 
@@ -4075,10 +2873,6 @@ hmsc_supp_table(m.fam.pa, setNames(fit.pa$TjurR2, m.fam.pa$spNames),
                 "summaryfiles/TableS_HMSC_metazoa_PA.csv",   disp_tab)
 
 
-
-
-
-
 ##### Now we make a composite figure for specific taxa
 
 ## First we pull in whales
@@ -4188,11 +2982,38 @@ euk.salkril.nReps.long <- nr_long |>
 euk.salkril.nReps.long$site <- expandedDates$Site[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
 euk.salkril.nReps.long$dates <- expandedDates$CalYear[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
 
+### now we pull in the diatom vs flagellete comp
+
+dia.key  <- read.csv("taxonomy/diatom_flagellate_key.csv", stringsAsFactors = FALSE)
+dia.boot <- c(Class = 80, Order = 60, Family = 60, Genus = 60)
+dia.cat  <- list()
+for (col in c("category", "suppl_category")) {
+  dia.cat[[col]] <- rep(NA, nrow(euk.pr2.2))
+  for (rk in names(dia.boot)) {
+    kk <- dia.key[dia.key$rank == rk, ]
+    ok <- suppressWarnings(as.numeric(euk.pr2.2[[paste0(rk, ".1")]])) > dia.boot[rk] & euk.pr2.2[[rk]] %in% kk$taxon
+    ok[is.na(ok)] <- FALSE
+    if (rk != "Class") ok <- ok & !is.na(dia.cat[[col]])   # lower ranks only refine key classes
+    dia.cat[[col]][ok] <- kk[[col]][match(euk.pr2.2[[rk]][ok], kk$taxon)]
+  }
+}
+EUK.dia.key <- euk.prop[rownames(euk.prop) %in% euk.pr2.2$X.1[dia.cat$category %in% "Diatom"], ]
+EUK.fla     <- euk.prop[rownames(euk.prop) %in% euk.pr2.2$X.1[dia.cat$category %in% "Flagellate"], ]
+EUK.pho     <- euk.prop[rownames(euk.prop) %in% euk.pr2.2$X.1[dia.cat$suppl_category %in% "Phototroph"], ]
+
+## sample years and sites (same samples for every ratio)
+rat.yr   <- expandedDates$CalYear[match(colnames(euk.prop), expandedDates$SampleName)]
+rat.site <- expandedDates$Site[match(colnames(euk.prop), expandedDates$SampleName)]
 
 
 #####BUILD THE PLOT
 
 margins <- c(2.1, 4.1, 1.1, 2.1)
+
+## Trend lines: one GAM per site, smoothness chosen by REML from that site's own data,
+## with a 95% CI band that widens where samples are sparse.
+## nPCR panels use a binomial GAM (positive reps out of 16 or 8), so fit and band stay within 0-1.
+library(mgcv)
 
 loopdat <- whales.sum.nreps[whales.sum.nreps$spp == "Balaenoptera musculus", ]
 
@@ -4209,11 +3030,21 @@ axis(2,las=2)
 for (s in unique(loopdat$site)) {
   sub <- loopdat[loopdat$site == s, ]
   sub <- sub[order(sub$dates), ]
-  if (nrow(sub) > 4) {
-    fit <- loess(value/16 ~ dates, data = sub, span = 0.8)
-    lines(sub$dates, predict(fit),
-          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  sub <- sub[!is.na(sub$dates), ]
+  if (nrow(sub) > 4 && sum(sub$value) > 0) {
+    fit <- gam(cbind(value, 16 - value) ~ s(dates, k = min(10, length(unique(sub$dates)) - 2)),
+               family = binomial, data = sub, method = "REML")
+    nd  <- data.frame(dates = seq(min(sub$dates), max(sub$dates), length.out = 200))
+    pr  <- predict(fit, nd, se.fit = TRUE)
+    polygon(c(nd$dates, rev(nd$dates)), plogis(c(pr$fit + 1.96*pr$se.fit, rev(pr$fit - 1.96*pr$se.fit))),
+            col = add.alpha(coredata$col[match(toupper(s), coredata$Site)], 0.1), border = NA)
+    lines(nd$dates, plogis(pr$fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 3)
   }
+  set.seed(1234)
+  points(loopdat$dates, jitter(loopdat$value, 0.8)/16,
+         col=coredata$col[match(toupper(loopdat$site), coredata$Site)],
+         pch = ifelse(loopdat$value > 0, 16, 4))
 }
 dev.off()
 
@@ -4222,7 +3053,7 @@ loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp == "Euphausiidae", 
 pdf("figures/DraftFigures/Fig.4/krill.pdf", width = 12, height = 3)
 par(xpd = NA,mar=margins)  
 set.seed(1234)
-plot(loopdat$dates, jitter(loopdat$value, 0.8)/8,
+plot(loopdat$dates, jitter(loopdat$value, 0.4)/8,
      xlim = c(1750, 2026), ylim = c(0, 1),
      col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.6),
      pch = ifelse(loopdat$value > 0, 16, 4),
@@ -4233,171 +3064,75 @@ axis(4,las=2)
 for (s in unique(loopdat$site)) {
   sub <- loopdat[loopdat$site == s, ]
   sub <- sub[order(sub$dates), ]
-  if (nrow(sub) > 4) {
-    fit <- loess(value/8 ~ dates, data = sub, span = 0.8)
-    lines(sub$dates, predict(fit),
-          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+  sub <- sub[!is.na(sub$dates), ]
+  if (nrow(sub) > 4 && sum(sub$value) > 0) {
+    fit <- gam(cbind(value, 8 - value) ~ s(dates, k = min(10, length(unique(sub$dates)) - 2)),
+               family = binomial, data = sub, method = "REML")
+    nd  <- data.frame(dates = seq(min(sub$dates), max(sub$dates), length.out = 200))
+    pr  <- predict(fit, nd, se.fit = TRUE)
+    polygon(c(nd$dates, rev(nd$dates)), plogis(c(pr$fit + 1.96*pr$se.fit, rev(pr$fit - 1.96*pr$se.fit))),
+            col = add.alpha(coredata$col[match(toupper(s), coredata$Site)], 0.08), border = NA)
+    lines(nd$dates, plogis(pr$fit),
+          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 3)
   }
+  set.seed(1234)
+  points(loopdat$dates, jitter(loopdat$value, 0.4)/8,
+         col=coredata$col[match(toupper(loopdat$site), coredata$Site)],
+         pch = ifelse(loopdat$value > 0, 16, 4))
 }
 dev.off()
 
-loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp == "Salpa", ]
-
-pdf("figures/DraftFigures/Fig.4/salpa.pdf", width = 12, height = 3)
-par(xpd = NA,mar=margins)  
-set.seed(1234)
-plot(loopdat$dates, jitter(loopdat$value, 0.8)/8,
-     xlim = c(1750, 2026), ylim = c(0, 1),
-     col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)], 0.6),
-     pch = ifelse(loopdat$value > 0, 16, 4),
-     main = "", xlab = "", ylab = "", bty = "n",axes = FALSE)
-axis(2,las=2)
-
-for (s in unique(loopdat$site)) {
-  sub <- loopdat[loopdat$site == s, ]
-  sub <- sub[order(sub$dates), ]
-  if (nrow(sub) > 4) {
-    fit <- loess(value/8 ~ dates, data = sub, span = 0.8)
-    lines(sub$dates, predict(fit),
-          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
-  }
-}
-dev.off()
-
-
-
-Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
-
-pdf("figures/DraftFigures/Fig.4/EUK.dia.Smol.ratio.pdf", width = 12, height = 3)
-par(xpd = NA, mar = margins)
-
-dates <- expandedDates$CalYear[match(names(Dia.smol.ratio), expandedDates$SampleName)]
-sites <- expandedDates$Site[match(names(Dia.smol.ratio), expandedDates$SampleName)]
-vals  <- log10(Dia.smol.ratio)
-
-plot(dates, vals,
-     col = coredata$col[match(toupper(sites), coredata$Site)],
-     pch = 16,
+####----Fig 4c: diatom : flagellate----####
+Dia.fla.ratio <- colSums(EUK.dia.key)/colSums(EUK.fla)
+pdf("figures/DraftFigures/Fig.4/EUK.dia.fla.ratio.pdf",width = 12,height = 3)
+par(xpd = NA,mar=margins)
+plot(rat.yr, log10(Dia.fla.ratio),
+     col=coredata$col[match(toupper(rat.site),toupper(coredata$Site))],
+     pch=16,
      xlim = c(1750, 2026),
-     xlab = "Date", ylab = "", bty = "n")
-
-for (s in unique(sites)) {
-  keep <- sites == s & is.finite(vals) & !is.na(dates)
+     xlab="Date",ylab="",bty="n",xaxt = "n")
+for (s in unique(rat.site)) {
+  keep <- rat.site == s & is.finite(log10(Dia.fla.ratio)) & !is.na(rat.yr)
   if (sum(keep) > 4) {
-    ord <- order(dates[keep])
-    d <- dates[keep][ord]
-    v <- vals[keep][ord]
-    fit <- loess(v ~ d, span = 0.8)
-    lines(d, predict(fit),
-          col = coredata$col[match(toupper(s), coredata$Site)], lwd = 2)
+    d <- rat.yr[keep][order(rat.yr[keep])]
+    v <- log10(Dia.fla.ratio)[keep][order(rat.yr[keep])]
+    fit <- gam(v ~ s(d, k = min(10, length(unique(d)) - 2)), method = "REML")
+    nd  <- data.frame(d = seq(min(d), max(d), length.out = 200))
+    pr  <- predict(fit, nd, se.fit = TRUE)
+    polygon(c(nd$d, rev(nd$d)), c(pr$fit + 1.96*pr$se.fit, rev(pr$fit - 1.96*pr$se.fit)),
+            col = add.alpha(coredata$col[match(toupper(s), toupper(coredata$Site))], 0.08), border = NA)
+    lines(nd$d, pr$fit, col = coredata$col[match(toupper(s), toupper(coredata$Site))], lwd = 3)
   }
+  points(rat.yr, log10(Dia.fla.ratio),col=coredata$col[match(toupper(rat.site),toupper(coredata$Site))],pch=16)
 }
+axis(1,at=seq(1750,2025,by=25),label=seq(1750,2025,by=25))
 dev.off()
 
-
-#### Lets start with some salps and krill
-
-euk.salkril <- euk[euk.tax$family=="Euphausiidae"|
-                     euk.tax$family=="Salpidae",]
-euk.salkril <- euk.salkril[!is.na(euk.salkril[,1]),]
-euk.salkril.tax <- euk.tax[match(rownames(euk.salkril),euk.tax$X.1),]
-
-write.csv(cbind(euk.salkril,euk.salkril.tax),"cleandata/clean.EUK.salkril.csv")
-
-
-## Pull in manually annotated data 
-euk.salkril.man <- read.csv("cleandata/clean.EUK.salkril.byhand.csv",row.names = 1)
-
-# divide by original read number to get proportion 
-euk.salkril.man[,1:992] <- sweep(euk.salkril.man[,1:992],2,colSums(euk),FUN="/")
-euk.salkril.man[euk.salkril.man=="NaN"] <- 0
-euk.salkril.man[is.na(euk.salkril.man)] <- 0
-
-
-#Aggregate same species
-datain <- cbind(euk.salkril.man[,1:992],"manualSpecies"=euk.salkril.man$Assignment)
-euk.salkril.sum <- aggregate(.~manualSpecies,data=datain,FUN=sum)
-rownames(euk.salkril.sum) <- euk.salkril.sum$manualSpecies
-euk.salkril.sum <- euk.salkril.sum[,-1]
-euk.salkril.sum <- euk.salkril.sum[!rownames(euk.salkril.sum)=="",]
-
-## Lets make an nREPs dataset 
-
-euk.salkril.nReps <- NrepsMaker(euk.salkril.sum*100000000000000,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
-euk.salkril.avr <- average_by_reps(euk.salkril.sum,gsub("(.*).[0-9]$","\\1",colnames(euk.salkril.sum)))
-
-
-
-nr_long <- tibble(spp = rownames(euk.salkril.nReps), euk.salkril.nReps) |>
-  pivot_longer(-spp, names_to = "column", values_to = "value")
-
-# long averages
-avr_long <- tibble(spp = rownames(euk.salkril.avr), euk.salkril.avr) |>
-  pivot_longer(-spp, names_to = "column", values_to = "avg")
-
-# add avg as a new column
-euk.salkril.nReps.long <- nr_long |>
-  left_join(avr_long, by = c("spp","column"))
-
-
-euk.salkril.nReps.long$site <- expandedDates$Site[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
-euk.salkril.nReps.long$dates <- expandedDates$CalYear[match(euk.salkril.nReps.long$column,expandedDates$SampleName)]
-
-
-#Plots
-#change the values a bit so they match the dates
-
-pdf("figures/EUK.salkril.v1.pdf",width = 9,height =3.5)
-par(mfrow=c(1,3))
-
-for (species in unique(euk.salkril.nReps.long$spp)){
-  
-  loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp==species,]
-  set.seed(1234)
-  plot(loopdat$dates,
-       jitter(loopdat$value,0.8),
-       col=coredata$col[match(toupper(loopdat$site),coredata$Site)],
-       main=species,
-       xlab="Date",
-       ylab="nPCR reps",
-       ylim=c(0,8),
-       pch=ifelse(loopdat$value>0,16,4))
-  
-  
-}
-
-dev.off()
-pdf("figures/EUK.salkril.v1.trends.pdf", width = 9, height = 3.5)
-par(mfrow = c(1, 3))
-
-for (species in unique(euk.salkril.nReps.long$spp)) {
-  
-  loopdat <- euk.salkril.nReps.long[euk.salkril.nReps.long$spp == species, ]
-  set.seed(1234)
-  plot(loopdat$dates,
-       jitter(loopdat$value, 0.8),
-       col = add.alpha(coredata$col[match(toupper(loopdat$site), coredata$Site)],0.5),
-       main = species,
-       xlab = "Date",
-       ylab = "nPCR reps",
-       ylim = c(0, 8),
-       pch = ifelse(loopdat$value > 0, 16, 4))
-  
-  # Add LOESS smooth per site
-  for (s in unique(loopdat$site)) {
-    subdat <- loopdat[loopdat$site == s, ]
-    # sort by date to ensure smooth lines
-    subdat <- subdat[order(subdat$dates), ]
-    # only fit if enough points
-    if (nrow(subdat) > 4) {
-      fit <- loess(value ~ dates, data = subdat, span = 0.8)
-      lines(subdat$dates, predict(fit), 
-            col = coredata$col[match(toupper(s), coredata$Site)],
-            lwd = 2)
-    }
+####----Fig S: diatom : all non-diatom phototrophs (no dinoflagellates)----####
+Dia.pho.ratio.noDino <- colSums(EUK.dia.key)/colSums(EUK.pho)
+pdf("figures/DraftFigures/FigS_EUK.dia.pho.ratio.noDino.pdf",width = 12,height = 5)
+par(xpd = NA,mar=c(5.1, 4.1, 1.1, 1.1))
+plot(rat.yr, log10(Dia.pho.ratio.noDino),
+     col=coredata$col[match(toupper(rat.site),toupper(coredata$Site))],
+     pch=16,
+     xlim = c(1750, 2026),
+     xlab="Date",
+     ylab= expression(log[10]*" (diatom : phototroph reads)"),
+     bty="n",xaxt="n")
+for (s in unique(rat.site)) {
+  keep <- rat.site == s & is.finite(log10(Dia.pho.ratio.noDino)) & !is.na(rat.yr)
+  if (sum(keep) > 4) {
+    d <- rat.yr[keep][order(rat.yr[keep])]
+    v <- log10(Dia.pho.ratio.noDino)[keep][order(rat.yr[keep])]
+    fit <- gam(v ~ s(d, k = min(10, length(unique(d)) - 2)), method = "REML")
+    nd  <- data.frame(d = seq(min(d), max(d), length.out = 200))
+    pr  <- predict(fit, nd, se.fit = TRUE)
+    polygon(c(nd$d, rev(nd$d)), c(pr$fit + 1.96*pr$se.fit, rev(pr$fit - 1.96*pr$se.fit)),
+            col = add.alpha(coredata$col[match(toupper(s), toupper(coredata$Site))], 0.2), border = NA)
+    lines(nd$d, pr$fit, col = coredata$col[match(toupper(s), toupper(coredata$Site))], lwd = 2)
   }
 }
-
+axis(1,at=seq(1750,2025,by=25),label=seq(1750,2025,by=25))
 dev.off()
 
 
@@ -8113,6 +6848,1451 @@ sink("summaryfiles/HMSC_guild_tests.txt", append = TRUE)
 cat("\n==== Guild contrasts, all predictors (Table S$) ====\n")
 print(tab, row.names = FALSE)
 sink()
+
+#### OLD TAXONOMY PLOTS 
+
+
+#EUK taxonomy all family 
+EUK.tax.a <- minAbundance(CountTable(as.character(euk.pr2.2$Subdivision),euk.reps,output = "Abundance"),minAbun=0.01)
+row.names(EUK.tax.a)[1] <- "Unknown"
+EUK.tax.a.2 <- as.matrix(prop.table(as.matrix(EUK.tax.a[,sort(colnames(EUK.tax.a))]),margin = 2))
+barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
+
+
+pdf("figures/EUK.all.fam.pdf",width = 14,height = 9)
+par(mfrow=c(1,1),mar=c(5.1, 4.1, 1.1, 6.1),xpd=TRUE)
+barplot(EUK.tax.a.2,col=rev(getPalette(dim(EUK.tax.a.2)[1])))
+legend(150,1,rev(rownames(EUK.tax.a.2)),fill=getPalette(dim(EUK.tax.a.2)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+dev.off()
+
+
+## use this little script to seperate everything 
+site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
+
+expandedDates <- merge(
+  data.frame(SampleName = cn <- colnames(euk.reps),
+             Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
+             SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
+             stringsAsFactors = FALSE),
+  dates, by = c("Site", "SampleID"), all.x = TRUE)
+
+expandedDates$originalCalYear <- expandedDates$CalYear
+
+expandedDates$CalYear <- round(expandedDates$CalYear)
+
+write.csv(expandedDates,"metadata/expandeddates.csv")
+
+##loop over sites 
+unique(expandedDates$Site)
+for (site in unique(expandedDates$Site)){
+  loopdat <- EUK.tax.a.2[,colnames(EUK.tax.a.2)%in%(expandedDates$SampleName[expandedDates$Site==site])]
+  pdf(paste0("figures/EUK.",site,".fam.pdf"),width = 7.5,height = 5)
+  par(mfrow=c(1,1),mar=c(3.1, 3.1, 1.1, 1.1),xpd=TRUE)
+  barplot(loopdat,col=rev(getPalette(dim(EUK.tax.a.2)[1])),las=2,names.arg = expandedDates$CalYear[match(colnames(loopdat),expandedDates$SampleName)])  
+  dev.off()
+}
+
+## print out a legend
+
+pal <- rev(getPalette(nrow(EUK.tax.a.2))) 
+pdf("figures/EUK.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.tax.a.2)),       
+       fill   = rev(pal),                         
+       bty    = "n",
+       border  = NA,
+       cex    = 0.6,
+       y.intersp = 0.7)
+
+dev.off()
+
+### attempt of a shared x axis
+
+
+# Common, ordered time axis across all sites
+all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites     <- unique(expandedDates$Site)
+
+# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
+# rename the matrix arg so it won't collide with lapply's X
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][,1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+### now a helper to plot segments between all the bars
+# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
+
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop=FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+
+# now this works (no name collision)
+site_mats <- setNames(
+  lapply(sites, make_site_year, M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1,], map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- getPalette(nrow(EUK.tax.a.2)) # you already defined getPalette
+
+pdf("figures/EUK.bigplot.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.2, 4.1, 0.5, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,3,
+       legend = rownames(EUK.tax.a.2),
+       fill   = rev(pal),
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+##### How about this 
+# Common, ordered time axis across all sites
+all_years <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites     <- unique(expandedDates$Site)
+
+# Helper: make a site x year matrix of *proportions* (averaging if multiple samples per year)
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][, 1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+# Draw light "ribbons" connecting non-zero stacked bars across zero gaps
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+site_mats <- setNames(
+  lapply(sites, make_site_year,
+         M = EUK.tax.a.2[dim(EUK.tax.a.2)[1]:1, ],
+         map = expandedDates,
+         years = all_years),
+  sites
+)
+
+# --- Pastel, colourblind-friendly palette for up to ~15 categories ---
+pastelize <- function(hex, mix = 0.40){
+  rgb_mat <- col2rgb(hex) / 255
+  white   <- matrix(1, nrow = 3, ncol = ncol(rgb_mat))
+  out     <- rgb_mat * (1 - mix) + white * mix
+  rgb(out[1, ], out[2, ], out[3, ])
+}
+
+
+# --- Soft palette with more contrast between taxa ---
+soft_pal <- c(
+  "Unknown"          = "#BDB7AE",  # darker warm grey — recedes
+  "Apicomplexa"      = "#9B7EBD",  # deeper lilac/purple
+  "Bigyra"           = "#5FA8A3",  # teal — saturated but soft
+  "Cercozoa"         = "#E89F71",  # warm peach-orange
+  "Chlorophyta_X"    = "#B8D87A",  # bright sage — pops
+  "Ciliophora"       = "#6FA8DC",  # clear powder blue
+  "Dinoflagellata"   = "#E87A8A",  # rosy pink — saturated
+  "Fungi"            = "#8B6F47",  # warm brown — earthy, distinct
+  "Gyrista"          = "#4A9D6C",  # deeper diatom green
+  "Ichthyosporea"    = "#F2C9A0",  # pale apricot
+  "Metazoa"          = "#C75B93",  # magenta — animal pop
+  "Proteobacteria_X" = "#3D5A80",  # deep slate blue
+  "Radiolaria"       = "#F0D060",  # golden yellow
+  "Others"           = "#8A8A7A"   # darker olive-grey — recedes
+)
+
+pal <- rev(soft_pal[rownames(EUK.tax.a.2)])
+
+# Consistent spacing and limits
+sp   <- 0.2
+ylim <- c(0, 1)
+
+# --- X-axis tick positions: every ~25 years, on round numbers ---
+tick_step  <- 25
+tick_years <- seq(1775,
+                  2025,
+                  by = tick_step)
+
+
+pdf("figures/EUK.bigplot.2.pdf", width = 10, height = 6.5)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.2, 4.1, 0.5, 1.1),
+    oma = c(6, 0, 0, 0),
+    xpd = NA,
+    las = 1)
+
+site_order <- c(2, 4, 3, 1, 5)
+
+for (idx in seq_along(site_order)) {
+  i    <- site_order[idx]
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  mat[, colSums(mat) == 0] <- NA
+  
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width  = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "s")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  barplot(mat,
+          col    = pal,
+          space  = 0,
+          width  = 30,
+          ylim   = ylim,
+          border = NA,
+          xaxt   = "n",
+          yaxt   = "n",
+          add    = TRUE)
+  
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  # Only the bottom panel gets the shared x-axis
+  if (idx == length(site_order)) {
+    # Map calendar years to bar-plot positions (bp is aligned with all_years)
+    tick_pos <- bp[match(tick_years, all_years)]
+    keep     <- !is.na(tick_pos)
+    axis(1,
+         at      = tick_pos[keep],
+         labels  = tick_years[keep],
+         las     = 1,
+         cex.axis = 1.5)
+    mtext("", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,2.4,
+       legend = gsub("_X","",rownames(EUK.tax.a.2)),
+       fill   = rev(pal),            # match plotting order (no rev needed)
+       border = NA,
+       cex    = 1.2,
+       bty    = "n",
+       inset  = c(-0.01, 0),
+       xpd    = NA)
+
+dev.off()
+
+#### NEW TEST 
+pdf("figures/DraftFigures/Fig.2/EUK.bigplot.2v2.pdf", width = 10, height = 6.5)
+
+par(mfrow = c(length(sites), 1),
+    mar   = c(0.2, 4.1, 0.5, 1.1),
+    oma   = c(6, 0, 0, 0),
+    xpd   = NA,
+    las   = 1)
+
+site_order <- c(2, 4, 3, 1, 5)
+
+## shared y-axis ticks: drop the top one so adjacent panels don't collide
+yticks <- pretty(ylim, n = 4)
+yticks <- yticks[yticks >= ylim[1] & yticks < ylim[2]]
+
+## right-hand padding, in bar-width units (bars are 30 wide, space = 0)
+xpad <- 60
+
+for (idx in seq_along(site_order)) {
+  i    <- site_order[idx]
+  site <- sites[i]
+  mat  <- site_mats[[site]]
+  mat[, colSums(mat) == 0] <- NA
+  
+  xr <- c(0, ncol(mat) * 30 + xpad)
+  
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width  = 30,
+                ylim   = ylim,
+                xlim   = xr,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "n")
+  
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  
+  barplot(mat,
+          col    = pal,
+          space  = 0,
+          width  = 30,
+          ylim   = ylim,
+          border = NA,
+          xaxt   = "n",
+          yaxt   = "n",
+          add    = TRUE)
+  
+  ## y-axis on the right, sitting in the padded space
+  axis(4,
+       at       = c(yticks,1),
+       pos      = ncol(mat) * 30 + 6,
+       las      = 1,
+       tcl      = -0.25,
+       mgp      = c(3, 0.4, 0),
+       cex.axis = 0.8)
+  
+  ## site name stays in the left margin
+  mtext(site, side = 4, line = 0, las = 0, cex = 0.9)
+  
+  ## bottom panel only: shared x-axis
+  # if (idx == length(site_order)) {
+  #    tick_pos <- bp[match(tick_years, all_years)]
+  #    keep     <- !is.na(tick_pos)
+  #    axis(1,
+  #         at       = tick_pos[keep],
+  #         labels   = tick_years[keep],
+  #         las      = 1,
+  #         cex.axis = 1.5)
+  #  }
+}
+
+## legend — fill order now matches the label order
+legend(0, 2.4,
+       legend = gsub("_X", "", rownames(EUK.tax.a.2)),
+       fill   = pal,
+       border = NA,
+       cex    = 1.2,
+       bty    = "n",
+       xpd    = NA)
+
+dev.off()
+
+
+
+### metazoan subset 
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only Metazoan ASVs (use AFTER relative abundance)
+euk.met.only <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
+euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only),euk.pr2.2$X.1),]
+
+EUK.met <- minAbundance(CountTable(as.character(euk.pr2.2.met$Family),euk.met.only,output = "Abundance"),minAbun=0.01)
+row.names(EUK.met)[1] <- "Unknown"
+
+barplot(as.matrix(EUK.met),col=rev(getPalette(dim(EUK.met)[1])))
+legend(50,0.1,rev(rownames(EUK.met)),fill=getPalette(dim(EUK.met)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only Metazoan ASVs (use AFTER relative abundance)
+euk.met.only <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only), euk.pr2.2$X.1),]
+met.fam <- euk.pr2.2.met$Family
+met.fam[is.na(met.fam) | met.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.met <- minAbundance(CountTable(as.character(euk.pr2.2.met$Family),euk.met.only,output = "Abundance"),minAbun=0.01)
+rownames(EUK.met)[1] <- "Unknown"
+EUK.met.2 <- as.matrix(EUK.met)
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descending
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.met.2[, colnames(EUK.met.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.metazoa.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.met.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+
+## ---- Legend for Metazoa only
+pdf("figures/EUK.metazoa.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.met.2)), 
+       fill = getPalette(nrow(EUK.met.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_met <- setNames(
+  lapply(sites, make_site_year, M = EUK.met.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 0.2)
+pal <- rev(getPalette(nrow(EUK.met.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.met.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_met[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #             ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.70)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #             ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add=TRUE)
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.4,
+       legend = rownames(EUK.met.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+
+### lets make some other subsets! 
+
+
+### diatoms
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only),euk.pr2.2$X.1),]
+
+EUK.dia <- minAbundance(CountTable(as.character(euk.pr2.2.dia$Order),euk.dia.only,output = "Abundance"),minAbun=0.01)
+row.names(EUK.dia)[1] <- "Unknown"
+
+barplot(as.matrix(EUK.dia),col=rev(getPalette(dim(EUK.dia)[1])))
+legend(50,0.1,rev(rownames(EUK.dia)),fill=getPalette(dim(EUK.dia)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diaazoan ASVs (use AFTER relative abundance)
+euk.dia.only <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1),]
+dia.fam <- euk.pr2.2.dia$Family
+dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.dia <- minAbundance(CountTable(dia.fam,euk.dia.only,output = "Abundance"),minAbun=0.01)
+EUK.dia.2 <- log10(as.matrix(EUK.dia))
+EUK.dia.2[EUK.dia.2 =="-Inf"] <- 0
+EUK.dia.3<-as.matrix(EUK.dia)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descending
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.dia.2[, colnames(EUK.dia.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.dia.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.dia.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for diatoms only
+pdf("figures/EUK.diatom.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rownames(EUK.dia.2), 
+       fill = getPalette(nrow(EUK.dia.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_dia <- setNames(
+  lapply(sites, make_site_year, M = EUK.dia.3, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.dia.3)))  # you already defined getPalette
+
+pdf("figures/EUK.large.dia.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_dia[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
+  
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.4,
+       legend = rownames(EUK.dia.3),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+
+## now we do the dinos 
+
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only),euk.pr2.2$X.1),]
+
+EUK.din <- minAbundance(CountTable(as.character(euk.pr2.2.din$Order),euk.din.only,output = "Abundance"),minAbun=0.01)
+row.names(EUK.din)[1] <- "Unknown"
+
+barplot(as.matrix(EUK.din),col=rev(getPalette(dim(EUK.din)[1])))
+legend(50,0.1,rev(rownames(EUK.din)),fill=getPalette(dim(EUK.din)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only dinazoan ASVs (use AFTER relative abundance)
+euk.din.only <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1),]
+din.fam <- euk.pr2.2.din$Family
+din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.din <- minAbundance(CountTable(din.fam,euk.din.only,output = "Abundance"),minAbun=0.01)
+EUK.din.2 <- as.matrix(EUK.din)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descending
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.din.2[, colnames(EUK.din.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.din.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.din.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for dintoms only
+pdf("figures/EUK.dino.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.din.2)), 
+       fill = getPalette(nrow(EUK.din.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_din <- setNames(
+  lapply(sites, make_site_year, M = EUK.din.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.din.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.din.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_din[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #            ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.12,
+       legend = rownames(EUK.din.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+
+
+
+## finally small phyto
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only diatoms ASVs (use AFTER relative abundance)
+euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only),euk.pr2.2$X.1),]
+
+EUK.smolphy <- minAbundance(CountTable(as.character(euk.pr2.2.smolphy$Order),euk.smolphy.only,output = "Abundance"),minAbun=0.01)
+
+
+barplot(as.matrix(EUK.smolphy),col=rev(getPalette(dim(EUK.smolphy)[1])))
+legend(50,0.1,rev(rownames(EUK.smolphy)),fill=getPalette(dim(EUK.smolphy)[1]),cex=0.5,bty = "n",y.intersp=0.75)
+
+## ---- Relative abundance first
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## ---- Subset only smolphyazoan ASVs (use AFTER relative abundance)
+euk.smolphy.only <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, ,drop = FALSE]
+
+## ---- Get Family-level annotations
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1),]
+smolphy.fam <- euk.pr2.2.smolphy$Family
+smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
+
+## ---- Collapse to family-level abundance
+EUK.smolphy <- minAbundance(CountTable(smolphy.fam,euk.smolphy.only,output = "Abundance"),minAbun=0.01)
+EUK.smolphy.2 <- as.matrix(EUK.smolphy)
+
+
+for (site in unique(expandedDates$Site)) {
+  # Identify relevant sample names for this site
+  site_samples <- expandedDates$SampleName[expandedDates$Site == site]
+  
+  # Match to calendar years and sort descensmolphyg
+  cal_years <- expandedDates$CalYear[match(site_samples, expandedDates$SampleName)]
+  names(cal_years) <- site_samples
+  sorted_samples <- names(sort(cal_years, decreasing = TRUE))
+  
+  # Subset and reorder columns in loopdat
+  loopdat <- EUK.smolphy.2[, colnames(EUK.smolphy.2) %in% sorted_samples, drop = FALSE]
+  loopdat <- loopdat[, sorted_samples, drop = FALSE]
+  
+  # Barplot
+  pdf(paste0("figures/EUK.smolphy.", site, ".fam.pdf"), width = 7.5, height = 5)
+  par(mfrow = c(1,1), mar = c(3.1, 3.1, 1.1, 1.1), xpd = TRUE)
+  
+  barplot(loopdat,
+          col = rev(getPalette(nrow(EUK.smolphy.2))),
+          las = 2,
+          names.arg = expandedDates$CalYear[match(colnames(loopdat), expandedDates$SampleName)])
+  
+  dev.off()
+}
+
+## ---- Legend for smolphytoms only
+pdf("figures/EUK.smolphyo.family.legend.pdf", width = 4.5, height = 9)
+par(mar = c(0, 0, 0, 0))  
+plot.new()
+legend("center",
+       legend = rev(rownames(EUK.smolphy.2)), 
+       fill = getPalette(nrow(EUK.smolphy.2)),
+       bty = "n",
+       border = NA,
+       cex = 0.6,
+       y.intersp = 0.7)
+dev.off()
+
+## what about a big plot 
+
+# now this works (no name collision)
+site_mats_smol <- setNames(
+  lapply(sites, make_site_year, M = EUK.smolphy.2, map = expandedDates, years = all_years),
+  sites
+)
+
+# Consistent spacing and limits
+sp <- 0.2
+ylim <- c(0, 1)
+pal <- rev(getPalette(nrow(EUK.smolphy.2)))  # you already defined getPalette
+
+pdf("figures/EUK.large.smol.pdf",width = 14,height = 10)
+par(mfrow = c(length(sites), 1),
+    mar = c(0.5, 4.1, 1.1, 1.1),  # small bottom margins for all but last
+    oma = c(6, 0, 0, 0),          # outer bottom margin for axis labels room
+    xpd = NA)
+
+for (i in c(2,4,3,1,5)) {
+  site <- sites[i]
+  mat  <- site_mats_smol[[site]]
+  
+  # Draw the stacked barplot without x-axis ticks
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                #            ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t")
+  connect_observed(M = mat, bp = bp, cols = pal, alpha = 0.35)
+  bp <- barplot(mat,
+                col    = pal,
+                space  = 0,
+                width = 30,
+                ylim   = ylim,
+                border = NA,
+                xaxt   = "n",
+                yaxt   = "t",add = TRUE)
+  
+  # Add a site label on the left
+  mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+  
+  
+  
+  # Only the bottom panel gets the shared x-axis
+  if (i == length(sites)) {
+    axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+    mtext("Calibrated year", side = 1, line = 4)
+  }
+}
+
+# legend
+legend(0,0.04,
+       legend = rownames(EUK.smolphy.2),
+       fill   = pal,
+       border = NA,
+       cex    = 0.6,
+       bty    = "n",
+       inset  = c(-0.01, 0), xpd = NA)
+
+
+dev.off()
+
+#### what about a ratio???
+
+Dia.smol.ratio <- colSums(EUK.dia.3)/colSums(EUK.smolphy.2)
+
+pdf("figures/EUK.dia.Smol.ratio.pdf",width = 9,height = 4)
+plot(expandedDates$CalYear[match(names(Dia.smol.ratio),expandedDates$SampleName)],
+     log10(Dia.smol.ratio),
+     col=coredata$col[match(toupper(expandedDates$Site[match(names(Dia.smol.ratio),expandedDates$SampleName)]),coredata$Site)],
+     pch=16,
+     xlim=c(2016,1780),
+     xlab="Date",ylab="log10 Diatom-SmallPhytoplankton Ratio",bty="n",axes=FALSE)
+axis(1,lwd=0,lwd.ticks = 1,at = seq(2000,1750,-25),labels = seq(2000,1750,-25) )  
+axis(2)
+dev.off()
+
+
+
+# change point analysis 
+
+
+
+unique(expandedDates$Site)
+
+for (dataset in c("met","dia","din","smolphy"))
+  
+  
+  coniss.helper <- function(site,data){
+    data.sites <- expandedDates$Site[match(colnames(data),expandedDates$SampleName)]
+    data.sub <- data[,grepl(site,data.sites)]
+    data.sub.years <- expandedDates$CalYear[match(colnames(data.sub),expandedDates$SampleName)]
+    data.sub.sort <- data.sub[,order(data.sub.years)]
+    data.dist <- vegdist(t(data.sub.sort), method = "bray")
+    data.coniss <- chclust(data.dist, method = "coniss")
+    bs <- bstick(data.coniss)                                           # expected SS decrease under null
+    return(data.coniss)
+  }
+
+BB.met.con <- coniss.helper("BB",euk.met.only) # 2
+cutree(BB.met.con, k = 2)
+MC.met.con <- coniss.helper("MC",euk.met.only) # 5
+cutree(MC.met.con, k = 5)
+p56.met.con <- coniss.helper("p56",euk.met.only) # 3
+cutree(p56.met.con, k = 3)
+p68.met.con <- coniss.helper("p68",euk.met.only) # 3
+cutree(p68.met.con, k = 3)
+SC.met.con <- coniss.helper("SC",euk.met.only) # 6
+cutree(SC.met.con, k = 6)
+
+
+BB.dia.con <- coniss.helper("BB",euk.dia.only) # 3
+cutree(BB.dia.con, k = 1)
+MC.dia.con <- coniss.helper("MC",euk.dia.only) # 3
+cutree(MC.dia.con, k = 1)
+p56.dia.con <- coniss.helper("p56",euk.dia.only) # 2
+cutree(p56.dia.con, k = 1)
+p68.dia.con <- coniss.helper("p68",euk.dia.only) # 3
+cutree(p68.dia.con, k = 1)
+SC.dia.con <- coniss.helper("SC",euk.dia.only) # 6
+cutree(SC.dia.con, k = 3)
+
+
+BB.din.con <- coniss.helper("BB",euk.din.only) # 2
+cutree(BB.din.con, k = 2)
+MC.din.con <- coniss.helper("MC",euk.din.only) # 1
+cutree(MC.din.con, k = 1)
+p56.din.con <- coniss.helper("p56",euk.din.only) # 2
+cutree(p56.din.con, k = 2)
+p68.din.con <- coniss.helper("p68",euk.din.only) # 4
+cutree(p68.din.con, k = 4)
+SC.din.con <- coniss.helper("SC",euk.din.only) # 1
+cutree(SC.din.con, k = 1)
+
+
+BB.smolphy.con <- coniss.helper("BB",euk.smolphy.only) # 2
+cutree(BB.smolphy.con, k = 2)
+MC.smolphy.con <- coniss.helper("MC",euk.smolphy.only) # 1
+cutree(MC.smolphy.con, k = 1)
+p56.smolphy.con <- coniss.helper("p56",euk.smolphy.only) # 3
+cutree(p56.smolphy.con, k = 3)
+p68.smolphy.con <- coniss.helper("p68",euk.smolphy.only) # 2
+cutree(p68.smolphy.con, k = 2)
+SC.smolphy.con <- coniss.helper("SC",euk.smolphy.only) # 2
+cutree(SC.smolphy.con, k = 2)
+
+
+## what about the whole timeseries
+BB.con <- coniss.helper("BB", euk.prop) # 2
+cutree(BB.con, k = 2)
+MC.con <- coniss.helper("MC", euk.prop) # 2
+cutree(MC.con, k = 2)
+p56.con <- coniss.helper("p56", euk.prop) # 4
+cutree(p56.con, k = 4)
+p68.con <- coniss.helper("p68", euk.prop) # 3
+cutree(p68.con, k = 3)
+SC.con <- coniss.helper("SC", euk.prop) # 1
+cutree(SC.con, k = 1)
+
+
+####====Taxonomic overview + CONISS zoned big plots====####
+## Assumes everything up to and including '## Taxonomic overview' has been run
+
+####----0. Build the EUK Subdivision-level matrix used by the first big plot----####
+EUK.tax.a <- minAbundance(
+  CountTable(as.character(euk.pr2.2$Subdivision), euk.reps, output = "Abundance"),
+  minAbun = 0.01
+)
+row.names(EUK.tax.a)[1] <- "Unknown"
+EUK.tax.a.2 <- as.matrix(prop.table(
+  as.matrix(EUK.tax.a[, sort(colnames(EUK.tax.a))]), margin = 2
+))
+
+
+####----1. Helpers shared by all big plots----####
+
+make_site_year <- function(site, M, map, years){
+  out <- sapply(years, function(y){
+    smps <- map$SampleName[map$Site == site & map$CalYear == y]
+    if (length(smps) == 0) {
+      rep(0, nrow(M))
+    } else if (length(smps) == 1) {
+      M[, smps, drop = FALSE][, 1]
+    } else {
+      rowMeans(M[, smps, drop = FALSE], na.rm = TRUE)
+    }
+  })
+  rownames(out) <- rownames(M)
+  colnames(out) <- years
+  out
+}
+
+connect_observed <- function(M, bp, cols, alpha = 0.35, minval = 0){
+  M[is.na(M)] <- 0
+  obs <- which(colSums(M) > 0)
+  if (length(obs) < 2) return(invisible(NULL))
+  cs <- apply(M, 2, cumsum)
+  bt <- rbind(0, cs[-nrow(M), , drop = FALSE])
+  tp <- cs
+  for (r in seq_len(nrow(M))){
+    for (k in seq_len(length(obs) - 1)){
+      i <- obs[k]; j <- obs[k + 1]
+      if (M[r, i] <= minval && M[r, j] <= minval) next
+      polygon(
+        x = c(bp[i], bp[i], bp[j], bp[j]),
+        y = c(bt[r, i], tp[r, i], tp[r, j], bt[r, j]),
+        col = adjustcolor(cols[r], alpha.f = alpha),
+        border = NA
+      )
+    }
+  }
+  invisible(NULL)
+}
+
+coniss.helper <- function(site, data){
+  data.sites <- expandedDates$Site[match(colnames(data), expandedDates$SampleName)]
+  data.sub   <- data[, grepl(site, data.sites), drop = FALSE]
+  yrs        <- expandedDates$CalYear[match(colnames(data.sub), expandedDates$SampleName)]
+  data.sort  <- data.sub[, order(yrs), drop = FALSE]
+  d   <- vegdist(t(data.sort), method = "bray")
+  con <- chclust(d, method = "coniss")
+  con
+}
+
+coniss_boundaries <- function(con, k, map = expandedDates){
+  if (is.null(con) || k < 2) return(numeric(0))
+  cl  <- cutree(con, k = k)
+  yrs <- map$CalYear[match(names(cl), map$SampleName)]
+  br  <- which(diff(cl) != 0)
+  if (length(br) == 0) return(numeric(0))
+  (yrs[br] + yrs[br + 1]) / 2
+}
+
+draw_zone_lines <- function(boundary_years, bp, all_years,
+                            col = "darkred", lwd = 2, lty = 5){
+  if (length(boundary_years) == 0) return(invisible(NULL))
+  x <- approx(x = all_years, y = bp, xout = boundary_years, rule = 2)$y
+  abline(v = x, col = col, lwd = lwd, lty = lty, xpd = FALSE)
+}
+
+
+####----2. Build per-taxon community matrices----####
+
+euk.prop <- prop.table(as.matrix(euk.reps), margin = 2)
+
+## Metazoa
+euk.met.only  <- euk.prop[rownames(euk.prop) %in% ASVs.met, , drop = FALSE]
+euk.pr2.2.met <- euk.pr2.2[match(rownames(euk.met.only), euk.pr2.2$X.1), ]
+met.fam <- euk.pr2.2.met$Family
+met.fam[is.na(met.fam) | met.fam == ""] <- "Unknown"
+EUK.met   <- minAbundance(CountTable(met.fam, euk.met.only, output = "Abundance"), minAbun = 0.01)
+EUK.met.2 <- as.matrix(EUK.met)
+
+## Diatoms
+euk.dia.only  <- euk.prop[rownames(euk.prop) %in% ASVs.diatom, , drop = FALSE]
+euk.pr2.2.dia <- euk.pr2.2[match(rownames(euk.dia.only), euk.pr2.2$X.1), ]
+dia.fam <- euk.pr2.2.dia$Family
+dia.fam[is.na(dia.fam) | dia.fam == ""] <- "Unknown"
+EUK.dia   <- minAbundance(CountTable(dia.fam, euk.dia.only, output = "Abundance"), minAbun = 0.01)
+EUK.dia.3 <- as.matrix(EUK.dia)
+
+## Dinoflagellates
+euk.din.only  <- euk.prop[rownames(euk.prop) %in% ASVs.dino, , drop = FALSE]
+euk.pr2.2.din <- euk.pr2.2[match(rownames(euk.din.only), euk.pr2.2$X.1), ]
+din.fam <- euk.pr2.2.din$Family
+din.fam[is.na(din.fam) | din.fam == ""] <- "Unknown"
+EUK.din   <- minAbundance(CountTable(din.fam, euk.din.only, output = "Abundance"), minAbun = 0.01)
+EUK.din.2 <- as.matrix(EUK.din)
+
+## Small phytoplankton
+euk.smolphy.only  <- euk.prop[rownames(euk.prop) %in% ASVs.smolphy, , drop = FALSE]
+euk.pr2.2.smolphy <- euk.pr2.2[match(rownames(euk.smolphy.only), euk.pr2.2$X.1), ]
+smolphy.fam <- euk.pr2.2.smolphy$Family
+smolphy.fam[is.na(smolphy.fam) | smolphy.fam == ""] <- "Unknown"
+EUK.smolphy   <- minAbundance(CountTable(smolphy.fam, euk.smolphy.only, output = "Abundance"), minAbun = 0.01)
+EUK.smolphy.2 <- as.matrix(EUK.smolphy)
+
+
+####----3. Site/year scaffolding----####
+
+site.map <- c(BB3 = "BB", scAØ2 = "SC", MC3 = "MC", p68 = "p68", p56 = "p56")
+
+if (!exists("expandedDates")) {
+  cn <- colnames(euk.reps)
+  expandedDates <- merge(
+    data.frame(SampleName = cn,
+               Site       = site.map[regmatches(cn, regexpr("BB3|scAØ2|MC3|p68|p56", cn))],
+               SampleID   = as.numeric(sub(".*(?:BB3|scAØ2|MC3|p68|p56)[._]", "", cn, perl = TRUE)),
+               stringsAsFactors = FALSE),
+    dates, by = c("Site", "SampleID"), all.x = TRUE
+  )
+  expandedDates$originalCalYear <- expandedDates$CalYear
+  expandedDates$CalYear         <- round(expandedDates$CalYear)
+}
+
+all_years  <- min(unique(na.omit(expandedDates$CalYear))):max(unique(na.omit(expandedDates$CalYear)))
+sites      <- unique(expandedDates$Site)
+site_order <- c(2, 4, 3, 1, 5)
+
+
+####----4. CONISS for every site x dataset combination----####
+
+k_all  <- c(BB = 2, MC = 2, p56 = 4, p68 = 3, SC = 1)
+k_met  <- c(BB = 2, MC = 5, p56 = 3, p68 = 3, SC = 6)
+k_dia  <- c(BB = 3, MC = 3, p56 = 2, p68 = 3, SC = 1)
+k_din  <- c(BB = 2, MC = 1, p56 = 2, p68 = 4, SC = 1)
+k_smol <- c(BB = 2, MC = 1, p56 = 3, p68 = 2, SC = 2)
+
+run_coniss_all_sites <- function(M){
+  setNames(lapply(sites, function(s) coniss.helper(s, M)), sites)
+}
+
+con_all  <- run_coniss_all_sites(euk.prop)
+con_met  <- run_coniss_all_sites(euk.met.only)
+con_dia  <- run_coniss_all_sites(euk.dia.only)
+con_din  <- run_coniss_all_sites(euk.din.only)
+con_smol <- run_coniss_all_sites(euk.smolphy.only)
+
+zone_years <- function(con_list, k_vec){
+  setNames(lapply(names(con_list),
+                  function(s) coniss_boundaries(con_list[[s]], k_vec[s])),
+           names(con_list))
+}
+
+zones_all  <- zone_years(con_all,  k_all)
+zones_met  <- zone_years(con_met,  k_met)
+zones_dia  <- zone_years(con_dia,  k_dia)
+zones_din  <- zone_years(con_din,  k_din)
+zones_smol <- zone_years(con_smol, k_smol)
+
+
+####----5. Pre-compute site x year matrices and shared ylim per dataset----####
+
+build_site_mats <- function(M_full){
+  setNames(
+    lapply(sites, make_site_year, M = M_full,
+           map = expandedDates, years = all_years),
+    sites
+  )
+}
+
+# largest stacked-bar total observed across all sites for this dataset
+shared_ylim_max <- function(site_mats){
+  vals <- unlist(lapply(site_mats, function(mat) {
+    mat[is.na(mat)] <- 0
+    colSums(mat)
+  }))
+  max(vals, na.rm = TRUE)
+}
+
+site_mats_all  <- build_site_mats(EUK.tax.a.2[nrow(EUK.tax.a.2):1, ])
+site_mats_met  <- build_site_mats(EUK.met.2)
+site_mats_dia  <- build_site_mats(EUK.dia.3)
+site_mats_din  <- build_site_mats(EUK.din.2)
+site_mats_smol <- build_site_mats(EUK.smolphy.2)
+
+ymax_all  <- shared_ylim_max(site_mats_all)    # ~1 (proportions sum to 1)
+ymax_met  <- shared_ylim_max(site_mats_met)
+ymax_dia  <- shared_ylim_max(site_mats_dia)
+ymax_din  <- shared_ylim_max(site_mats_din)
+ymax_smol <- shared_ylim_max(site_mats_smol)
+
+
+####----6. Core plotting function----####
+# Same y-axis (0, ymax) across all 5 site panels of a dataset.
+# Legend placed on the LAST (bottom) panel using user-supplied coords,
+# matching the carefully placed legends from the original plots.
+
+big_plot_with_zones <- function(site_mats,
+                                zones_by_site,
+                                pal,
+                                ymax,
+                                pdf_path,
+                                legend_x, legend_y,
+                                legend_labels,
+                                legend_fill,
+                                legend_cex   = 0.6,
+                                ribbon_alpha = 0.70,
+                                width = 14, height = 10){
+  pdf(pdf_path, width = width, height = height)
+  par(mfrow = c(length(sites), 1),
+      mar = c(0.5, 4.1, 1.1, 1.1),
+      oma = c(6, 0, 0, 0),
+      xpd = NA)
+  
+  ylim <- c(0, ymax)
+  
+  for (idx in seq_along(site_order)) {
+    i    <- site_order[idx]
+    site <- sites[i]
+    mat  <- site_mats[[site]]
+    
+    bp <- barplot(mat,
+                  col    = pal,
+                  space  = 0,
+                  width  = 30,
+                  ylim   = ylim,
+                  border = NA,
+                  xaxt   = "n",
+                  yaxt   = "t")
+    connect_observed(M = mat, bp = bp, cols = pal, alpha = ribbon_alpha)
+    barplot(mat,
+            col    = pal,
+            space  = 0,
+            width  = 30,
+            ylim   = ylim,
+            border = NA,
+            xaxt   = "n",
+            yaxt   = "t",
+            add    = TRUE)
+    
+    draw_zone_lines(zones_by_site[[site]], bp, all_years)
+    
+    mtext(site, side = 2, line = 3, las = 0, cex = 0.9)
+    
+    if (idx == length(site_order)) {
+      axis(1, at = bp, labels = all_years, las = 2, cex.axis = 0.8)
+      mtext("Calibrated year", side = 1, line = 4)
+      
+      # Legend on the bottom panel; xpd = NA lets it draw outside the panel
+      legend(legend_x, legend_y,
+             legend = legend_labels,
+             fill   = legend_fill,
+             border = NA,
+             cex    = legend_cex,
+             bty    = "n",
+             inset  = c(-0.01, 0),
+             xpd    = NA)
+    }
+  }
+  dev.off()
+}
+
+
+####----7. Produce all five zoned big plots, with original legend placement----####
+
+if (!dir.exists("figures")) dir.create("figures", recursive = TRUE)
+
+# 7a. Whole-community Subdivision plot
+#     Original (EUK.bigplot.pdf): legend(0, 3, ..., fill = rev(pal), cex = 0.6)
+pal_all <- getPalette(nrow(EUK.tax.a.2))
+big_plot_with_zones(
+  site_mats     = site_mats_all,
+  zones_by_site = zones_all,
+  pal           = pal_all,
+  ymax          = ymax_all,
+  pdf_path      = "figures/EUK.bigplot.zoned.pdf",
+  legend_x      = 0, legend_y = 3,
+  legend_labels = rownames(EUK.tax.a.2),
+  legend_fill   = rev(pal_all),
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.70
+)
+
+# 7b. Metazoa
+#     Original (EUK.large.met.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
+pal_met <- rev(getPalette(nrow(EUK.met.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_met,
+  zones_by_site = zones_met,
+  pal           = pal_met,
+  ymax          = ymax_met,
+  pdf_path      = "figures/EUK.large.met.zoned.pdf",
+  legend_x      = 0, legend_y = 0.4,
+  legend_labels = rownames(EUK.met.2),
+  legend_fill   = pal_met,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.70
+)
+
+# 7c. Diatoms
+#     Original (EUK.large.dia.pdf): legend(0, 0.4, ..., fill = pal, cex = 0.6)
+pal_dia <- rev(getPalette(nrow(EUK.dia.3)))
+big_plot_with_zones(
+  site_mats     = site_mats_dia,
+  zones_by_site = zones_dia,
+  pal           = pal_dia,
+  ymax          = ymax_dia,
+  pdf_path      = "figures/EUK.large.dia.zoned.pdf",
+  legend_x      = 0, legend_y = 0.4,
+  legend_labels = rownames(EUK.dia.3),
+  legend_fill   = pal_dia,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+# 7d. Dinoflagellates
+#     Original (EUK.large.din.pdf): legend(0, 0.12, ..., fill = pal, cex = 0.6)
+pal_din <- rev(getPalette(nrow(EUK.din.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_din,
+  zones_by_site = zones_din,
+  pal           = pal_din,
+  ymax          = ymax_din,
+  pdf_path      = "figures/EUK.large.din.zoned.pdf",
+  legend_x      = 0, legend_y = 0.12,
+  legend_labels = rownames(EUK.din.2),
+  legend_fill   = pal_din,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+# 7e. Small phytoplankton
+#     Original (EUK.large.smol.pdf): legend(0, 0.04, ..., fill = pal, cex = 0.6)
+pal_smol <- rev(getPalette(nrow(EUK.smolphy.2)))
+big_plot_with_zones(
+  site_mats     = site_mats_smol,
+  zones_by_site = zones_smol,
+  pal           = pal_smol,
+  ymax          = ymax_smol,
+  pdf_path      = "figures/EUK.large.smol.zoned.pdf",
+  legend_x      = 0, legend_y = 0.2,
+  legend_labels = rownames(EUK.smolphy.2),
+  legend_fill   = pal_smol,
+  legend_cex    = 0.6,
+  ribbon_alpha  = 0.35
+)
+
+####----8. PDF → PNG via sips (one line each)----####
+
+library(parallel)
+
+pdfs <- c("figures/EUK.bigplot.zoned.pdf",
+          "figures/EUK.large.met.zoned.pdf",
+          "figures/EUK.large.dia.zoned.pdf",
+          "figures/EUK.large.din.zoned.pdf",
+          "figures/EUK.large.smol.zoned.pdf")
+
+invisible(mclapply(pdfs, function(f) {
+  system2("sips", c("-s","format","png","-z",6000,8400, f, "--out", sub("\\.pdf$",".png",f)))
+}, mc.cores = 5))
+
 
 
 
