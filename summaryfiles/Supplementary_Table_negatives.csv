@@ -1,0 +1,4 @@
+"marker","extraction_reps","pcr_reps","median_reads","max_reads","total_reads","under_100_reads","over_1000_reads","human_pct","top_non_human"
+"18S",56,73,9,402,3946,106,0,0.2,"Chaetoceros (2203); Cryothecomonas (178); Ebria (58); Apatococcus (50); Botuliforma (38)"
+"16S",52,73,4,342036,1317355,99,10,99.9,"Balaenoptera (340); Lobodon (66); Orcinus (25); Megaptera (21); Pan (19)"
+"12S",44,54,2,163100,431152,69,9,59.5,"Sus (99058); Canis (28719); Pleuragramma (125); Balaenoptera (119); Lobodon (37)"

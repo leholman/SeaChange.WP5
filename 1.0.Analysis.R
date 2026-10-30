@@ -3135,7 +3135,51 @@ for (s in unique(rat.site)) {
 axis(1,at=seq(1750,2025,by=25),label=seq(1750,2025,by=25))
 dev.off()
 
+#### controls
 
+# Negative control summary per marker, both sequencing runs combined (base R)
+
+markers <- list(
+  "18S" = c("NS1.negatives.csv",     "NS2.negatives.csv"),
+  "16S" = c("NS1.MAM.negatives.csv", "NS2.MAM.negatives.csv"),
+  "12S" = c("NS1.RIZ.negatives.csv", "NS2.RIZ.negatives.csv")
+)
+
+summarise_marker <- function(files) {
+  reps <- c(); taxa <- c(); ext <- c()
+  for (f in files) {
+    x <- read.csv(paste0("cleandata/negatives/",f), check.names = FALSE)
+    cols <- grep("^(EUK|MAM|RIZ)[._]", names(x), value = TRUE)
+    m <- as.matrix(x[, cols])
+    reps <- c(reps, colSums(m))
+    ext  <- c(ext, grepl("extraction|ExBlank", cols, ignore.case = TRUE))
+    lab <- x$genus
+    lab[is.na(lab) | lab %in% c("", "Can't find taxa in database")] <- "Unassigned"
+    taxa <- c(taxa, tapply(rowSums(m), lab, sum))
+  }
+  taxa  <- tapply(taxa, names(taxa), sum)
+  other <- sort(taxa[!names(taxa) %in% c("Homo", "Unassigned")], decreasing = TRUE)[1:5]
+  data.frame(
+    extraction_reps = sum(ext),
+    pcr_reps        = sum(!ext),
+    median_reads    = median(reps),
+    max_reads       = max(reps),
+    total_reads     = sum(reps),
+    under_100_reads = sum(reps > 0 & reps < 100),
+    over_1000_reads = sum(reps > 1000),
+    human_pct       = round(100 * taxa["Homo"] / sum(taxa), 1),
+    top_non_human   = paste0(names(other), " (", other, ")", collapse = "; ")
+  )
+}
+
+out <- do.call(rbind, lapply(markers, summarise_marker))
+out <- cbind(marker = names(markers), out)
+print(out)
+write.csv(out, "summaryfiles/Supplementary_Table_negatives.csv", row.names = FALSE)
+
+
+
+###### BASEMENT #####
 
 
 ####lets plot the salps and krill 
