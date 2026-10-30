@@ -1,5 +1,5 @@
-# SeaChange.WP5.2
-Antarctic marine sediment core sedaDNA metabarcoding (18S/12S/16S) biodiversity analysis
+# Antarctic eDNA Analysis
+Western Antarctic Peninsula marine sediment core sedaDNA metabarcoding (18S/12S/16S) biodiversity analysis
 
 This repository accompanies the manuscript **Ancient environmental DNA reveals the distinct fingerprints of whaling and 
 climate change on Antarctic marine biodiversity**. Descriptions of scripts and folders can be found below. 
